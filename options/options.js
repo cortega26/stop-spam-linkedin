@@ -63,10 +63,25 @@
       whitelist = changes[WHITELIST_STORAGE_KEY].newValue || [];
       renderWhitelist();
     }
+    if (changes[STORAGE_KEY]) {
+      phrases = changes[STORAGE_KEY].newValue || [];
+      render();
+    }
+    if (changes[LANG_STORAGE_KEY]) {
+      enabledLangs = changes[LANG_STORAGE_KEY].newValue || ["EN", "ES", "FR", "PT", "DE"];
+      render();
+    }
   });
 
   function save() {
-    chrome.storage.sync.set({ [STORAGE_KEY]: phrases });
+    const prev = phrases.slice();
+    chrome.storage.sync.set({ [STORAGE_KEY]: phrases }, () => {
+      if (chrome.runtime.lastError) {
+        phrases = prev;
+        render();
+        showToast("Storage write failed: " + chrome.runtime.lastError.message, true);
+      }
+    });
     render();
   }
 
@@ -111,6 +126,20 @@
 
   /* ── CRUD ───────────────────────────────────────────────────── */
 
+  function highlightDuplicate(text) {
+    /* Find visible row by matching text content (index can be wrong
+       when a search filter limits visible rows). */
+    const lower = text.toLowerCase();
+    for (const row of list.querySelectorAll(".phrase-row.custom")) {
+      if (row.querySelector(".text")?.textContent.toLowerCase() === lower) {
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+        row.classList.add("duplicate-highlight");
+        setTimeout(() => row.classList.remove("duplicate-highlight"), 2000);
+        break;
+      }
+    }
+  }
+
   function handleAdd() {
     const text = input.value.trim();
     if (!text) return;
@@ -122,14 +151,8 @@
     if (dup !== -1) {
       showToast(t("duplicatePhraseToast", text), true);
       input.value = "";
-      /* Highlight the existing row */
       render();
-      const rows = list.querySelectorAll(".phrase-row.custom");
-      if (rows[dup]) {
-        rows[dup].scrollIntoView({ behavior: "smooth", block: "center" });
-        rows[dup].classList.add("duplicate-highlight");
-        setTimeout(() => rows[dup].classList.remove("duplicate-highlight"), 2000);
-      }
+      highlightDuplicate(text);
       return;
     }
     if (phrases.length >= MAX_CUSTOM_PHRASES) {
@@ -196,6 +219,19 @@
     if (!editInput) return;
     const text = editInput.value.trim();
     if (!text) return;
+
+    /* Duplicate check (skip self) */
+    const dup = phrases.findIndex(
+      (x) => x.id !== id && x.text.toLowerCase() === text.toLowerCase()
+    );
+    if (dup !== -1) {
+      showToast(t("duplicatePhraseToast", text), true);
+      editId = null;
+      render();
+      highlightDuplicate(text);
+      return;
+    }
+
     const p = phrases.find((x) => x.id === id);
     if (p) {
       p.text = text;
@@ -265,34 +301,40 @@
       return;
     }
     const json = JSON.stringify(phrases, null, 2);
-    navigator.clipboard.writeText(json).then(
-      () => showToast(
+
+    function downloadFallback() {
+      const blob = new Blob([json], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "linkedin-spam-blocker-phrases.json";
+      a.click();
+      URL.revokeObjectURL(url);
+      showToast(
         countMessage(
-          "exportedClipboardOne",
-          "exportedClipboardMany",
+          "exportedDownloadedOne",
+          "exportedDownloadedMany",
           phrases.length,
           phrases.length
         )
-      ),
-      () => {
-        /* Fallback: download */
-        const blob = new Blob([json], { type: "application/json" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "linkedin-spam-blocker-phrases.json";
-        a.click();
-        URL.revokeObjectURL(url);
-        showToast(
+      );
+    }
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(json).then(
+        () => showToast(
           countMessage(
-            "exportedDownloadedOne",
-            "exportedDownloadedMany",
+            "exportedClipboardOne",
+            "exportedClipboardMany",
             phrases.length,
             phrases.length
           )
-        );
-      }
-    );
+        ),
+        downloadFallback
+      );
+    } else {
+      downloadFallback();
+    }
   }
 
   function handleImport() {
@@ -322,7 +364,7 @@
           skipped++;
           continue;
         }
-        if (!item.text || typeof item.text !== "string") {
+        if (!item.text || typeof item.text !== "string" || !item.text.trim()) {
           skipped++;
           continue;
         }
@@ -441,7 +483,7 @@
       const isConfirming = pendingWhitelistRemove === id;
       const rmBtn = document.createElement("button");
       rmBtn.className = isConfirming ? "confirming" : "";
-      rmBtn.textContent = isConfirming ? chrome.i18n.getMessage("clickToConfirm") : chrome.i18n.getMessage("remove");
+      rmBtn.textContent = isConfirming ? t("clickToConfirm") : t("remove");
       rmBtn.setAttribute("aria-label", t("removeWhitelistedAuthorLabel", id));
       rmBtn.title = t("removeWhitelistedAuthorLabel", id);
       rmBtn.addEventListener("click", () => {
@@ -539,7 +581,7 @@
     text.append(document.createTextNode(bp.label));
     const bl = document.createElement("span");
     bl.className = "builtin-label";
-    bl.textContent = chrome.i18n.getMessage("builtinLabel");
+    bl.textContent = t("builtinLabel");
     text.appendChild(bl);
     div.appendChild(text);
     div.appendChild(document.createElement("div")).className = "actions";
@@ -566,11 +608,11 @@
     /* Mode badge (clickable) */
     const badge = document.createElement("span");
     badge.className = "mode-badge" + (p.mode === "contains" ? " contains" : "");
-    badge.textContent = p.mode === "contains" ? chrome.i18n.getMessage("contains") : chrome.i18n.getMessage("exact");
+    badge.textContent = p.mode === "contains" ? t("contains") : t("exact");
     badge.title =
       p.mode === "contains"
-        ? chrome.i18n.getMessage("containsTooltip")
-        : chrome.i18n.getMessage("exactTooltip");
+        ? t("containsTooltip")
+        : t("exactTooltip");
     badge.setAttribute("role", "button");
     badge.setAttribute("tabindex", "0");
     badge.setAttribute("aria-label", t("modeToggleLabel", [p.text, badge.textContent]));
@@ -596,12 +638,12 @@
 
       const saveBtn = document.createElement("button");
       saveBtn.className = "save";
-      saveBtn.textContent = chrome.i18n.getMessage("save");
+      saveBtn.textContent = t("save");
       saveBtn.addEventListener("click", () => handleSaveEdit(p.id));
       editWrap.appendChild(saveBtn);
 
       const cancelBtn = document.createElement("button");
-      cancelBtn.textContent = chrome.i18n.getMessage("cancel");
+      cancelBtn.textContent = t("cancel");
       cancelBtn.addEventListener("click", handleCancelEdit);
       editWrap.appendChild(cancelBtn);
 
@@ -616,7 +658,7 @@
     actions.className = "actions";
 
     const editBtn = document.createElement("button");
-    editBtn.textContent = chrome.i18n.getMessage("edit");
+    editBtn.textContent = t("edit");
     editBtn.setAttribute("aria-label", t("editPhraseLabel", p.text));
     editBtn.title = t("editPhraseLabel", p.text);
     editBtn.addEventListener("click", () => handleEdit(p.id));
@@ -625,7 +667,7 @@
     const isConfirming = pendingDeleteId === p.id;
     const delBtn = document.createElement("button");
     delBtn.className = "danger" + (isConfirming ? " confirming" : "");
-    delBtn.textContent = isConfirming ? chrome.i18n.getMessage("clickToConfirm") : chrome.i18n.getMessage("delete");
+    delBtn.textContent = isConfirming ? t("clickToConfirm") : t("delete");
     delBtn.setAttribute("aria-label", t("deletePhraseLabel", p.text));
     delBtn.title = t("deletePhraseLabel", p.text);
     delBtn.addEventListener("click", () => handleDelete(p.id));

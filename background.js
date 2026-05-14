@@ -1,15 +1,20 @@
 (function () {
   "use strict";
 
+  function t(key, subs) {
+    return chrome.i18n.getMessage(key, subs) || key;
+  }
+
   const STORAGE_KEY = "ss_phrases";
   const MENU_ID = "ss-add-phrase";
   const MAX_CUSTOM_PHRASES = 200;
 
   /* ── Init ───────────────────────────────────────────────────── */
-  chrome.runtime.onInstalled.addListener(() => {
+  chrome.runtime.onInstalled.addListener((details) => {
+    if (details.reason !== "install") return;
     chrome.contextMenus.create({
       id: MENU_ID,
-      title: chrome.i18n.getMessage("contextMenuTitle"),
+      title: t("contextMenuTitle"),
       contexts: ["selection"],
     });
   });

@@ -48,7 +48,6 @@
   "cancel": { "message": "Cancel" },
   "exactTooltip": { "message": "Exact mode: matches whole words only (click to switch)" },
   "containsTooltip": { "message": "Contains mode: matches any post containing this text (click to switch)" },
-  "deleteConfirm": { "message": "Delete \"$1\"?" },
   "footerSites": { "message": "Runs on supported LinkedIn feed, profile, company, group, search, jobs, notification, network, newsletter, and article pages" },
   "detectionLangs": { "message": "Detection Languages" },
   "whitelistTitle": { "message": "Whitelisted Authors" },

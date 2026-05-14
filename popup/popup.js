@@ -6,9 +6,14 @@
     COUNT: "ss_blocked_count",
     DAILY_COUNTS: "ss_daily_counts",
     SNOOZE_UNTIL: "ss_snooze_until",
+    ONBOARDED: "ss_onboarded",
   });
 
   const SNOOZE_DURATION_MS = 30 * 60 * 1000;
+
+  function t(key, subs) {
+    return chrome.i18n.getMessage(key, subs) || key;
+  }
 
   const toggleEl = document.getElementById("toggleEnabled");
   const countEl = document.getElementById("blockedCount");
@@ -66,6 +71,7 @@
       STORAGE_KEYS.COUNT,
       STORAGE_KEYS.DAILY_COUNTS,
       STORAGE_KEYS.SNOOZE_UNTIL,
+      STORAGE_KEYS.ONBOARDED,
     ].forEach((key) => {
       if (localResult[key] === undefined && syncResult[key] !== undefined) {
         localPatch[key] = syncResult[key];
@@ -167,6 +173,7 @@
 
   function renderState(response, hasLiveState) {
     showConnectionState(true);
+    connectionNotice.textContent = t("noLiveTabNotice");
     connectionNotice.style.display = hasLiveState ? "none" : "block";
     toggleEl.checked = response.enabled;
     countEl.textContent = response.blockedCount;
@@ -203,12 +210,12 @@
         const time = document.createElement("span");
         time.className = "lb-time";
         const ago = Math.round((Date.now() - item.timestamp) / 60000);
-        time.textContent = ago < 1 ? chrome.i18n.getMessage("justNow") : ago + chrome.i18n.getMessage("mAgo");
+        time.textContent = ago < 1 ? t("justNow") : ago + t("mAgo");
         row.appendChild(time);
 
         const undoBtn = document.createElement("button");
         undoBtn.className = "lb-undo";
-        undoBtn.textContent = chrome.i18n.getMessage("undo");
+        undoBtn.textContent = t("undo");
         undoBtn.addEventListener("click", () => {
           send({ action: "undoBlock", index }, (resp) => {
             if (resp && resp.ok) refreshState();
@@ -232,12 +239,12 @@
 
         const text = document.createElement("span");
         text.className = "suggestion-text";
-        text.textContent = chrome.i18n.getMessage("add") + ' "' + s.word + '"?';
+        text.textContent = t("add") + ' "' + s.word + '"?';
         row.appendChild(text);
 
         const addBtn = document.createElement("button");
         addBtn.className = "suggestion-add";
-        addBtn.textContent = chrome.i18n.getMessage("add");
+        addBtn.textContent = t("add");
         addBtn.addEventListener("click", () => {
           send({ action: "addSuggestion", word: s.word }, (resp) => {
             if (resp && resp.ok) refreshState();
@@ -248,8 +255,8 @@
         const dismissBtn = document.createElement("button");
         dismissBtn.className = "suggestion-dismiss";
         dismissBtn.textContent = "×";
-        dismissBtn.title = chrome.i18n.getMessage("suggestionDismiss");
-        dismissBtn.setAttribute("aria-label", chrome.i18n.getMessage("suggestionDismiss"));
+        dismissBtn.title = t("suggestionDismiss");
+        dismissBtn.setAttribute("aria-label", t("suggestionDismiss"));
         dismissBtn.addEventListener("click", () => {
           send({ action: "dismissSuggestion", word: s.word }, () => refreshState());
         });
@@ -264,12 +271,12 @@
     if (response.snoozed) {
       const until = new Date(response.snoozeUntil);
       snoozeStatus.textContent =
-        chrome.i18n.getMessage("snoozedUntil") + " " + until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      snoozeBtn.textContent = chrome.i18n.getMessage("cancelSnooze");
+        t("snoozedUntil") + " " + until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      snoozeBtn.textContent = t("cancelSnooze");
       snoozeBtn.dataset.snoozing = "1";
     } else {
       snoozeStatus.textContent = "";
-      snoozeBtn.textContent = chrome.i18n.getMessage("snooze30");
+      snoozeBtn.textContent = t("snooze30");
       snoozeBtn.dataset.snoozing = "";
     }
   }
@@ -326,14 +333,14 @@
         );
       });
       resetBtn.dataset.confirming = "";
-      resetBtn.textContent = chrome.i18n.getMessage("resetCount");
+      resetBtn.textContent = t("resetCount");
     } else {
       resetBtn.dataset.confirming = "1";
-      resetBtn.textContent = chrome.i18n.getMessage("clickToConfirm");
+      resetBtn.textContent = t("clickToConfirm");
       setTimeout(() => {
         if (resetBtn.dataset.confirming === "1") {
           resetBtn.dataset.confirming = "";
-          resetBtn.textContent = chrome.i18n.getMessage("resetCount");
+          resetBtn.textContent = t("resetCount");
         }
       }, 3000);
     }

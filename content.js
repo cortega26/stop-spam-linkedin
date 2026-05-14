@@ -60,6 +60,10 @@
 
   const DEFAULT_ENABLED_LANGS = Object.freeze(["EN", "ES", "FR", "PT", "DE"]);
 
+  function t(key, subs) {
+    return chrome.i18n.getMessage(key, subs) || key;
+  }
+
   /* Built from BASE_PATTERNS + user keywords at runtime. */
   let spamPatterns = [];
 
@@ -344,7 +348,7 @@
         break;
 
       case "addSuggestion":
-        if (userPhrases.some(p => p.text.toLowerCase() === msg.word.toLowerCase())) {
+        if (!msg.word || userPhrases.some(p => p.text.toLowerCase() === msg.word.toLowerCase())) {
           sendResponse({ ok: false, reason: "duplicate" });
           break;
         }
@@ -359,7 +363,12 @@
           created: Date.now(),
           mode: "exact",
         });
-        chrome.storage.sync.set({ [PHRASES_STORAGE_KEY]: userPhrases });
+        chrome.storage.sync.set({ [PHRASES_STORAGE_KEY]: userPhrases }, () => {
+          if (chrome.runtime.lastError) {
+            userPhrases.pop();
+            console.warn("Failed to save suggestion phrase:", chrome.runtime.lastError.message);
+          }
+        });
         pendingSuggestions = pendingSuggestions.filter(s => s.word !== msg.word);
         sendResponse({ ok: true });
         break;
@@ -413,13 +422,18 @@
       }
     }
     const custom = (phrases || [])
-      .filter((p) => p.enabled)
+      .filter((p) => p.enabled && p.text.trim().length > 0)
       .map((p) => {
         const escaped = escapeRegex(p.text);
         if (p.mode === "contains") {
           return new RegExp(escaped, "i");
         }
-        return new RegExp("\\b" + escaped + "\\b", "i");
+        /* Only add \b anchors when adjacent char is a word character.
+           Prevents silent non-matching phrases like "hello?" where \b
+           after ? can never be true (non-word → end = no boundary). */
+        const start = /^\w/.test(p.text) ? "\\b" : "";
+        const end = /\w$/.test(p.text) ? "\\b" : "";
+        return new RegExp(start + escaped + end, "i");
       });
     return [...builtin, ...custom];
   }
@@ -647,10 +661,14 @@
     if (textNode) {
       const txt = textNode.textContent;
       const isCustom = userPhrases.some(p => {
-        if (!p.enabled) return false;
+        if (!p.enabled || !p.text.trim()) return false;
         const escaped = escapeRegex(p.text);
-        const re = p.mode === "contains" ? new RegExp(escaped, "i") : new RegExp("\\b" + escaped + "\\b", "i");
-        return re.test(txt);
+        if (p.mode === "contains") {
+          return new RegExp(escaped, "i").test(txt);
+        }
+        const start = /^\w/.test(p.text) ? "\\b" : "";
+        const end = /\w$/.test(p.text) ? "\\b" : "";
+        return new RegExp(start + escaped + end, "i").test(txt);
       });
       if (!isCustom) {
         const word = extractSuggestionWord(txt);
@@ -667,7 +685,6 @@
     /* Daily stats. */
     const key = getTodayKey();
     dailyCounts[key] = (dailyCounts[key] || 0) + 1;
-    chrome.storage.local.set({ [STORAGE_KEYS.DAILY_COUNTS]: dailyCounts });
 
     /* First-run toast. */
     if (!onboarded) showFirstRunToast();
@@ -683,14 +700,14 @@
     ].join("");
 
     const label = document.createElement("span");
-    label.textContent = chrome.i18n.getMessage("blockedBy");
+    label.textContent = t("blockedBy");
     placeholder.appendChild(label);
 
     const matchedText = textNode ? textNode.textContent : "";
 
     const notSpamBtn = document.createElement("button");
-    notSpamBtn.textContent = chrome.i18n.getMessage("notSpam");
-    notSpamBtn.title = chrome.i18n.getMessage("notSpamTooltip");
+    notSpamBtn.textContent = t("notSpam");
+    notSpamBtn.title = t("notSpamTooltip");
     notSpamBtn.style.cssText = [
       "background:none; border:1px solid #d0d0d0; border-radius:4px;",
       "padding:4px 12px; cursor:pointer; font-size:13px; color:#767676;",
@@ -708,7 +725,7 @@
 
     /* "Never block this author" button (only if we found an author ID). */
     const whitelistBtn = document.createElement("button");
-    whitelistBtn.textContent = chrome.i18n.getMessage("neverBlock");
+    whitelistBtn.textContent = t("neverBlock");
     whitelistBtn.style.cssText = [
       "background:none; border:1px solid #d0d0d0; border-radius:4px;",
       "padding:4px 12px; cursor:pointer; font-size:12px; color:#767676;",
@@ -726,7 +743,7 @@
     if (authorId) placeholder.appendChild(whitelistBtn);
 
     const restoreBtn = document.createElement("button");
-    restoreBtn.textContent = chrome.i18n.getMessage("show");
+    restoreBtn.textContent = t("show");
     restoreBtn.style.cssText = [
       "background:none; border:1px solid #999; border-radius:4px;",
       "padding:4px 12px; cursor:pointer; font-size:13px; color:#555;",
@@ -739,7 +756,14 @@
 
     post.parentNode?.insertBefore(placeholder, post.nextSibling);
 
-    chrome.storage.local.set({ [STORAGE_KEYS.COUNT]: blockedCount });
+    /* Note: multi-tab race — two LinkedIn tabs can overwrite each
+       other's count+stats since each content script has independent
+       state. A central coordinator (service-worker serialised counter)
+       would fix this, but incidence is low and impact is cosmetic. */
+    chrome.storage.local.set({
+      [STORAGE_KEYS.COUNT]: blockedCount,
+      [STORAGE_KEYS.DAILY_COUNTS]: dailyCounts,
+    });
   }
 
   /* ==================================================================
@@ -884,7 +908,7 @@
     chrome.storage.local.set({ [STORAGE_KEYS.ONBOARDED]: true });
 
     const banner = document.createElement("div");
-    banner.textContent = chrome.i18n.getMessage("blockedToast", [String(blockedCount)]);
+    banner.textContent = t("blockedToast", [String(blockedCount)]);
     Object.assign(banner.style, {
       padding: "10px 24px",
       margin: "8px auto",

@@ -48,7 +48,6 @@
   "cancel": { "message": "Cancelar" },
   "exactTooltip": { "message": "Modo exacto: coincide solo con palabras completas (clic para cambiar)" },
   "containsTooltip": { "message": "Modo contiene: coincide con cualquier post que contenga este texto (clic para cambiar)" },
-  "deleteConfirm": { "message": "¿Eliminar \"$1\"?" },
   "footerSites": { "message": "Funciona en páginas compatibles de feed, perfiles, empresas, grupos, búsqueda, empleos, notificaciones, red, newsletters y artículos de LinkedIn" },
   "detectionLangs": { "message": "Idiomas de detección" },
   "whitelistTitle": { "message": "Autores en lista blanca" },

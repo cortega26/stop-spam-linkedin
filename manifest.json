@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LinkedIn Spam Blocker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Blocks LinkedIn engagement-bait spam that asks you to \"Comment X and I will send...\"",
   "default_locale": "en",
 

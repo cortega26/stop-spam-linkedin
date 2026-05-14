@@ -89,7 +89,7 @@ Useful commands:
 
 - `npm run smoke` — validates JSON and checks JavaScript syntax
 - `npm run test:extension` — loads the unpacked extension in Chromium and verifies a mock LinkedIn spam post is hidden
-- `npm run package` — creates `dist/linkedin-spam-blocker-1.0.0.zip`
+- `npm run package` — creates `dist/linkedin-spam-blocker-{version}.zip` (version from manifest.json)
 
 ## Permissions
 

@@ -15,7 +15,7 @@
 ## Package
 
 - Run `npm run package`.
-- Inspect `dist/linkedin-spam-blocker-1.0.0.zip`.
+- Inspect `dist/linkedin-spam-blocker-{version}.zip` (version from manifest.json).
 - Confirm the zip includes extension runtime files, locales, icons, popup/options files, privacy policy, README, changelog, release notes, version file, and license.
 - Confirm the zip excludes `node_modules/`, `tests/`, `scripts/`, `.codacy/`, `.agents/`, `.claude/`, `.continue/`, `assets/`, `screenshots/`, and local/editor files.
 
@@ -24,5 +24,5 @@
 - Use `STORE_ASSETS.md` for short description, detailed description, category, tags, and asset references.
 - Upload the generated zip.
 - Upload screenshots and promo assets from `screenshots/`.
-- Paste the `1.0.0` notes from `RELEASE_NOTES.md`.
+- Paste the current version's notes from `RELEASE_NOTES.md`.
 - Verify Chrome Web Store and Firefox Add-ons privacy disclosures match `PRIVACY_POLICY.md`.

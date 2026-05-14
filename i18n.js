@@ -51,7 +51,29 @@
     });
   }
 
+  /* Fallback: walk all elements and check child text nodes directly.
+     Catches text inside display:none elements that TreeWalker may skip. */
+  function localizeAllNodeValues() {
+    const elements = documentRef.querySelectorAll("*");
+    for (let i = 0; i < elements.length; i++) {
+      const el = elements[i];
+      const tag = el.tagName;
+      if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT") continue;
+      const children = el.childNodes;
+      for (let j = 0; j < children.length; j++) {
+        const child = children[j];
+        if (child.nodeType === 3 && child.nodeValue.includes("__MSG_")) {
+          const nextValue = replaceTokens(child.nodeValue);
+          if (nextValue !== child.nodeValue) {
+            child.nodeValue = nextValue;
+          }
+        }
+      }
+    }
+  }
+
   documentRef.title = replaceTokens(documentRef.title);
   localizeTextNodes();
   localizeAttributes();
+  localizeAllNodeValues();
 })();

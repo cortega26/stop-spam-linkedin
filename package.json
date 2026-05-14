@@ -1,11 +1,11 @@
 {
   "name": "linkedin-spam-blocker",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "scripts": {
     "smoke": "jq empty manifest.json _locales/en/messages.json _locales/es/messages.json && node --check content.js && node --check background.js && node --check popup/popup.js && node --check options/options.js && node --check i18n.js && node --check tests/extension-smoke.js",
     "test:extension": "if [ -n \"$DISPLAY\" ]; then node tests/extension-smoke.js; else xvfb-run -a node tests/extension-smoke.js; fi",
-    "test:package": "npm run package && if [ -n \"$DISPLAY\" ]; then node tests/extension-smoke.js dist/linkedin-spam-blocker-1.0.0.zip; else xvfb-run -a node tests/extension-smoke.js dist/linkedin-spam-blocker-1.0.0.zip; fi",
+    "test:package": "npm run package && if [ -n \"$DISPLAY\" ]; then node tests/extension-smoke.js dist/linkedin-spam-blocker-*.zip; else xvfb-run -a node tests/extension-smoke.js dist/linkedin-spam-blocker-*.zip; fi",
     "package": "node scripts/package-extension.js"
   },
   "devDependencies": {
