@@ -11,17 +11,16 @@
 
 **Leer en:** [English](../README.md) | **Español** | [Français](README.fr.md) | [Português](README.pt.md) | [Deutsch](README.de.md)
 
-Limpia el ruido del feed de LinkedIn sin enviar tu feed a ninguna parte.
+Esas publicaciones de "comenta ESTRATEGIA abajo y te mando el framework" estan en todas partes. LinkedIn Spam Blocker las oculta automaticamente — todo en tu navegador, sin enviar nada a ninguna parte.
 
-LinkedIn Spam Blocker oculta publicaciones comunes de engagement bait que piden comentar una palabra clave como "CLAUDE", "SKILL" o "PROMPTS" para recibir un archivo, una plantilla, un paquete de prompts o "acceso". Funciona localmente en tu navegador, es compatible con Chrome y Firefox, y te permite deshacer o ajustar el bloqueo cuando se equivoca.
+Detecta publicaciones que piden comentar una palabra clave como "CLAUDE", "SKILL" o "PROMPTS" para recibir un archivo, una plantilla, un paquete de prompts o "acceso". Funciona en Chrome y Firefox, incluye patrones para cinco idiomas de fabrica, y te permite deshacer o ajustar el bloqueo cuando se equivoca.
 
 ## Resumen
 
-- **Privado por diseño** — sin analitica, telemetria, listas remotas, APIs de IA ni solicitudes de red
-- **Pensado para el feed real de LinkedIn** — analiza publicaciones nuevas mientras haces scroll, sin depender de selectores CSS fragiles
-- **Ajustable** — agrega frases personalizadas, elige idiomas de deteccion, permite autores e importa/exporta tu lista
-- **Reversible** — muestra una publicacion oculta temporalmente o marcala como "No es spam" para que ese mismo texto no vuelva a bloquearse
-- **Ligero** — JavaScript vanilla, Manifest V3, sin paso de compilacion
+- **Privado por diseno** — sin analitica, telemetria, listas remotas, APIs de IA ni solicitudes de red de ningun tipo
+- **Multilingue** — patrones integrados para ingles, espanol, frances, portugues y aleman, todos activables independientemente
+- **Ajustable** — agrega frases personalizadas, permite autores de confianza e importa/exporta tu lista
+- **Reversible** — muestra una publicacion oculta temporalmente o marcala como "No es spam" para que ese mismo texto nunca vuelva a bloquearse
 
 ## Por que existe
 
@@ -37,19 +36,28 @@ La deteccion es heuristica, no magia. Puede pasar por alto nuevos formatos de sp
 
 ## Funciones
 
-- **Deteccion solo local** — cero solicitudes de red, sin analitica, sin telemetria, sin APIs externas
-- **Patrones integrados** — detecta estructuras comunes de comentar-para-revelar en ingles, espanol, frances, portugues y aleman
-- **Frases personalizadas** — agrega tus propias palabras o frases con coincidencia Exacta o Contiene, con limites para mantener almacenamiento y busqueda livianos
-- **Analisis independiente de selectores** — usa analisis de texto del DOM en vez de clases CSS fragiles de LinkedIn
-- **Analisis incremental** — revisa publicaciones nuevas mientras haces scroll
-- **Creacion desde clic derecho** — selecciona texto y agregalo desde el menu contextual del navegador
-- **Actualizaciones en vivo** — los cambios de frases e idiomas se aplican sin recargar la extension
-- **Pausa temporal** — suspende el bloqueo por 30 minutos con reactivacion automatica
-- **Importar / Exportar** — respalda o comparte tu lista de frases como JSON
-- **Deshacer y controlar falsos positivos** — haz clic en "Mostrar" o "No es spam" desde el marcador
-- **Lista de autores permitidos** — evita bloquear autores de perfiles, empresas, escuelas o showcases especificos
-- **Estadisticas** — conteos bloqueados de hoy, esta semana y de por vida en el popup
-- **Rutas compatibles de LinkedIn** — feed, perfiles, publicaciones, paginas de empresa, grupos, busqueda, Mi red, notificaciones, empleos, newsletters y articulos
+**Privacidad**
+- Cero solicitudes de red — sin analitica, telemetria, APIs externas ni listas remotas
+- Todos los datos quedan en el almacenamiento del navegador; nada se transmite jamas
+
+**Deteccion**
+- Patrones integrados para ingles, espanol, frances, portugues y aleman, activables individualmente
+- Analisis de texto del DOM en vez de clases CSS fragiles de LinkedIn — resiste mejor los cambios de diseno del feed
+- Analisis incremental: detecta publicaciones nuevas mientras haces scroll
+- Frases personalizadas con coincidencia Exacta o Contiene
+
+**Controles**
+- Deshacer cualquier publicacion bloqueada desde el popup o el marcador en el feed
+- Exclusion "No es spam" para que ese mismo texto nunca vuelva a bloquearse
+- Lista de autores permitidos para perfiles, empresas, escuelas y showcases
+- Pausa temporal de 30 minutos con reactivacion automatica
+- Clic derecho sobre texto seleccionado para agregar una frase al instante
+- Ajustes en vivo — cambios de frases e idiomas sin recargar la extension
+- Importar / Exportar la lista de frases como JSON
+
+**Estadisticas y cobertura**
+- Conteos de hoy, esta semana y de por vida en el popup
+- Paginas compatibles: feed, perfiles, publicaciones, paginas de empresa, grupos, busqueda, Mi red, notificaciones, empleos, newsletters y articulos
 
 ## Limites
 
@@ -60,12 +68,9 @@ La deteccion es heuristica, no magia. Puede pasar por alto nuevos formatos de sp
 
 ## Lo que no hace
 
-- No reporta publicaciones a LinkedIn
-- No elimina publicaciones de LinkedIn para otras personas
-- No bloquea cuentas globalmente
-- No usa IA, APIs externas ni listas remotas
-- No recopila analitica, telemetria, historial de navegacion ni datos de tu cuenta de LinkedIn
-- No modifica datos de LinkedIn del lado del servidor
+- No reporta publicaciones a LinkedIn ni interactua con los servidores de LinkedIn de ninguna forma
+- No afecta lo que ven otras personas — los cambios son locales a tu navegador
+- No lee, almacena ni transmite tus datos de cuenta de LinkedIn, historial de navegacion ni contenido de publicaciones
 
 ## Como usarlo
 
@@ -135,7 +140,14 @@ No se transmite ningun dato. Consulta [PRIVACY_POLICY.md](../PRIVACY_POLICY.md).
 
 ## Soporte
 
-Para bugs, falsos positivos o patrones de spam no detectados, abre un issue con la frase o fragmento relevante y el tipo de pagina de LinkedIn donde ocurrio. Evita compartir detalles privados de cuentas o contenido completo de publicaciones salvo que sea necesario para reproducir el problema.
+Usa los formularios de issue para mantener los reportes organizados:
+
+- **Bug** — algo dejo de funcionar o se comporta de forma inesperada
+- **Falso positivo** — una publicacion fue bloqueada cuando no debia
+- **Patron no detectado** — un post de spam paso sin ser bloqueado
+- **Funcion solicitada** — algo que te gustaria ver agregado
+
+Incluye la frase o fragmento relevante y el tipo de pagina de LinkedIn. Evita compartir detalles privados de cuentas o contenido completo de publicaciones salvo que sea necesario para reproducir el problema.
 
 ## Licencia
 

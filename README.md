@@ -11,17 +11,16 @@
 
 **Read this in:** **English** | [Español](docs/README.es.md) | [Français](docs/README.fr.md) | [Português](docs/README.pt.md) | [Deutsch](docs/README.de.md)
 
-Clean up the LinkedIn feed noise without sending your feed anywhere.
+Those "comment STRATEGY below and I'll DM you the framework" posts are everywhere. LinkedIn Spam Blocker hides them automatically — entirely in your browser, with nothing sent anywhere.
 
-LinkedIn Spam Blocker hides common engagement-bait posts that ask people to comment a keyword like "CLAUDE", "SKILL", or "PROMPTS" to receive a file, template, prompt pack, or "access." It runs locally in your browser, works in Chrome and Firefox, and lets you undo or tune blocking when it gets something wrong.
+It detects posts that ask people to comment a keyword like "CLAUDE", "SKILL", or "PROMPTS" to receive a file, template, prompt pack, or "access." Works in Chrome and Firefox, supports five languages out of the box, and lets you undo or tune blocking when it gets something wrong.
 
 ## At a Glance
 
-- **Private by design** — no analytics, telemetry, remote blocklists, AI APIs, or network requests
-- **Built for the real LinkedIn feed** — scans newly loaded posts as you scroll, without relying on brittle CSS selectors
-- **Adjustable** — add custom phrases, choose enabled languages, whitelist authors, and import/export your phrase list
-- **Reversible** — show a hidden post temporarily or mark it as "Not spam" so the same text is not blocked again
-- **Lightweight** — vanilla JavaScript, Manifest V3, no build step required
+- **Private by design** — no analytics, telemetry, remote blocklists, AI APIs, or network requests of any kind
+- **Multilingual** — built-in patterns for English, Spanish, French, Portuguese, and German, all toggleable
+- **Adjustable** — add custom phrases, whitelist authors you trust, and import/export your phrase list
+- **Reversible** — show a hidden post temporarily or mark it as "Not spam" so the same text is never blocked again
 
 ## Why This Exists
 
@@ -37,19 +36,28 @@ Detection is heuristic, not magic. It can miss new spam formats, and it can occa
 
 ## Features
 
-- **Local-only detection** — zero network requests, no analytics, no telemetry, no external APIs
-- **Built-in spam patterns** — detects common comment-to-reveal structures in English, Spanish, French, Portuguese, and German
-- **Custom phrases** — add your own trigger words with Exact or Contains matching, capped to keep storage and matching lightweight
-- **Selector-independent scanning** — uses DOM text analysis instead of brittle LinkedIn CSS class names
-- **Incremental scanning** — checks newly loaded posts as you scroll
-- **Right-click phrase creation** — select text and add it from the browser context menu
-- **Live settings updates** — phrase and language changes apply without reloading the extension
-- **Snooze** — pause blocking for 30 minutes with auto-resume
-- **Import / Export** — back up or share your phrase list as JSON
-- **Undo and false-positive controls** — click "Show" or "Not spam" from the placeholder
-- **Author whitelist** — avoid blocking selected profile, company, school, or showcase authors
-- **Stats** — today, this week, and lifetime blocked counts in the popup
-- **Supported LinkedIn routes** — feed, profiles, posts, company pages, groups, search, My Network, notifications, jobs, newsletters, and articles
+**Privacy**
+- Zero network requests — no analytics, telemetry, external APIs, or remote blocklists
+- All data stays in browser storage; nothing is ever transmitted
+
+**Detection**
+- Built-in patterns for English, Spanish, French, Portuguese, and German, individually toggleable
+- DOM text analysis instead of brittle LinkedIn CSS class names — survives feed layout changes better
+- Incremental scanning catches newly loaded posts as you scroll
+- Custom phrases with Exact or Contains matching
+
+**Controls**
+- Undo any blocked post from the popup or the in-feed placeholder
+- "Not spam" exclusion so the same text is never blocked again
+- Author whitelist for profile, company, school, and showcase pages
+- Snooze for 30 minutes with automatic resume
+- Right-click any selected text to add it as a phrase instantly
+- Live settings — phrase and language changes apply without reloading
+- Import / Export your phrase list as JSON
+
+**Stats & coverage**
+- Today, this week, and lifetime blocked counts in the popup
+- Supported pages: feed, profiles, posts, company pages, groups, search, My Network, notifications, jobs, newsletters, and articles
 
 ## Limits
 
@@ -60,12 +68,9 @@ Detection is heuristic, not magic. It can miss new spam formats, and it can occa
 
 ## What It Does Not Do
 
-- Does not report posts to LinkedIn
-- Does not remove posts from LinkedIn for anyone else
-- Does not block accounts globally
-- Does not use AI, external APIs, or remote blocklists
-- Does not collect analytics, telemetry, browsing history, or LinkedIn account data
-- Does not modify LinkedIn server-side data
+- Does not report posts to LinkedIn or interact with LinkedIn servers in any way
+- Does not affect what other people see — changes are local to your browser only
+- Does not read, store, or transmit your LinkedIn account data, browsing history, or post content
 
 ## How To Use
 
@@ -134,7 +139,14 @@ No data is ever transmitted. See [PRIVACY_POLICY.md](PRIVACY_POLICY.md).
 
 ## Support
 
-For bugs, false positives, or missed spam patterns, open an issue with the relevant phrase or short excerpt and the LinkedIn page type where it happened. Please avoid sharing private account details or full post content unless it is necessary to reproduce the issue.
+Use the issue forms to keep reports structured:
+
+- **Bug** — something broke or behaves unexpectedly
+- **False positive** — a post was blocked that shouldn't have been
+- **Missed pattern** — a spam post slipped through
+- **Feature request** — something you'd like to see added
+
+Include the relevant phrase or short excerpt and the LinkedIn page type. Avoid sharing private account details or full post content unless necessary to reproduce the issue.
 
 ## License
 

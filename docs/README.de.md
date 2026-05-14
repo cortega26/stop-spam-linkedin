@@ -11,17 +11,16 @@
 
 **Lesen auf:** [English](../README.md) | [Español](README.es.md) | [Français](README.fr.md) | [Português](README.pt.md) | **Deutsch**
 
-Bereinigen Sie den LinkedIn-Feed, ohne Ihren Feed irgendwohin zu senden.
+Diese "Kommentiere STRATEGIE und ich schicke dir das Framework"-Beitraege sind ueberall. LinkedIn Spam Blocker blendet sie automatisch aus — vollstaendig in Ihrem Browser, ohne dass etwas uebertragen wird.
 
-LinkedIn Spam Blocker blendet haeufige Engagement-Bait-Beitraege aus, die dazu auffordern, ein Stichwort wie "CLAUDE", "SKILL" oder "PROMPTS" zu kommentieren, um eine Datei, Vorlage, ein Prompt-Paket oder "Zugang" zu erhalten. Die Erweiterung laeuft lokal im Browser, funktioniert in Chrome und Firefox und erlaubt es, Blockierungen rueckgaengig zu machen oder anzupassen, wenn etwas falsch erkannt wird.
+Die Erweiterung erkennt Beitraege, die dazu auffordern, ein Stichwort wie "CLAUDE", "SKILL" oder "PROMPTS" zu kommentieren, um eine Datei, Vorlage, ein Prompt-Paket oder "Zugang" zu erhalten. Funktioniert in Chrome und Firefox, enthaelt Muster fuer fuenf Sprachen von Haus aus und erlaubt es, Blockierungen rueckgaengig zu machen oder anzupassen, wenn etwas falsch erkannt wird.
 
 ## Auf einen Blick
 
-- **Privat by design** — keine Analytics, keine Telemetrie, keine Remote-Blocklisten, keine KI-APIs, keine Netzwerkanfragen
-- **Fuer den echten LinkedIn-Feed gebaut** — prueft neue Beitraege beim Scrollen, ohne von fragilen CSS-Selektoren abzuhaengen
-- **Anpassbar** — eigene Phrasen hinzufuegen, Erkennungssprachen waehlen, Autoren erlauben und Phrasen importieren/exportieren
-- **Rueckgaengig machbar** — einen ausgeblendeten Beitrag voruebergehend anzeigen oder als "Not spam" markieren, damit derselbe Text nicht erneut blockiert wird
-- **Leichtgewichtig** — Vanilla JavaScript, Manifest V3, kein Build-Schritt
+- **Privat by design** — keine Analytics, keine Telemetrie, keine Remote-Blocklisten, keine KI-APIs, keinerlei Netzwerkanfragen
+- **Mehrsprachig** — integrierte Muster fuer Englisch, Spanisch, Franzoesisch, Portugiesisch und Deutsch, alle einzeln schaltbar
+- **Anpassbar** — eigene Phrasen hinzufuegen, vertrauenswuerdige Autoren erlauben und Phrasen importieren/exportieren
+- **Rueckgaengig machbar** — einen ausgeblendeten Beitrag voruebergehend anzeigen oder als "Not spam" markieren, damit derselbe Text nie wieder blockiert wird
 
 ## Warum es das gibt
 
@@ -37,19 +36,28 @@ Die Erkennung ist heuristisch, nicht magisch. Sie kann neue Spam-Formate verpass
 
 ## Funktionen
 
-- **Nur lokale Erkennung** — keine Netzwerkanfragen, keine Analytics, keine Telemetrie, keine externen APIs
-- **Integrierte Muster** — erkennt haeufige Kommentar-zum-Aufdecken-Strukturen auf Englisch, Spanisch, Franzoesisch, Portugiesisch und Deutsch
-- **Eigene Phrasen** — eigene Trigger mit Exact- oder Contains-Abgleich, begrenzt fuer leichtgewichtiges Speichern und Suchen
-- **Selektorunabhaengige Analyse** — nutzt DOM-Textanalyse statt fragiler LinkedIn-CSS-Klassennamen
-- **Inkrementelle Analyse** — prueft neu geladene Beitraege beim Scrollen
-- **Hinzufuegen per Rechtsklick** — Text markieren und ueber das Browser-Kontextmenue hinzufuegen
-- **Live-Aktualisierungen** — Phrasen- und Sprachwechsel greifen ohne Neuladen der Erweiterung
-- **Pausieren** — Blockierung fuer 30 Minuten mit automatischer Wiederaufnahme aussetzen
-- **Import / Export** — Phrasenliste als JSON sichern oder teilen
-- **Rueckgaengig und False-Positive-Kontrolle** — im Platzhalter auf "Show" oder "Not spam" klicken
-- **Autoren-Whitelist** — ausgewaehlte Profile, Unternehmen, Schulen oder Showcase-Seiten nicht blockieren
-- **Statistiken** — Zaehler fuer heute, diese Woche und insgesamt im Popup
-- **Unterstuetzte LinkedIn-Routen** — Feed, Profile, Beitraege, Unternehmensseiten, Gruppen, Suche, Mein Netzwerk, Benachrichtigungen, Jobs, Newsletter und Artikel
+**Datenschutz**
+- Keine Netzwerkanfragen — keine Analytics, keine Telemetrie, keine externen APIs, keine Remote-Blocklisten
+- Alle Daten verbleiben im Browserspeicher; nichts wird jemals uebertragen
+
+**Erkennung**
+- Integrierte Muster fuer Englisch, Spanisch, Franzoesisch, Portugiesisch und Deutsch, einzeln schaltbar
+- DOM-Textanalyse statt fragiler LinkedIn-CSS-Klassennamen — widerstandsfaehiger gegen Feed-Layout-Aenderungen
+- Inkrementelle Analyse: prueft neue Beitraege beim Scrollen
+- Eigene Phrasen mit Exact- oder Contains-Abgleich
+
+**Steuerung**
+- Jeden blockierten Beitrag im Popup oder ueber den Platzhalter im Feed rueckgaengig machen
+- "Not spam"-Ausschluss, damit derselbe Text nie wieder blockiert wird
+- Autoren-Whitelist fuer Profile, Unternehmen, Schulen und Showcase-Seiten
+- 30-Minuten-Pause mit automatischer Wiederaufnahme
+- Rechtsklick auf markierten Text, um eine Phrase sofort hinzuzufuegen
+- Live-Einstellungen — Phrasen- und Sprachwechsel ohne Neuladen der Erweiterung
+- Import / Export der Phrasenliste als JSON
+
+**Statistiken und Abdeckung**
+- Zaehler fuer heute, diese Woche und insgesamt im Popup
+- Unterstuetzte Seiten: Feed, Profile, Beitraege, Unternehmensseiten, Gruppen, Suche, Mein Netzwerk, Benachrichtigungen, Jobs, Newsletter und Artikel
 
 ## Grenzen
 
@@ -60,12 +68,9 @@ Die Erkennung ist heuristisch, nicht magisch. Sie kann neue Spam-Formate verpass
 
 ## Was die Erweiterung nicht tut
 
-- Meldet keine Beitraege an LinkedIn
-- Entfernt keine LinkedIn-Beitraege fuer andere Personen
-- Blockiert keine Konten global
-- Nutzt keine KI, externen APIs oder Remote-Blocklisten
-- Sammelt keine Analytics, Telemetrie, Browserverlauf oder LinkedIn-Kontodaten
-- Veraendert keine LinkedIn-Daten auf dem Server
+- Meldet keine Beitraege an LinkedIn und interagiert auf keine Weise mit LinkedIn-Servern
+- Beeinflusst nicht, was andere sehen — Aenderungen sind ausschliesslich lokal in Ihrem Browser
+- Liest, speichert oder uebertraegt keine LinkedIn-Kontodaten, keinen Browserverlauf und keine Beitragsinhalte
 
 ## Nutzung
 
@@ -135,7 +140,14 @@ Es werden keine Daten uebertragen. Siehe [PRIVACY_POLICY.md](../PRIVACY_POLICY.m
 
 ## Support
 
-Bei Bugs, False Positives oder verpassten Spam-Mustern oeffnen Sie bitte ein Issue mit der relevanten Phrase oder einem kurzen Auszug und dem LinkedIn-Seitentyp, auf dem es passiert ist. Bitte teilen Sie keine privaten Kontodaten oder vollstaendigen Beitragsinhalte, sofern sie nicht zur Reproduktion noetig sind.
+Verwenden Sie die Issue-Formulare, um Berichte strukturiert einzureichen:
+
+- **Bug** — etwas funktioniert nicht mehr oder verhaelt sich unerwartet
+- **Falsches Positiv** — ein Beitrag wurde blockiert, obwohl er es nicht sollte
+- **Verpasstes Muster** — ein Spam-Beitrag wurde nicht erkannt
+- **Funktionswunsch** — etwas, das Sie gerne hinzugefuegt saehen
+
+Geben Sie die relevante Phrase oder einen kurzen Auszug und den LinkedIn-Seitentyp an. Bitte teilen Sie keine privaten Kontodaten oder vollstaendigen Beitragsinhalte, sofern sie nicht zur Reproduktion noetig sind.
 
 ## Lizenz
 
