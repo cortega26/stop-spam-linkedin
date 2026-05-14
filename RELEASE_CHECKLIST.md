@@ -16,7 +16,7 @@
 
 - Run `npm run package`.
 - Inspect `dist/linkedin-spam-blocker-1.0.0.zip`.
-- Confirm the zip includes extension runtime files, locales, icons, popup/options files, privacy policy, README, and license.
+- Confirm the zip includes extension runtime files, locales, icons, popup/options files, privacy policy, README, changelog, release notes, version file, and license.
 - Confirm the zip excludes `node_modules/`, `tests/`, `scripts/`, `.codacy/`, `.agents/`, `.claude/`, `.continue/`, `assets/`, `screenshots/`, and local/editor files.
 
 ## Store Submission
