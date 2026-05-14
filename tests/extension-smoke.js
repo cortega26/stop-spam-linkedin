@@ -23,6 +23,16 @@ const mockLinkedInFeed = `<!doctype html>
     <main>
       <section data-id="urn:li:activity:spam-1">
         <p>
+          <a href="/in/trusted/">Mentioned trusted profile</a>
+          Comment "CLAUDE" and I'll send you the complete checklist,
+          template, and workflow for free today.
+        </p>
+      </section>
+      <section data-id="urn:li:activity:whitelisted-1">
+        <div class="update-components-actor">
+          <a href="/in/trusted/">Trusted Author</a>
+        </div>
+        <p>
           Comment "CLAUDE" and I'll send you the complete checklist,
           template, and workflow for free today.
         </p>
@@ -49,6 +59,8 @@ async function main() {
   });
 
   try {
+    await setSyncStorage(context, { ss_whitelist: ["trusted"] });
+
     await context.route("https://www.linkedin.com/feed/**", (route) => {
       route.fulfill({
         status: 200,
@@ -66,12 +78,18 @@ async function main() {
     await placeholder.waitFor({ state: "visible", timeout: 10000 });
 
     await assertCount(page.locator('[data-id="urn:li:activity:spam-1"]'), 1);
+    await assertCount(page.locator('[data-id="urn:li:activity:whitelisted-1"]'), 1);
     await assertCount(page.locator('[data-id="urn:li:activity:clean-1"]'), 1);
 
     await assert.equal(
       await page.locator('[data-id="urn:li:activity:spam-1"]').evaluate((el) => getComputedStyle(el).display),
       "none",
       "expected spam post to be hidden"
+    );
+    await assert.notEqual(
+      await page.locator('[data-id="urn:li:activity:whitelisted-1"]').evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected post from whitelisted author to remain visible"
     );
     await assert.notEqual(
       await page.locator('[data-id="urn:li:activity:clean-1"]').evaluate((el) => getComputedStyle(el).display),
@@ -105,10 +123,41 @@ function resolveExtensionPath() {
 
   const unpackedDir = fs.mkdtempSync(path.join(os.tmpdir(), "lsb-package-"));
   execUnzip(absolutePath, unpackedDir);
+  assertPackageVersion(unpackedDir, inputPath);
   process.on("exit", () => {
     fs.rmSync(unpackedDir, { recursive: true, force: true });
   });
   return unpackedDir;
+}
+
+async function setSyncStorage(context, patch) {
+  const worker = context.serviceWorkers()[0] || await context.waitForEvent("serviceworker", {
+    timeout: 10000,
+  });
+  await worker.evaluate((value) => new Promise((resolve) => {
+    chrome.storage.sync.set(value, resolve);
+  }), patch);
+}
+
+function assertPackageVersion(unpackedDir, inputPath) {
+  const repoManifest = readJson(path.join(repoRoot, "manifest.json"));
+  const repoPackage = readJson(path.join(repoRoot, "package.json"));
+  const packageManifest = readJson(path.join(unpackedDir, "manifest.json"));
+
+  assert.equal(
+    repoManifest.version,
+    repoPackage.version,
+    "expected package.json and manifest.json versions to match"
+  );
+  assert.equal(
+    packageManifest.version,
+    repoManifest.version,
+    `expected ${inputPath} manifest version to match repo version ${repoManifest.version}`
+  );
+}
+
+function readJson(filePath) {
+  return JSON.parse(fs.readFileSync(filePath, "utf8"));
 }
 
 function execUnzip(zipPath, destination) {

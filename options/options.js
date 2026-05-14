@@ -5,6 +5,8 @@
   const LANG_STORAGE_KEY = "ss_enabled_langs";
   const WHITELIST_STORAGE_KEY = "ss_whitelist";
   const MAX_CUSTOM_PHRASES = 200;
+  const MAX_PHRASE_LENGTH = 120;
+  const MAX_IMPORT_BYTES = 128 * 1024;
 
   /* ── State ──────────────────────────────────────────────────── */
   let phrases = [];
@@ -143,6 +145,10 @@
   function handleAdd() {
     const text = input.value.trim();
     if (!text) return;
+    if (text.length > MAX_PHRASE_LENGTH) {
+      showToast(t("phraseTooLongToast", MAX_PHRASE_LENGTH), true);
+      return;
+    }
 
     /* Duplicate check */
     const dup = phrases.findIndex(
@@ -219,6 +225,10 @@
     if (!editInput) return;
     const text = editInput.value.trim();
     if (!text) return;
+    if (text.length > MAX_PHRASE_LENGTH) {
+      showToast(t("phraseTooLongToast", MAX_PHRASE_LENGTH), true);
+      return;
+    }
 
     /* Duplicate check (skip self) */
     const dup = phrases.findIndex(
@@ -340,6 +350,11 @@
   function handleImport() {
     const file = importFile.files[0];
     if (!file) return;
+    if (file.size > MAX_IMPORT_BYTES) {
+      showToast(t("importFileTooLarge"), true);
+      importFile.value = "";
+      return;
+    }
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -364,7 +379,12 @@
           skipped++;
           continue;
         }
-        if (!item.text || typeof item.text !== "string" || !item.text.trim()) {
+        if (
+          !item.text ||
+          typeof item.text !== "string" ||
+          !item.text.trim() ||
+          item.text.trim().length > MAX_PHRASE_LENGTH
+        ) {
           skipped++;
           continue;
         }

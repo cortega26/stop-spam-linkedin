@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+- Hardened package smoke testing so `test:package` validates the exact zip for the current manifest version instead of any matching `dist/*.zip`.
+- Added zip manifest-version assertions to prevent stale release artifacts from being accidentally tested as the current build.
+- Hardened author whitelist matching to use known LinkedIn actor/header links only, avoiding bypasses from arbitrary profile links inside post content.
+- Tightened LinkedIn host validation for author links to `linkedin.com` and `*.linkedin.com`.
+- Added custom phrase length limits and import size guardrails across settings, import, context menu, and content-script pattern building.
+- Added smoke coverage for whitelist behavior, including a spam post that mentions a whitelisted profile but is not authored by that profile.
+
 ## 1.1.0 - Audit & Hardening
 
 - Added `t()` i18n fallback helper across all JS files — every `chrome.i18n.getMessage()` call now defaults to its key name if the locale is incomplete.

@@ -18,7 +18,7 @@ Detection runs locally in the browser. There are no analytics, no telemetry, no 
 
 - **Local-only detection** — zero network requests, no analytics, no telemetry
 - **Built-in spam patterns** — detects common engagement-bait structures in English, Spanish, French, Portuguese, and German
-- **Custom phrases** — add your own trigger words with Exact or Contains matching
+- **Custom phrases** — add your own trigger words with Exact or Contains matching, capped to keep storage and matching lightweight
 - **Selector-independent scanning** — uses DOM text-analysis heuristics instead of brittle CSS selectors
 - **Incremental scanning** — checks newly loaded posts as you scroll
 - **Right-click phrase creation** — select text and add it from the browser context menu
@@ -89,6 +89,7 @@ Useful commands:
 
 - `npm run smoke` — validates JSON and checks JavaScript syntax
 - `npm run test:extension` — loads the unpacked extension in Chromium and verifies a mock LinkedIn spam post is hidden
+- `npm run test:package` — packages the extension, then tests the exact zip for the current manifest version
 - `npm run package` — creates `dist/linkedin-spam-blocker-{version}.zip` (version from manifest.json)
 
 ## Permissions

@@ -17,6 +17,7 @@
     COOLDOWN_DURATION_MS: 15 * 60 * 1000,  /* 15 min after "Show" */
     SNOOZE_DURATION_MS: 30 * 60 * 1000,     /* 30 min */
     MAX_CUSTOM_PHRASES: 200,
+    MAX_PHRASE_LENGTH: 120,
     MAX_EXCLUSIONS: 100,
     MAX_WHITELIST: 100,
   });
@@ -72,6 +73,17 @@
     '[data-id*="urn:li:activity:"]',
     ".feed-shared-update-v2",
     "article",
+  ]);
+
+  const AUTHOR_LINK_SELECTORS = Object.freeze([
+    ".update-components-actor a[href]",
+    ".update-components-actor__meta-link[href]",
+    ".update-components-actor__title a[href]",
+    ".feed-shared-actor a[href]",
+    ".feed-shared-actor__container-link[href]",
+    ".entity-result__title-text a[href]",
+    "[data-control-name*='actor'] a[href]",
+    "a[data-control-name*='actor'][href]",
   ]);
 
   /* ==================================================================
@@ -348,7 +360,11 @@
         break;
 
       case "addSuggestion":
-        if (!msg.word || userPhrases.some(p => p.text.toLowerCase() === msg.word.toLowerCase())) {
+        if (
+          !msg.word ||
+          msg.word.length > CONFIG.MAX_PHRASE_LENGTH ||
+          userPhrases.some(p => p.text.toLowerCase() === msg.word.toLowerCase())
+        ) {
           sendResponse({ ok: false, reason: "duplicate" });
           break;
         }
@@ -422,17 +438,24 @@
       }
     }
     const custom = (phrases || [])
-      .filter((p) => p.enabled && p.text.trim().length > 0)
+      .filter((p) => (
+        p &&
+        p.enabled &&
+        typeof p.text === "string" &&
+        p.text.trim().length > 0 &&
+        p.text.trim().length <= CONFIG.MAX_PHRASE_LENGTH
+      ))
       .map((p) => {
-        const escaped = escapeRegex(p.text);
+        const text = p.text.trim();
+        const escaped = escapeRegex(text);
         if (p.mode === "contains") {
           return new RegExp(escaped, "i");
         }
         /* Only add \b anchors when adjacent char is a word character.
            Prevents silent non-matching phrases like "hello?" where \b
            after ? can never be true (non-word → end = no boundary). */
-        const start = /^\w/.test(p.text) ? "\\b" : "";
-        const end = /\w$/.test(p.text) ? "\\b" : "";
+        const start = /^\w/.test(text) ? "\\b" : "";
+        const end = /\w$/.test(text) ? "\\b" : "";
         return new RegExp(start + escaped + end, "i");
       });
     return [...builtin, ...custom];
@@ -661,13 +684,19 @@
     if (textNode) {
       const txt = textNode.textContent;
       const isCustom = userPhrases.some(p => {
-        if (!p.enabled || !p.text.trim()) return false;
-        const escaped = escapeRegex(p.text);
+        if (
+          !p.enabled ||
+          typeof p.text !== "string" ||
+          !p.text.trim() ||
+          p.text.trim().length > CONFIG.MAX_PHRASE_LENGTH
+        ) return false;
+        const text = p.text.trim();
+        const escaped = escapeRegex(text);
         if (p.mode === "contains") {
           return new RegExp(escaped, "i").test(txt);
         }
-        const start = /^\w/.test(p.text) ? "\\b" : "";
-        const end = /\w$/.test(p.text) ? "\\b" : "";
+        const start = /^\w/.test(text) ? "\\b" : "";
+        const end = /\w$/.test(text) ? "\\b" : "";
         return new RegExp(start + escaped + end, "i").test(txt);
       });
       if (!isCustom) {
@@ -949,8 +978,21 @@
     if (ph && ph.dataset && ph.dataset.ssPh) ph.remove();
   }
 
-  /* Extract the LinkedIn author profile ID from a post element. */
+  /* Extract the LinkedIn author profile ID from known author/header links only. */
   function getAuthorId(post) {
+    for (const selector of AUTHOR_LINK_SELECTORS) {
+      for (const link of post.querySelectorAll(selector)) {
+        const authorId = parseAuthorId(link.getAttribute("href"));
+        if (authorId) return authorId;
+      }
+    }
+
+    return null;
+  }
+
+  function parseAuthorId(href) {
+    if (!href) return null;
+
     const patterns = [
       { re: /^\/in\/([^/?#]+)/, prefix: "" },
       { re: /^\/company\/([^/?#]+)/, prefix: "company:" },
@@ -958,25 +1000,26 @@
       { re: /^\/showcase\/([^/?#]+)/, prefix: "showcase:" },
     ];
 
-    for (const link of post.querySelectorAll("a[href]")) {
-      const href = link.getAttribute("href");
-      let url;
-      try {
-        url = new URL(href, window.location.origin);
-      } catch (_) {
-        continue;
-      }
-      if (!url.hostname.endsWith("linkedin.com")) continue;
+    let url;
+    try {
+      url = new URL(href, window.location.origin);
+    } catch (_) {
+      return null;
+    }
+    if (!isLinkedInHost(url.hostname)) return null;
 
-      for (const pattern of patterns) {
-        const match = url.pathname.match(pattern.re);
-        if (match) {
-          return pattern.prefix + decodeURIComponent(match[1].toLowerCase());
-        }
+    for (const pattern of patterns) {
+      const match = url.pathname.match(pattern.re);
+      if (match) {
+        return pattern.prefix + decodeURIComponent(match[1].toLowerCase());
       }
     }
 
     return null;
+  }
+
+  function isLinkedInHost(hostname) {
+    return hostname === "linkedin.com" || hostname.endsWith(".linkedin.com");
   }
 
   function normalizeExcludedEntries(entries) {

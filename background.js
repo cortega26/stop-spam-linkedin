@@ -8,6 +8,7 @@
   const STORAGE_KEY = "ss_phrases";
   const MENU_ID = "ss-add-phrase";
   const MAX_CUSTOM_PHRASES = 200;
+  const MAX_PHRASE_LENGTH = 120;
 
   /* ── Init ───────────────────────────────────────────────────── */
   chrome.runtime.onInstalled.addListener((details) => {
@@ -36,6 +37,7 @@
 
     const text = (info.selectionText || "").trim();
     if (!text) return;
+    if (text.length > MAX_PHRASE_LENGTH) return;
 
     chrome.storage.sync.get([STORAGE_KEY], (result) => {
       const phrases = result[STORAGE_KEY] || [];
@@ -43,7 +45,7 @@
 
       /* Duplicate check */
       const dup = phrases.find(
-        (p) => p.text.toLowerCase() === text.toLowerCase()
+        (p) => typeof p.text === "string" && p.text.toLowerCase() === text.toLowerCase()
       );
       if (dup) return; /* silently skip — no UI to report in service worker */
 
@@ -55,7 +57,9 @@
         mode: "exact",
       });
 
-      chrome.storage.sync.set({ [STORAGE_KEY]: phrases });
+      chrome.storage.sync.set({ [STORAGE_KEY]: phrases }, () => {
+        if (chrome.runtime.lastError) phrases.pop();
+      });
     });
   });
 
