@@ -1,5 +1,14 @@
 # LinkedIn Spam Blocker
 
+[![CI](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml/badge.svg)](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/cortega26/stop-spam-linkedin?label=release)](https://github.com/cortega26/stop-spam-linkedin/releases)
+[![Manifest V3](https://img.shields.io/badge/Manifest-V3-2ea44f)](manifest.json)
+[![Chrome](https://img.shields.io/badge/Chrome-supported-4285F4?logo=googlechrome&logoColor=white)](#manual-unpacked-install)
+[![Firefox](https://img.shields.io/badge/Firefox-supported-FF7139?logo=firefoxbrowser&logoColor=white)](#manual-unpacked-install)
+[![Local only](https://img.shields.io/badge/privacy-local--only-0a7f64)](PRIVACY_POLICY.md)
+[![No telemetry](https://img.shields.io/badge/telemetry-none-0a7f64)](PRIVACY_POLICY.md)
+[![License](https://img.shields.io/badge/license-source--available-lightgrey)](LICENSE)
+
 Automatically hides LinkedIn engagement-bait posts that ask you to comment a specific word ("CLAUDE", "SKILL", "PROMPTS", and the usual suspects) in exchange for a file, template, prompt pack, or "access." Works in Chrome and Firefox.
 
 ## Why This Exists
