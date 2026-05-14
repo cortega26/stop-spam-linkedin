@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+### Documentation
+
+- Added README status badges for CI, latest release, Manifest V3, browser support, local-only privacy, no telemetry, and license.
+- Reworked the README introduction, feature summary, install guidance, support notes, and limitations section to be clearer and more engaging while keeping the privacy and detection claims precise.
+- Added a language selector below the README badges with links for English, Spanish, French, Portuguese, and German.
+- Added localized README pages for Spanish, French, Portuguese, and German under `docs/`.
+- Added a GitHub social preview image asset at `screenshots/github-social-preview.png`.
+
+### Repository
+
+- Added GitHub Actions CI for smoke checks, unpacked extension testing, and packaged extension testing.
+- Added GitHub issue forms for bug reports, false positives, missed spam patterns, and feature requests.
+- Added a pull request template and `SECURITY.md`.
+- Configured the GitHub repository for squash-only merges, branch cleanup after merge, topics, and `main` branch protection requiring the `Extension checks` workflow.
+
+### Extension
+
 - Hardened package smoke testing so `test:package` validates the exact zip for the current manifest version instead of any matching `dist/*.zip`.
 - Added zip manifest-version assertions to prevent stale release artifacts from being accidentally tested as the current build.
 - Hardened author whitelist matching to use known LinkedIn actor/header links only, avoiding bypasses from arbitrary profile links inside post content.
