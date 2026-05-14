@@ -1,5 +1,18 @@
 # Release Notes
 
+## 1.2.0
+
+Security, validation, and release-tooling update. Key changes:
+
+- **Extension message hardening**: Added `sender.id` validation in both content-script and background listeners so external messages are rejected.
+- **Badge update validation**: Clamped and type-checked badge text before calling `chrome.action.setBadgeText`.
+- **Manifest security policy**: Added an explicit MV3 extension page Content Security Policy in `manifest.json`.
+- **Whitelist protections**: Tightened author whitelist matching to trusted LinkedIn actor/header links and stricter `linkedin.com` host validation.
+- **Phrase and import guardrails**: Added custom phrase length limits and import size protections across settings, context menu, and content-script pattern building.
+- **Packaging confidence**: `test:package` now validates the exact zip for the current manifest version and asserts packaged manifest-version correctness.
+- **Smoke coverage**: Added whitelist-focused smoke coverage, including a case where a post mentions a whitelisted profile without being authored by that profile.
+- **Project maturity**: Added CI, issue forms, PR template, `SECURITY.md`, and localized README pages for English, Spanish, French, Portuguese, and German.
+
 ## 1.1.0
 
 Bug fix and hardening release. Key changes:

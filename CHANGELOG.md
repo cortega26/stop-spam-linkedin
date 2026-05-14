@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 1.2.0 - Security, Validation & Release Tooling
+
 ### Security
 
 - Added `sender.id` validation to both the content script and background service worker message listeners — messages from outside the extension are now rejected.
