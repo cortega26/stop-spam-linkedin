@@ -21,10 +21,12 @@
   });
 
   /* ── Badge relay (called from content script) ──────────────── */
-  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (sender.id !== chrome.runtime.id) return false;
     if (msg.action === "updateBadge") {
-      chrome.action.setBadgeText({ text: msg.text });
-      if (msg.text) {
+      const text = typeof msg.text === "string" ? msg.text.slice(0, 4) : "";
+      chrome.action.setBadgeText({ text });
+      if (text) {
         chrome.action.setBadgeBackgroundColor({ color: "#0a66c2" });
       }
       sendResponse({ ok: true });

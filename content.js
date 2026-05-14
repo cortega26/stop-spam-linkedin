@@ -282,7 +282,8 @@
     }
   });
 
-  chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (sender.id !== chrome.runtime.id) return false;
     switch (msg.action) {
       case "getState":
         sendResponse({

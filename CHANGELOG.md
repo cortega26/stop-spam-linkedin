@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Security
+
+- Added `sender.id` validation to both the content script and background service worker message listeners — messages from outside the extension are now rejected.
+- Clamped and type-checked `msg.text` in the background `updateBadge` handler before passing it to `chrome.action.setBadgeText`.
+- Added explicit Content Security Policy to `manifest.json` (`script-src 'self'; object-src 'self'`), documenting and enforcing MV3 default restrictions.
+
 ### Documentation
 
 - Added README status badges for CI, latest release, Manifest V3, browser support, local-only privacy, no telemetry, and license.
