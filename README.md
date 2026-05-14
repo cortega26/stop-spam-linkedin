@@ -9,26 +9,36 @@
 [![No telemetry](https://img.shields.io/badge/telemetry-none-0a7f64)](PRIVACY_POLICY.md)
 [![License](https://img.shields.io/badge/license-source--available-lightgrey)](LICENSE)
 
-Automatically hides LinkedIn engagement-bait posts that ask you to comment a specific word ("CLAUDE", "SKILL", "PROMPTS", and the usual suspects) in exchange for a file, template, prompt pack, or "access." Works in Chrome and Firefox.
+Clean up the LinkedIn feed noise without sending your feed anywhere.
+
+LinkedIn Spam Blocker hides common engagement-bait posts that ask people to comment a keyword like "CLAUDE", "SKILL", or "PROMPTS" to receive a file, template, prompt pack, or "access." It runs locally in your browser, works in Chrome and Firefox, and lets you undo or tune blocking when it gets something wrong.
+
+## At a Glance
+
+- **Private by design** — no analytics, telemetry, remote blocklists, AI APIs, or network requests
+- **Built for the real LinkedIn feed** — scans newly loaded posts as you scroll, without relying on brittle CSS selectors
+- **Adjustable** — add custom phrases, choose enabled languages, whitelist authors, and import/export your phrase list
+- **Reversible** — show a hidden post temporarily or mark it as "Not spam" so the same text is not blocked again
+- **Lightweight** — vanilla JavaScript, Manifest V3, no build step required
 
 ## Why This Exists
 
-LinkedIn's reporting flow often leaves engagement-bait posts untouched, even when they follow an obvious spam pattern: "comment X and I'll send you Y." These posts are optimized for algorithmic reach, not useful discussion, and the platform's incentives tend to reward them.
+LinkedIn's reporting flow often leaves engagement-bait posts untouched, even when they follow an obvious pattern: "comment X and I'll send you Y." Those posts are optimized for algorithmic reach, not useful discussion, and they can crowd out the work, hiring, and industry updates people actually opened LinkedIn to see.
 
-This extension gives users a local, private way to clean up their own feed without waiting for platform enforcement. It does not report posts, contact LinkedIn, or send data anywhere; it simply hides matching posts in your browser.
+This extension gives you a local, private way to make your own feed less noisy without waiting for platform enforcement. It does not report posts, contact LinkedIn, or change anything server-side. It only hides matching posts in your browser.
 
 ## How It Works
 
-LinkedIn Spam Blocker scans text on supported LinkedIn pages and checks it against built-in engagement-bait patterns plus any custom phrases you add. Matching posts are hidden and replaced with a small placeholder, so you can restore them immediately if the extension gets one wrong.
+LinkedIn Spam Blocker scans text on supported LinkedIn pages and checks it against built-in engagement-bait patterns plus any custom phrases you add. When a post matches, it is hidden and replaced with a small placeholder so you can restore it immediately.
 
-Detection runs locally in the browser. There are no analytics, no telemetry, no external APIs, and no network requests.
+Detection is heuristic, not magic. It can miss new spam formats, and it can occasionally hide a post you wanted to see. The extension includes "Show", "Not spam", custom phrases, language toggles, and author whitelisting so you can tune it around your own feed.
 
 ## Features
 
-- **Local-only detection** — zero network requests, no analytics, no telemetry
-- **Built-in spam patterns** — detects common engagement-bait structures in English, Spanish, French, Portuguese, and German
+- **Local-only detection** — zero network requests, no analytics, no telemetry, no external APIs
+- **Built-in spam patterns** — detects common comment-to-reveal structures in English, Spanish, French, Portuguese, and German
 - **Custom phrases** — add your own trigger words with Exact or Contains matching, capped to keep storage and matching lightweight
-- **Selector-independent scanning** — uses DOM text-analysis heuristics instead of brittle CSS selectors
+- **Selector-independent scanning** — uses DOM text analysis instead of brittle LinkedIn CSS class names
 - **Incremental scanning** — checks newly loaded posts as you scroll
 - **Right-click phrase creation** — select text and add it from the browser context menu
 - **Live settings updates** — phrase and language changes apply without reloading the extension
@@ -38,6 +48,13 @@ Detection runs locally in the browser. There are no analytics, no telemetry, no 
 - **Author whitelist** — avoid blocking selected profile, company, school, or showcase authors
 - **Stats** — today, this week, and lifetime blocked counts in the popup
 - **Supported LinkedIn routes** — feed, profiles, posts, company pages, groups, search, My Network, notifications, jobs, newsletters, and articles
+
+## Limits
+
+- LinkedIn can change its page structure, which may require detection updates.
+- New engagement-bait wording can slip through until patterns or custom phrases catch up.
+- False positives are possible, especially around posts that quote spam examples or discuss spam behavior.
+- Counts are local convenience stats, not analytics-grade reporting.
 
 ## What It Does Not Do
 
@@ -56,7 +73,7 @@ Detection runs locally in the browser. There are no analytics, no telemetry, no 
 4. Click the extension icon to view stats, toggle blocking, snooze, or open settings.
 5. Click "Show" on any blocked post to restore it temporarily.
 6. Click "Not spam" if a post was incorrectly blocked.
-7. Add custom phrases from settings or by selecting text and using the right-click menu.
+7. Add custom phrases from settings or by selecting text and using the right-click menu when your feed invents a new flavor of bait.
 
 ## Install
 
@@ -68,9 +85,13 @@ Listing pending publication. Use the unpacked install steps below for now.
 
 Listing pending publication. Use the temporary add-on install steps below for now.
 
+### Latest Package
+
+The latest packaged zip is attached to the [GitHub release](https://github.com/cortega26/stop-spam-linkedin/releases/latest). For local development or manual review, the unpacked install path below is usually easiest.
+
 ### Manual Unpacked Install
 
-1. Clone the repo: `git clone ...`
+1. Clone the repo: `git clone https://github.com/cortega26/stop-spam-linkedin.git`
 2. Open Chrome and go to `chrome://extensions`
 3. Enable "Developer mode"
 4. Click "Load unpacked" and select the `stop-spam-linkedin` folder
@@ -111,7 +132,7 @@ No data is ever transmitted. See [PRIVACY_POLICY.md](PRIVACY_POLICY.md).
 
 ## Support
 
-For bugs, false positives, or missed spam patterns, open an issue with the phrase that triggered the problem and the LinkedIn page type where it happened.
+For bugs, false positives, or missed spam patterns, open an issue with the relevant phrase or short excerpt and the LinkedIn page type where it happened. Please avoid sharing private account details or full post content unless it is necessary to reproduce the issue.
 
 ## License
 
