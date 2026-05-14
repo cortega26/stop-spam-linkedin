@@ -9,6 +9,8 @@
 [![No telemetry](https://img.shields.io/badge/telemetry-none-0a7f64)](PRIVACY_POLICY.md)
 [![License](https://img.shields.io/badge/license-source--available-lightgrey)](LICENSE)
 
+**Read this in:** **English** | [Español](docs/README.es.md) | [Français](docs/README.fr.md) | [Português](docs/README.pt.md) | [Deutsch](docs/README.de.md)
+
 Clean up the LinkedIn feed noise without sending your feed anywhere.
 
 LinkedIn Spam Blocker hides common engagement-bait posts that ask people to comment a keyword like "CLAUDE", "SKILL", or "PROMPTS" to receive a file, template, prompt pack, or "access." It runs locally in your browser, works in Chrome and Firefox, and lets you undo or tune blocking when it gets something wrong.
