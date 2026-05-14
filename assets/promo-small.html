@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=440, height=280" />
+<title>Promo Tile — Small (440×280)</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 440px; height: 280px;
+  background: linear-gradient(135deg, #0a1628 0%, #14203a 50%, #0d1f3c 100%);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+/* Subtle grid overlay */
+body::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+/* Accent glow */
+.glow {
+  position: absolute;
+  width: 200px; height: 200px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(10,102,194,0.15) 0%, transparent 70%);
+  top: -40px; right: -60px;
+  pointer-events: none;
+}
+/* Shield icon wrapper */
+.icon-wrap {
+  position: relative;
+  margin-bottom: 14px;
+}
+.icon-bg {
+  width: 56px; height: 56px;
+  background: rgba(10,102,194,0.15);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+.icon-bg::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 20px;
+  background: radial-gradient(circle at 50% 50%, rgba(10,102,194,0.1), transparent 70%);
+}
+.icon-bg svg {
+  width: 32px; height: 32px;
+  position: relative;
+  z-index: 1;
+}
+h1 {
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+.tagline {
+  font-size: 13px;
+  color: rgba(255,255,255,0.65);
+  text-align: center;
+  line-height: 1.5;
+  max-width: 340px;
+}
+.tagline strong {
+  color: rgba(255,255,255,0.9);
+  font-weight: 500;
+}
+/* Bottom accent bar */
+.bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #0a66c2, #5b9bd5, #0a66c2);
+}
+</style>
+</head>
+<body>
+<div class="glow"></div>
+<div class="icon-wrap">
+  <div class="icon-bg">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#5b9bd5" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+      <path d="M9 12l2 2 4-4" stroke="#fff" stroke-width="2" fill="none"/>
+    </svg>
+  </div>
+</div>
+<h1>LinkedIn Spam Blocker</h1>
+<div class="tagline">
+  Block <strong>engagement-bait posts</strong> automatically<br />
+  on your LinkedIn feed
+</div>
+<div class="bar"></div>
+</body>
+</html>

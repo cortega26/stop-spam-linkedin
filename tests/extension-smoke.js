@@ -1,0 +1,128 @@
+#!/usr/bin/env node
+
+"use strict";
+
+const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const os = require("node:os");
+const path = require("node:path");
+
+const { chromium } = require("playwright");
+
+const repoRoot = path.resolve(__dirname, "..");
+const extensionPath = resolveExtensionPath();
+const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), "lsb-extension-"));
+
+const mockLinkedInFeed = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Mock LinkedIn Feed</title>
+  </head>
+  <body>
+    <main>
+      <section data-id="urn:li:activity:spam-1">
+        <p>
+          Comment "CLAUDE" and I'll send you the complete checklist,
+          template, and workflow for free today.
+        </p>
+      </section>
+      <section data-id="urn:li:activity:clean-1">
+        <p>
+          This ordinary professional update should stay visible because it
+          does not ask anyone to comment a magic word for a download.
+        </p>
+      </section>
+    </main>
+  </body>
+</html>`;
+
+async function main() {
+  const context = await chromium.launchPersistentContext(userDataDir, {
+    headless: false,
+    args: [
+      `--disable-extensions-except=${extensionPath}`,
+      `--load-extension=${extensionPath}`,
+      "--disable-gpu",
+      "--no-sandbox",
+    ],
+  });
+
+  try {
+    await context.route("https://www.linkedin.com/feed/**", (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: mockLinkedInFeed,
+      });
+    });
+
+    const page = await context.newPage();
+    await page.goto("https://www.linkedin.com/feed/", {
+      waitUntil: "domcontentloaded",
+    });
+
+    const placeholder = page.locator("[data-ss-ph]");
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+
+    await assertCount(page.locator('[data-id="urn:li:activity:spam-1"]'), 1);
+    await assertCount(page.locator('[data-id="urn:li:activity:clean-1"]'), 1);
+
+    await assert.equal(
+      await page.locator('[data-id="urn:li:activity:spam-1"]').evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected spam post to be hidden"
+    );
+    await assert.notEqual(
+      await page.locator('[data-id="urn:li:activity:clean-1"]').evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected clean post to remain visible"
+    );
+    await assert.match(
+      await placeholder.textContent(),
+      /Blocked by LinkedIn Spam Blocker|Bloqueado por LinkedIn Spam Blocker/,
+      "expected extension placeholder text"
+    );
+
+    console.log("Extension smoke test passed.");
+  } finally {
+    await context.close();
+    fs.rmSync(userDataDir, { recursive: true, force: true });
+  }
+}
+
+function resolveExtensionPath() {
+  const inputPath = process.argv[2];
+  if (!inputPath) return repoRoot;
+
+  const absolutePath = path.resolve(repoRoot, inputPath);
+  const stat = fs.statSync(absolutePath);
+
+  if (stat.isDirectory()) return absolutePath;
+  if (!absolutePath.endsWith(".zip")) {
+    throw new Error(`Unsupported extension path: ${inputPath}`);
+  }
+
+  const unpackedDir = fs.mkdtempSync(path.join(os.tmpdir(), "lsb-package-"));
+  execUnzip(absolutePath, unpackedDir);
+  process.on("exit", () => {
+    fs.rmSync(unpackedDir, { recursive: true, force: true });
+  });
+  return unpackedDir;
+}
+
+function execUnzip(zipPath, destination) {
+  require("node:child_process").execFileSync("unzip", ["-q", zipPath, "-d", destination], {
+    stdio: "inherit",
+  });
+}
+
+async function assertCount(locator, expected) {
+  const actual = await locator.count();
+  assert.equal(actual, expected);
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

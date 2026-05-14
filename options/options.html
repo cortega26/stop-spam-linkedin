@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>__MSG_settingsTitle__</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --text: #333;
+      --text-secondary: #666;
+      --text-tertiary: #767676;
+      --text-inverse: #fff;
+      --bg: #fff;
+      --bg-secondary: #fafafa;
+      --bg-hover: #f0f2f5;
+      --bg-active: #e8e8e8;
+      --border: #d0d0d0;
+      --border-light: #e0e0e0;
+      --primary: #0a66c2;
+      --primary-hover: #004182;
+      --toggle-off: #ccc;
+      --toggle-on: #0a66c2;
+      --focus: #0a66c2;
+      --danger: #d00;
+      --danger-border: #fcc;
+      --confirm-bg: #fff3cd;
+      --confirm-border: #ffc107;
+      --confirm-text: #856404;
+      --code-bg: #eef3f9;
+      --code-text: #0a66c2;
+      --builtin-label-bg: #f0f0f0;
+      --builtin-label-text: #767676;
+      --badge-bg: #fff;
+      --badge-text: #666;
+      --badge-active-bg: #eef3f9;
+      --badge-active-border: #0a66c2;
+      --badge-active-text: #0a66c2;
+      --edit-border: #0a66c2;
+      --save-bg: #0a66c2;
+      --save-text: #fff;
+      --toast-bg: #333;
+      --toast-text: #fff;
+      --toast-warn: #d00;
+      --lang-bg: #fafafa;
+      --lang-hover: #f0f2f5;
+      --danger-hover: #d00;
+      --danger-border-hover: #fcc;
+      --shadow-danger: #d00;
+    }
+
+    body {
+      max-width: 760px;
+      margin: 40px auto;
+      padding: 0 24px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+    }
+    h1 {
+      font-size: 22px;
+      font-weight: 600;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .subtitle { color: var(--text-secondary); font-size: 14px; margin-bottom: 28px; }
+
+    /* ── Add form ── */
+    .add-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+    }
+    .add-row input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.15s;
+    }
+    .add-row input:focus { border-color: var(--primary); }
+    .add-row .add-btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      background: var(--primary);
+      color: var(--text-inverse);
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+    .add-row .add-btn:hover { background: var(--primary-hover); }
+
+    /* ── Mode badge ── */
+    .mode-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--badge-bg);
+      color: var(--badge-text);
+      transition: all 0.1s;
+      flex-shrink: 0;
+      user-select: none;
+    }
+    .mode-badge.contains { background: var(--badge-active-bg); border-color: var(--badge-active-border); color: var(--badge-active-text); }
+    .mode-badge:hover { border-color: #999; }
+
+    /* ── Phrase list ── */
+    .phrase-list { display: flex; flex-direction: column; gap: 4px; }
+
+    .phrase-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      transition: background 0.1s;
+    }
+    .phrase-row:hover { background: var(--bg-hover); }
+    .phrase-row.builtin { background: transparent; border: 1px dashed var(--border-light); }
+    .phrase-row.builtin:hover { background: var(--bg-secondary); }
+    .phrase-row.duplicate-highlight { box-shadow: 0 0 0 2px var(--shadow-danger); }
+
+    .phrase-row .text {
+      flex: 1;
+      font-size: 14px;
+      word-break: break-word;
+      line-height: 1.4;
+      min-width: 0;
+    }
+    .phrase-row .text code {
+      background: var(--code-bg);
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 12px;
+      color: var(--code-text);
+    }
+    .phrase-row .text .builtin-label {
+      font-size: 11px;
+      color: var(--builtin-label-text);
+      background: var(--builtin-label-bg);
+      padding: 1px 6px;
+      border-radius: 3px;
+      margin-left: 6px;
+      white-space: nowrap;
+    }
+    .phrase-row .text .lang-label {
+      font-size: 10px;
+      color: var(--text-secondary);
+      margin-right: 4px;
+      text-transform: uppercase;
+    }
+
+    .phrase-row .actions {
+      display: flex;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .phrase-row .actions button {
+      background: none;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-secondary);
+      transition: all 0.1s;
+    }
+    .phrase-row .actions button:hover { background: var(--bg-hover); border-color: var(--border); }
+    .phrase-row .actions button:active { background: var(--bg-active); }
+    .phrase-row .actions button.danger:hover { color: var(--danger-hover); border-color: var(--danger-border-hover); }
+    .phrase-row .actions button.confirming,
+    .phrase-row .actions button.confirming:hover {
+      background: var(--confirm-bg);
+      border-color: var(--confirm-border);
+      color: var(--confirm-text);
+    }
+
+    /* ── Toggle ── */
+    .toggle {
+      position: relative;
+      width: 36px;
+      height: 20px;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle input:disabled + .slider { opacity: 0.4; cursor: default; }
+    .toggle .slider {
+      position: absolute; inset: 0;
+      background: var(--toggle-off);
+      border-radius: 20px;
+      transition: background 0.2s;
+    }
+    .toggle .slider::before {
+      content: '';
+      position: absolute;
+      left: 2px; top: 2px;
+      width: 16px; height: 16px;
+      background: var(--text-inverse);
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle input:checked + .slider { background: var(--toggle-on); }
+    .toggle input:checked + .slider::before { transform: translateX(16px); }
+
+    /* ── Inline edit ── */
+    .edit-row {
+      display: flex;
+      gap: 6px;
+      flex: 1;
+    }
+    .edit-row input {
+      flex: 1;
+      padding: 6px 10px;
+      border: 1px solid var(--edit-border);
+      border-radius: 6px;
+      font-size: 14px;
+      outline: none;
+    }
+    .edit-row button {
+      padding: 6px 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg);
+      cursor: pointer;
+      font-size: 13px;
+    }
+    .edit-row button.save { background: var(--save-bg); color: var(--save-text); border-color: var(--save-bg); }
+    .edit-row button.save:hover { background: var(--primary-hover); }
+
+    /* ── Action bar ── */
+    .action-bar {
+      display: flex;
+      gap: 8px;
+      margin: 16px 0;
+      flex-wrap: wrap;
+    }
+    .action-bar button {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-secondary);
+      transition: background 0.1s;
+    }
+    .action-bar button:hover { background: var(--bg-hover); }
+    .action-bar button:active { background: var(--bg-active); }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 10px 20px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: var(--toast-text);
+      background: var(--toast-bg);
+      opacity: 0;
+      transition: opacity 0.25s;
+      pointer-events: none;
+      z-index: 100;
+    }
+    #toast.show { opacity: 1; }
+    #toast.warn { background: var(--toast-warn); }
+
+    /* ── Language toggles ── */
+    .lang-section {
+      margin: 16px 0;
+    }
+    .lang-section-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      margin-bottom: 8px;
+    }
+    .lang-toggles {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .lang-tog {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px 6px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--lang-bg);
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+      transition: all 0.1s;
+    }
+    .lang-tog:hover { background: var(--lang-hover); }
+    .lang-tog.disabled { opacity: 0.45; }
+    .lang-tog .lang-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--toggle-off);
+      transition: background 0.15s;
+    }
+    .lang-tog.enabled .lang-dot { background: var(--toggle-on); }
+    .lang-tog .lang-count {
+      font-size: 11px;
+      color: var(--text-tertiary);
+    }
+
+    /* ── Empty / meta ── */
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: var(--text-tertiary);
+      font-size: 14px;
+    }
+    .count { font-size: 13px; color: var(--text-secondary); margin-bottom: 8px; }
+
+    /* ── Whitelist ── */
+    .whitelist-list { display: flex; flex-direction: column; gap: 4px; }
+    .whitelist-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      border-radius: 8px;
+      background: var(--bg-secondary);
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .whitelist-row:hover { background: var(--bg-hover); }
+    .whitelist-row .wl-id { flex: 1; word-break: break-all; font-family: monospace; font-size: 12px; }
+    .whitelist-row button {
+      background: none;
+      border: 1px solid transparent;
+      border-radius: 4px;
+      padding: 4px 8px;
+      cursor: pointer;
+      font-size: 12px;
+      color: var(--text-tertiary);
+      transition: all 0.1s;
+    }
+    .whitelist-row button:hover { color: var(--danger-hover); border-color: var(--danger-border-hover); }
+    .whitelist-row button.confirming,
+    .whitelist-row button.confirming:hover {
+      background: var(--confirm-bg);
+      border-color: var(--confirm-border);
+      color: var(--confirm-text);
+    }
+    .whitelist-empty { font-size: 12px; color: var(--text-tertiary); padding: 4px 0; }
+
+    /* ── Import hint ── */
+    .import-hint { font-size: 11px; color: var(--text-tertiary); margin-bottom: 8px; }
+    .import-hint code {
+      background: var(--code-bg);
+      padding: 1px 5px;
+      border-radius: 3px;
+      font-size: 11px;
+      color: var(--code-text);
+    }
+
+    /* ── Search bar ── */
+    .search-bar { margin-bottom: 12px; }
+    .search-bar input {
+      width: 100%;
+      padding: 8px 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 13px;
+      outline: none;
+      background: var(--bg);
+      color: var(--text);
+    }
+    .search-bar input:focus { border-color: var(--primary); }
+
+    /* ── Starter hint ── */
+    .starter-hint { font-size: 12px; color: var(--text-tertiary); margin-top: 8px; }
+
+    /* ── Focus indicators ── */
+    button:focus-visible,
+    a:focus-visible,
+    .mode-badge:focus-visible,
+    input:focus-visible,
+    .lang-tog:focus-visible {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    /* ── Reduced motion ── */
+    @media (prefers-reduced-motion: reduce) {
+      .toggle .slider,
+      .toggle .slider::before { transition: none; }
+      .add-row input { transition: none; }
+      #toast { transition: none; }
+      .phrase-row { transition: none; }
+      .lang-tog { transition: none; }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --text: #e0e0e0;
+        --text-secondary: #999;
+        --text-tertiary: #888;
+        --text-inverse: #fff;
+        --bg: #1e1e1e;
+        --bg-secondary: #2a2a2a;
+        --bg-hover: #333;
+        --bg-active: #444;
+        --border: #444;
+        --border-light: #333;
+        --primary: #5b9bd5;
+        --primary-hover: #3a7bb5;
+        --toggle-off: #555;
+        --toggle-on: #5b9bd5;
+        --focus: #5b9bd5;
+        --danger-hover: #f55;
+        --danger-border-hover: #a33;
+        --confirm-bg: #3a3220;
+        --confirm-border: #e8b840;
+        --confirm-text: #e0d0a0;
+        --code-bg: #1a3340;
+        --code-text: #5b9bd5;
+        --builtin-label-bg: #333;
+        --builtin-label-text: #999;
+        --badge-bg: #333;
+        --badge-text: #999;
+        --badge-active-bg: #1a3340;
+        --badge-active-border: #5b9bd5;
+        --badge-active-text: #5b9bd5;
+        --edit-border: #5b9bd5;
+        --save-bg: #5b9bd5;
+        --save-text: #fff;
+        --toast-bg: #555;
+        --toast-text: #fff;
+        --toast-warn: #d00;
+        --lang-bg: #333;
+        --lang-hover: #3a3a3a;
+        --shadow-danger: #e04040;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>
+    <svg aria-hidden="true" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#0a66c2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+    __MSG_settingsTitle__
+  </h1>
+  <div class="subtitle">__MSG_pageSubtitle__</div>
+
+  <!-- Add -->
+  <div class="add-row">
+    <input type="text" id="phraseInput" placeholder="__MSG_addPlaceholder__" autocomplete="off" aria-label="__MSG_addPhraseInputLabel__" />
+    <button class="add-btn" id="addBtn" aria-label="__MSG_addPhraseButtonLabel__" title="__MSG_addPhraseButtonLabel__">__MSG_addButton__</button>
+  </div>
+
+  <!-- Bulk actions -->
+  <div class="action-bar">
+    <button id="importBtn" aria-label="__MSG_importJsonLabel__" title="__MSG_importJsonLabel__">__MSG_importJson__</button>
+    <button id="exportBtn" aria-label="__MSG_exportJsonLabel__" title="__MSG_exportJsonLabel__">__MSG_exportJson__</button>
+    <button id="starterPackBtn" aria-label="__MSG_starterPackLabel__" title="__MSG_starterPackLabel__">__MSG_starterPack__</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" />
+  </div>
+
+  <!-- Import hint -->
+  <div class="import-hint" id="importHint">__MSG_importHint__</div>
+
+  <!-- Language toggles -->
+  <div class="lang-section">
+    <div class="lang-section-title">__MSG_detectionLangs__</div>
+    <div class="lang-toggles" id="langToggles"></div>
+  </div>
+
+  <!-- Whitelisted authors -->
+  <div class="lang-section" id="whitelistSection" style="display:none">
+    <div class="lang-section-title">__MSG_whitelistTitle__</div>
+    <div class="whitelist-list" id="whitelistList"></div>
+  </div>
+
+  <!-- Search -->
+  <div class="search-bar">
+    <input type="text" id="searchInput" placeholder="__MSG_searchPhrases__" autocomplete="off" aria-label="__MSG_searchPhrasesLabel__" />
+  </div>
+
+  <!-- List -->
+  <div class="count" id="countLabel">__MSG_noCustomPhrasesShort__</div>
+  <div class="phrase-list" id="phraseList"></div>
+  <div class="empty-state" id="emptyState">
+    <div>__MSG_noCustomPhrases__</div>
+    <div class="starter-hint">__MSG_tryStarterPack__</div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <script src="../i18n.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>

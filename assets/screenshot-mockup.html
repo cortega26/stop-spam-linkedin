@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1280, height=800" />
+<title>Screenshot Mockup — LinkedIn Spam Blocker</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  width: 1280px; height: 800px;
+  background: #f3f2ef;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  color: #191919;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Top nav ── */
+.nav {
+  height: 52px; background: #fff; border-bottom: 1px solid #e0e0e0;
+  display: flex; align-items: center; padding: 0 80px; gap: 16px;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 10;
+}
+.nav-logo { width: 34px; height: 34px; background: #0a66c2; border-radius: 4px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 20px; margin-right: 24px; }
+.nav-search { flex: 1; max-width: 280px; padding: 8px 12px; background: #eef3f8; border-radius: 4px; color: #888; font-size: 13px; }
+.nav-items { display: flex; gap: 24px; color: #888; font-size: 13px; }
+.nav-items span { text-align: center; cursor: pointer; }
+.nav-items .active { color: #191919; font-weight: 500; }
+
+/* ── Layout ── */
+.layout {
+  display: flex;
+  gap: 24px;
+  padding: 76px 80px 20px;
+  height: 100%;
+}
+.left { width: 225px; flex-shrink: 0; }
+.center { flex: 1; min-width: 0; overflow-y: auto; }
+.right { width: 300px; flex-shrink: 0; }
+
+/* ── Cards ── */
+.card { background: #fff; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 12px; overflow: hidden; }
+.card-pad { padding: 16px; }
+
+/* ── Left sidebar ── */
+.profile-card { text-align: center; padding: 24px 16px 16px; }
+.avatar { width: 64px; height: 64px; border-radius: 50%; background: #0a66c2; margin: 0 auto 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 24px; font-weight: 600; }
+.profile-name { font-weight: 600; font-size: 15px; }
+.profile-title { color: #888; font-size: 12px; margin: 4px 0 12px; }
+.profile-stat { display: flex; justify-content: space-between; font-size: 12px; padding: 4px 0; }
+.profile-stat span:first-child { color: #888; }
+.profile-stat span:last-child { color: #0a66c2; font-weight: 600; }
+
+.shortcut { display: flex; align-items: center; gap: 8px; padding: 6px 16px; font-size: 13px; color: #333; }
+.shortcut-icon { width: 20px; height: 20px; background: #e0e0e0; border-radius: 4px; }
+
+/* ── Feed post ── */
+.post-header { display: flex; gap: 10px; align-items: flex-start; padding: 12px 16px 0; }
+.post-avatar { width: 48px; height: 48px; border-radius: 50%; background: #e0e0e0; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; color: #888; }
+.post-author { font-weight: 600; font-size: 14px; }
+.post-meta { font-size: 12px; color: #888; }
+.post-body { padding: 8px 16px 12px; font-size: 14px; line-height: 1.5; }
+.post-stats { display: flex; justify-content: space-between; font-size: 12px; color: #888; padding: 4px 16px; border-top: 1px solid #f0f0f0; }
+.post-actions { display: flex; justify-content: space-around; padding: 4px 16px 8px; font-size: 13px; color: #888; }
+.post-actions span { cursor: pointer; padding: 6px 12px; border-radius: 4px; }
+
+/* ── Blocked post placeholder ── */
+.blocked-placeholder {
+  display: flex; align-items: center; gap: 12px;
+  padding: 16px 24px; margin: 8px 0;
+  background: #f8f9fa; border: 1px solid #e0e0e0; border-radius: 8px;
+  font-size: 14px; color: #666;
+}
+.blocked-placeholder .show-btn {
+  background: none; border: 1px solid #999; border-radius: 4px;
+  padding: 4px 12px; cursor: pointer; font-size: 13px; color: #555;
+  margin-left: auto;
+}
+
+/* ── Right sidebar ── */
+.news-item { display: flex; gap: 8px; padding: 6px 16px; font-size: 13px; }
+.news-dot { width: 8px; height: 8px; background: #0a66c2; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+.news-text { color: #333; line-height: 1.4; }
+.news-meta { font-size: 11px; color: #888; }
+
+/* ── Extension popup overlay ── */
+.popup-overlay {
+  position: fixed;
+  top: 56px; right: 120px;
+  width: 300px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  border: 1px solid #e0e0e0;
+  z-index: 100;
+  padding: 20px;
+  font-size: 14px;
+}
+.popup-overlay h2 {
+  font-size: 16px; font-weight: 600; margin-bottom: 16px;
+  display: flex; align-items: center; gap: 8px;
+}
+.popup-overlay h2 svg { width: 20px; height: 20px; }
+.popup-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+.popup-row .label { color: #666; }
+.popup-row .value { font-weight: 600; font-size: 18px; }
+
+/* toggle */
+.toggle-w { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; }
+.toggle-track {
+  width: 44px; height: 24px; background: #0a66c2; border-radius: 24px;
+  position: relative; cursor: pointer;
+}
+.toggle-knob {
+  width: 18px; height: 18px; background: #fff; border-radius: 50%;
+  position: absolute; right: 3px; top: 3px;
+}
+
+.popup-btn {
+  display: block; width: 100%; margin-top: 8px;
+  padding: 8px 16px; border: 1px solid #d0d0d0; border-radius: 6px;
+  background: #fafafa; cursor: pointer; font-size: 13px; color: #555;
+  text-align: center;
+}
+.popup-link {
+  display: block; text-align: center;
+  padding: 8px 0; font-size: 13px; color: #0a66c2; cursor: pointer;
+  text-decoration: none;
+}
+.popup-divider { border: none; border-top: 1px solid #eee; margin: 12px 0; }
+.popup-footer { font-size: 11px; color: #aaa; text-align: center; margin-top: 8px; }
+
+/* ── Callout ── */
+.callout {
+  position: fixed;
+  bottom: 20px; left: 50%;
+  transform: translateX(-50%);
+  background: #333; color: #fff;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  z-index: 200;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<!-- Top nav -->
+<div class="nav">
+  <div class="nav-logo">in</div>
+  <div class="nav-search">Search</div>
+  <div class="nav-items">
+    <span class="active">Feed</span>
+    <span>Network</span>
+    <span>Jobs</span>
+    <span>Messaging</span>
+    <span>Notifications</span>
+  </div>
+</div>
+
+<div class="layout">
+
+  <!-- Left sidebar -->
+  <div class="left">
+    <div class="card">
+      <div class="profile-card">
+        <div class="avatar">U</div>
+        <div class="profile-name">User Name</div>
+        <div class="profile-title">Professional Title</div>
+        <div class="profile-stat"><span>Profile viewers</span><span>42</span></div>
+        <div class="profile-stat"><span>Connections</span><span>500+</span></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="shortcut"><div class="shortcut-icon"></div> My Network</div>
+      <div class="shortcut"><div class="shortcut-icon"></div> Groups</div>
+      <div class="shortcut"><div class="shortcut-icon"></div> Events</div>
+      <div class="shortcut"><div class="shortcut-icon"></div> Pages</div>
+    </div>
+  </div>
+
+  <!-- Center feed -->
+  <div class="center">
+
+    <!-- SPAM POST — blocked -->
+    <div class="card" style="border-color: transparent;">
+      <div class="blocked-placeholder">
+        <span>Blocked by LinkedIn Spam Blocker</span>
+        <span class="show-btn">Show</span>
+      </div>
+    </div>
+
+    <!-- Normal post 1 -->
+    <div class="card">
+      <div class="post-header">
+        <div class="post-avatar">AS</div>
+        <div>
+          <div class="post-author">Alex Stanton</div>
+          <div class="post-meta">CEO at Meridian • 2h</div>
+        </div>
+      </div>
+      <div class="post-body">
+        Excited to share our Q2 results — revenue grew 34% year-over-year driven
+        by strong demand across all segments. Huge thanks to the entire team for
+        their relentless execution.
+      </div>
+      <div class="post-stats"><span>1,284 likes</span><span>88 comments</span></div>
+      <div class="post-actions">
+        <span>Like</span> <span>Comment</span> <span>Share</span> <span>Send</span>
+      </div>
+    </div>
+
+    <!-- Normal post 2 -->
+    <div class="card">
+      <div class="post-header">
+        <div class="post-avatar">MJ</div>
+        <div>
+          <div class="post-author">Maria Johnson</div>
+          <div class="post-meta">Product @ TechCorp • 5h</div>
+        </div>
+      </div>
+      <div class="post-body">
+        I've been thinking a lot about how AI will transform product management.
+        The teams that adapt fastest will have a massive advantage. Happy to share
+        my thoughts if anyone is interested.
+      </div>
+      <div class="post-stats"><span>547 likes</span><span>34 comments</span></div>
+      <div class="post-actions">
+        <span>Like</span> <span>Comment</span> <span>Share</span> <span>Send</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Right sidebar -->
+  <div class="right">
+    <div class="card" style="padding: 12px 0;">
+      <div style="padding: 0 16px 8px; font-weight: 600; font-size: 15px;">LinkedIn News</div>
+      <div class="news-item">
+        <div class="news-dot"></div>
+        <div><div class="news-text">Tech hiring up 18% this quarter</div><div class="news-meta">1d ago • 12,430 readers</div></div>
+      </div>
+      <div class="news-item">
+        <div class="news-dot"></div>
+        <div><div class="news-text">Remote work trends for 2026</div><div class="news-meta">2d ago • 8,215 readers</div></div>
+      </div>
+      <div class="news-item">
+        <div class="news-dot"></div>
+        <div><div class="news-text">New AI regulation framework proposed</div><div class="news-meta">3h ago • 5,430 readers</div></div>
+      </div>
+    </div>
+    <div class="card card-pad" style="font-size: 12px; color: #888; text-align: center;">
+      About &bull; Accessibility &bull; Privacy &bull; Terms
+    </div>
+  </div>
+</div>
+
+<!-- Extension popup overlay -->
+<div class="popup-overlay">
+  <h2>
+    <svg viewBox="0 0 24 24" fill="none" stroke="#0a66c2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+    Spam Blocker
+  </h2>
+
+  <div class="toggle-w">
+    <span class="label">Enabled</span>
+    <div class="toggle-track"><div class="toggle-knob"></div></div>
+  </div>
+
+  <div class="popup-row">
+    <span class="label">Posts blocked</span>
+    <span class="value">17</span>
+  </div>
+
+  <div class="popup-btn">Snooze 30 min</div>
+  <div class="popup-btn">Reset count</div>
+
+  <hr class="popup-divider" />
+  <a class="popup-link">Manage matching phrases &rarr;</a>
+  <div class="popup-footer">linkedin.com/feed, /in, /company</div>
+</div>
+
+<!-- Callout -->
+<div class="callout">Screenshot 1 — LinkedIn feed with a blocked spam post (replaced by placeholder above) and the extension popup open</div>
+
+</body>
+</html>

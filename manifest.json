@@ -1,0 +1,63 @@
+{
+  "manifest_version": 3,
+  "name": "LinkedIn Spam Blocker",
+  "version": "1.0.0",
+  "description": "Blocks LinkedIn engagement-bait spam that asks you to \"Comment X and I will send...\"",
+  "default_locale": "en",
+
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+
+  "permissions": ["storage", "contextMenus"],
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "options_ui": {
+    "page": "options/options.html",
+    "open_in_tab": true
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.linkedin.com/feed/*",
+        "https://www.linkedin.com/in/*",
+        "https://www.linkedin.com/posts/*",
+        "https://www.linkedin.com/company/*",
+        "https://www.linkedin.com/groups/*",
+        "https://www.linkedin.com/search/*",
+        "https://www.linkedin.com/mynetwork/*",
+        "https://www.linkedin.com/notifications/*",
+        "https://www.linkedin.com/jobs/*",
+        "https://www.linkedin.com/newsletters/*",
+        "https://www.linkedin.com/pulse/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "LinkedIn Spam Blocker",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "linkedin-spam-blocker@carlos",
+      "strict_min_version": "112.0"
+    }
+  }
+}

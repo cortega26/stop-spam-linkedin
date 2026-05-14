@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>__MSG_appName__</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --text: #333;
+      --text-secondary: #666;
+      --text-tertiary: #767676;
+      --text-inverse: #fff;
+      --bg: #fff;
+      --bg-secondary: #fafafa;
+      --bg-hover: #f0f0f0;
+      --bg-active: #e8e8e8;
+      --border: #d0d0d0;
+      --border-light: #eee;
+      --primary: #0a66c2;
+      --primary-hover: #004182;
+      --toggle-off: #ccc;
+      --toggle-on: #0a66c2;
+      --suggestion-bg: #fef7e0;
+      --suggestion-text: #555;
+      --snooze: #d4940a;
+      --focus: #0a66c2;
+    }
+
+    body {
+      width: 300px;
+      padding: 20px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-size: 14px;
+      color: var(--text);
+      background: var(--bg);
+    }
+    h1 {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    hr { border: none; border-top: 1px solid var(--border-light); margin: 12px 0; }
+    .stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+    }
+    .stat-label { color: var(--text-secondary); }
+    .stat-value { font-weight: 600; font-size: 18px; }
+    .actions { margin-top: 12px; display: flex; flex-direction: column; gap: 6px; }
+    .actions button {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-secondary);
+      transition: background 0.15s;
+    }
+    .actions button:hover { background: var(--bg-hover); }
+    .actions button:active { background: var(--bg-active); }
+    .actions button:disabled { opacity: 0.5; cursor: default; }
+
+    /* Toggle switch */
+    .toggle-wrap {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+    }
+    .toggle {
+      position: relative;
+      width: 44px;
+      height: 24px;
+      cursor: pointer;
+    }
+    .toggle input { opacity: 0; width: 0; height: 0; }
+    .toggle .slider {
+      position: absolute; inset: 0;
+      background: var(--toggle-off);
+      border-radius: 24px;
+      transition: background 0.2s;
+    }
+    .toggle .slider::before {
+      content: '';
+      position: absolute;
+      left: 3px; top: 3px;
+      width: 18px; height: 18px;
+      background: var(--text-inverse);
+      border-radius: 50%;
+      transition: transform 0.2s;
+    }
+    .toggle input:checked + .slider { background: var(--toggle-on); }
+    .toggle input:checked + .slider::before { transform: translateX(20px); }
+
+    .snooze-status { font-size: 12px; color: var(--snooze); text-align: center; min-height: 18px; }
+    .manage-link {
+      display: block;
+      text-align: center;
+      padding: 8px 0;
+      font-size: 13px;
+      color: var(--primary);
+      cursor: pointer;
+      text-decoration: none;
+    }
+    .manage-link:hover { text-decoration: underline; }
+    .stats-row {
+      display: flex;
+      justify-content: space-around;
+      padding: 6px 0;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+    .stats-row .sep { color: var(--border); }
+    .stats-row strong { color: var(--text); }
+    .last-blocked-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      margin-bottom: 2px;
+    }
+    .last-blocked-item .lb-text {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .last-blocked-item .lb-time {
+      color: var(--text-tertiary);
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+    .last-blocked-item .lb-undo {
+      background: none;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      cursor: pointer;
+      font-size: 11px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+    .last-blocked-item .lb-undo:hover { background: var(--bg-hover); }
+    .last-blocked-heading { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+    .suggestion-heading { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+    .suggestion-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 8px;
+      font-size: 12px;
+      color: var(--suggestion-text);
+      border-radius: 6px;
+      background: var(--suggestion-bg);
+      margin-bottom: 2px;
+    }
+    .suggestion-item .suggestion-text { flex: 1; }
+    .suggestion-item .suggestion-add {
+      background: var(--primary);
+      color: var(--text-inverse);
+      border: none;
+      border-radius: 4px;
+      padding: 3px 10px;
+      cursor: pointer;
+      font-size: 11px;
+      white-space: nowrap;
+    }
+    .suggestion-item .suggestion-add:hover { background: var(--primary-hover); }
+    .suggestion-item .suggestion-dismiss {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-tertiary);
+      padding: 2px 4px;
+      line-height: 1;
+    }
+    .suggestion-item .suggestion-dismiss:hover { color: var(--text); }
+    .footer { margin-top: 8px; font-size: 11px; color: var(--text-tertiary); text-align: center; }
+    .connection-notice {
+      display: none;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      border: 1px solid var(--border-light);
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      color: var(--text-secondary);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+
+    /* Focus indicators */
+    button:focus-visible,
+    a:focus-visible,
+    .toggle:focus-within {
+      outline: 2px solid var(--focus);
+      outline-offset: 2px;
+    }
+
+    /* Loading state */
+    #loadingState {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 30px 0;
+      color: var(--text-tertiary);
+      font-size: 13px;
+      gap: 12px;
+    }
+    .spinner {
+      width: 24px;
+      height: 24px;
+      border: 3px solid var(--border);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    #noConnection { display: none; text-align: center; padding: 30px 0; color: var(--text-tertiary); font-size: 13px; }
+    #noConnection p { margin-bottom: 12px; }
+
+    /* Reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .toggle .slider,
+      .toggle .slider::before,
+      .actions button { transition: none; }
+      .spinner { animation: none; border-color: var(--border); }
+    }
+
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --text: #e0e0e0;
+        --text-secondary: #999;
+        --text-tertiary: #888;
+        --text-inverse: #fff;
+        --bg: #1e1e1e;
+        --bg-secondary: #2a2a2a;
+        --bg-hover: #3a3a3a;
+        --bg-active: #444;
+        --border: #444;
+        --border-light: #333;
+        --primary: #5b9bd5;
+        --primary-hover: #3a7bb5;
+        --toggle-off: #555;
+        --toggle-on: #5b9bd5;
+        --suggestion-bg: #3a3220;
+        --suggestion-text: #e0d0a0;
+        --snooze: #e8b840;
+        --focus: #5b9bd5;
+      }
+    }
+  </style>
+</head>
+<body>
+  <h1>
+    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a66c2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+    __MSG_appName__
+  </h1>
+
+  <div id="loadingState">
+    <div class="spinner"></div>
+  </div>
+
+  <div id="noConnection">
+    <p>__MSG_noConnection__</p>
+    <a class="manage-link" href="https://www.linkedin.com/feed/" target="_blank" rel="noopener">__MSG_openLinkedIn__ &rarr;</a>
+  </div>
+
+  <div id="mainContent">
+  <div class="connection-notice" id="connectionNotice">__MSG_noLiveTabNotice__</div>
+
+  <div class="toggle-wrap">
+    <span class="stat-label">__MSG_enabled__</span>
+    <label class="toggle">
+      <input type="checkbox" id="toggleEnabled" checked aria-label="__MSG_toggleEnabledLabel__" title="__MSG_toggleEnabledLabel__" />
+      <span class="slider"></span>
+    </label>
+  </div>
+
+  <div class="stat">
+    <span class="stat-label">__MSG_postsBlocked__</span>
+    <span class="stat-value" id="blockedCount">0</span>
+  </div>
+
+  <div class="stats-row" id="statsRow">
+    <span>__MSG_todayLabel__: <strong id="todayCount">0</strong></span>
+    <span class="sep">|</span>
+    <span>__MSG_weekLabel__: <strong id="weekCount">0</strong></span>
+    <span class="sep">|</span>
+    <span>__MSG_totalLabel__: <strong id="lifetimeCount">0</strong></span>
+  </div>
+
+  <div id="lastBlockedSection" style="display:none">
+    <hr />
+    <div class="last-blocked-heading">__MSG_lastBlockedLabel__</div>
+    <div id="lastBlockedList"></div>
+  </div>
+
+  <div id="suggestionSection" style="display:none">
+    <hr />
+    <div class="suggestion-heading">__MSG_suggestionsLabel__</div>
+    <div id="suggestionList"></div>
+  </div>
+
+  <div class="snooze-status" id="snoozeStatus"></div>
+
+  <div class="actions">
+    <button id="snoozeBtn">__MSG_snooze30__</button>
+    <button id="resetBtn">__MSG_resetCount__</button>
+  </div>
+
+  <hr />
+
+  <a class="manage-link" id="manageLink">__MSG_managePhrases__ &rarr;</a>
+
+  <div class="footer">__MSG_footerSites__</div>
+
+  </div><!-- /mainContent -->
+
+  <script src="../i18n.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,30 @@
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.vscode/
+.idea/
+
+# Node
+node_modules/
+
+# AI / Agent config
+.claude/
+.agents/
+.continue/
+.codacy/
+.github/instructions/
+skills-lock.json
+
+# Python (used for screenshot generation)
+__pycache__/
+*.pyc
+*.pyo
+
+# Generated build artifacts (regenerable from assets/ mockups)
+screenshots/
+dist/
