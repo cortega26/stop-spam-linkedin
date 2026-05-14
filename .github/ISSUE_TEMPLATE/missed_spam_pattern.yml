@@ -1,0 +1,32 @@
+name: Missed spam pattern
+description: Report engagement-bait spam that was not hidden.
+title: "[Missed spam]: "
+labels:
+  - missed spam
+body:
+  - type: markdown
+    attributes:
+      value: Please include only the relevant spam wording, not private account details.
+  - type: textarea
+    id: post_text
+    attributes:
+      label: Relevant spam text
+      description: Include the call-to-comment wording and offer text if possible.
+    validations:
+      required: true
+  - type: input
+    id: keyword
+    attributes:
+      label: Comment keyword, if any
+      placeholder: PROMPT, GUIDE, TEMPLATE, etc.
+  - type: input
+    id: language
+    attributes:
+      label: Language
+      placeholder: English, Spanish, French, Portuguese, German, etc.
+  - type: input
+    id: page_type
+    attributes:
+      label: LinkedIn page type
+      placeholder: Feed, profile, search, company page, group, etc.
+

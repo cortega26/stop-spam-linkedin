@@ -1,0 +1,38 @@
+name: False positive
+description: Report a useful post that was hidden by mistake.
+title: "[False positive]: "
+labels:
+  - false positive
+body:
+  - type: markdown
+    attributes:
+      value: Please avoid sharing private LinkedIn profile or account data.
+  - type: textarea
+    id: post_text
+    attributes:
+      label: Relevant post text
+      description: Share the phrase or short excerpt that appears to have triggered blocking.
+    validations:
+      required: true
+  - type: input
+    id: page_type
+    attributes:
+      label: LinkedIn page type
+      placeholder: Feed, profile, search, company page, group, etc.
+    validations:
+      required: true
+  - type: dropdown
+    id: custom_phrase
+    attributes:
+      label: Did a custom phrase cause it?
+      options:
+        - "No"
+        - "Yes"
+        - "Not sure"
+    validations:
+      required: true
+  - type: textarea
+    id: notes
+    attributes:
+      label: Additional context
+
