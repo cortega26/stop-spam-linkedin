@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## 1.2.3 - Code Audit Fixes
+
+### Bug fixes
+
+- Fixed `VERSION` file stale at 1.2.0 — now tracks manifest version.
+- Fixed `migrateRuntimeStorage` discarding sync keys when local storage write fails — added `chrome.runtime.lastError` guard in both content script and popup.
+- Fixed `lastBlocked` array not cleaned when posts are restored via in-feed "Show" or "Not spam" buttons, which left stale Undo entries in the popup.
+- Fixed context menu only recreating on `install`, not `update` — extension upgrades now correctly recreate the menu.
+- Fixed `whitelistBtn` DOM element being created even when `authorId` is null, wasting resources on posts without detectable authors.
+- Fixed `showFirstRunToast` throwing when `target.parentNode` is null (rare: feed container is `document.body`).
+- Fixed `options.js save()` rendering before the storage callback completed, causing a UI flash on write failure.
+
+### Documentation
+
+- Updated `RELEASE_NOTES.md` with 1.2.1 and 1.2.2 entries.
+- Added sync-maintenance comments between `content.js` `BASE_PATTERNS` and `options.js` `BUILTIN`/`LANG_META`.
+
 ## 1.2.2 - Firefox Manifest Compliance
 
 ### Firefox

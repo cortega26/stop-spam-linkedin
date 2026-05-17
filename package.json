@@ -1,6 +1,6 @@
 {
   "name": "linkedin-spam-blocker",
-  "version": "1.2.2",
+  "version": "1.2.3",
   "private": true,
   "scripts": {
     "smoke": "jq empty manifest.json _locales/en/messages.json _locales/es/messages.json && node --check content.js && node --check background.js && node --check popup/popup.js && node --check options/options.js && node --check i18n.js && node --check tests/extension-smoke.js",

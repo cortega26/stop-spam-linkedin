@@ -82,6 +82,10 @@
     if (removeKeys.length === 0) return;
 
     chrome.storage.local.set(localPatch, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Storage migration (local.set) failed:", chrome.runtime.lastError.message);
+        return;
+      }
       chrome.storage.sync.remove(removeKeys);
     });
   }

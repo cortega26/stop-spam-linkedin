@@ -12,7 +12,7 @@
 
   /* ── Init ───────────────────────────────────────────────────── */
   chrome.runtime.onInstalled.addListener((details) => {
-    if (details.reason !== "install") return;
+    if (details.reason !== "install" && details.reason !== "update") return;
     chrome.contextMenus.create({
       id: MENU_ID,
       title: t("contextMenuTitle"),

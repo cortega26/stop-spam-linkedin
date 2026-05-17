@@ -82,9 +82,10 @@
         phrases = prev;
         render();
         showToast("Storage write failed: " + chrome.runtime.lastError.message, true);
+        return;
       }
+      render();
     });
-    render();
   }
 
   /* ── Toast ──────────────────────────────────────────────────── */
@@ -707,7 +708,10 @@
     DE: { native: "Deutsch",   english: "German" },
   };
 
-  /* ── Built-in patterns (display only) ───────────────────────── */
+  /* ── Built-in patterns (display only) ─────────────────────────
+     Keep in sync with BASE_PATTERNS and LANG_META above.
+     When adding a language or pattern to content.js, update
+     LANG_META, BUILTIN, and the language toggle logic here.     */
 
   const BUILTIN = [
     { lang: "EN", label: 'comment "WORD" and I\'ll send / share ...' },

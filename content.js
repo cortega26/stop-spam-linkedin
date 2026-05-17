@@ -35,6 +35,7 @@
     WHITELIST: "ss_whitelist",
   });
 
+  /* Keep in sync with options.js BUILTIN, LANG_META, and lang toggle logic. */
   const BASE_PATTERNS = Object.freeze({
     EN: Object.freeze([
       /(?:comment|type|write|reply|drop)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:and|to)\s+(?:i'? ?ll|i will)\s+(?:send|share|give|dm|message|get|receive|send you|share the|give you)\b/i,
@@ -157,6 +158,10 @@
     if (removeKeys.length === 0) return;
 
     chrome.storage.local.set(localPatch, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Storage migration (local.set) failed:", chrome.runtime.lastError.message);
+        return;
+      }
       chrome.storage.sync.remove(removeKeys);
     });
   }
@@ -754,23 +759,25 @@
     placeholder.appendChild(notSpamBtn);
 
     /* "Never block this author" button (only if we found an author ID). */
-    const whitelistBtn = document.createElement("button");
-    whitelistBtn.textContent = t("neverBlock");
-    whitelistBtn.style.cssText = [
-      "background:none; border:1px solid #d0d0d0; border-radius:4px;",
-      "padding:4px 12px; cursor:pointer; font-size:12px; color:#767676;",
-    ].join("");
-    whitelistBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const id = getAuthorId(post);
-      if (id) {
-        whitelistedAuthors.add(id);
-        pruneSet(whitelistedAuthors, CONFIG.MAX_WHITELIST);
-        chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: [...whitelistedAuthors] });
-      }
-      restorePost(post);
-    });
-    if (authorId) placeholder.appendChild(whitelistBtn);
+    if (authorId) {
+      const whitelistBtn = document.createElement("button");
+      whitelistBtn.textContent = t("neverBlock");
+      whitelistBtn.style.cssText = [
+        "background:none; border:1px solid #d0d0d0; border-radius:4px;",
+        "padding:4px 12px; cursor:pointer; font-size:12px; color:#767676;",
+      ].join("");
+      whitelistBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = getAuthorId(post);
+        if (id) {
+          whitelistedAuthors.add(id);
+          pruneSet(whitelistedAuthors, CONFIG.MAX_WHITELIST);
+          chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: [...whitelistedAuthors] });
+        }
+        restorePost(post);
+      });
+      placeholder.appendChild(whitelistBtn);
+    }
 
     const restoreBtn = document.createElement("button");
     restoreBtn.textContent = t("show");
@@ -952,8 +959,12 @@
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
     });
 
-    const target = document.querySelector('[class*="feed"]') || document.querySelector("main") || document.body;
-    target.parentNode?.insertBefore(banner, target);
+    const target = document.querySelector('[class*="feed"]') || document.querySelector("main");
+    if (target && target.parentNode) {
+      target.parentNode.insertBefore(banner, target);
+    } else {
+      document.body.prepend(banner);
+    }
     setTimeout(() => banner.remove(), 5000);
   }
 
@@ -977,6 +988,11 @@
     post.style.display = "";
     const ph = post.nextElementSibling;
     if (ph && ph.dataset && ph.dataset.ssPh) ph.remove();
+
+    /* Keep lastBlocked in sync so the popup undo list stays accurate. */
+    for (let i = lastBlocked.length - 1; i >= 0; i--) {
+      if (lastBlocked[i].post === post) lastBlocked.splice(i, 1);
+    }
   }
 
   /* Extract the LinkedIn author profile ID from known author/header links only. */
