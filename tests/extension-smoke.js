@@ -155,9 +155,19 @@ function assertPackageVersion(unpackedDir, inputPath) {
     `expected ${inputPath} manifest version to match repo version ${repoManifest.version}`
   );
   assert.deepEqual(
+    packageManifest.background?.scripts,
+    repoManifest.background?.scripts,
+    `expected ${inputPath} background.scripts to match repo manifest`
+  );
+  assert.deepEqual(
     packageManifest.background?.service_worker,
     repoManifest.background?.service_worker,
     `expected ${inputPath} background.service_worker to match repo manifest`
+  );
+  assert.deepEqual(
+    packageManifest.browser_specific_settings?.gecko?.data_collection_permissions,
+    repoManifest.browser_specific_settings?.gecko?.data_collection_permissions,
+    `expected ${inputPath} Gecko data_collection_permissions to match repo manifest`
   );
 }
 

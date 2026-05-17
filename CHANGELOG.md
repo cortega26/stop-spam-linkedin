@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 1.2.2 - Firefox Manifest Compliance
+
+### Firefox
+
+- Restored `background.scripts` alongside `service_worker` — Firefox now requires both for MV3 compatibility (error otherwise).
+- Restored `browser_specific_settings.gecko.data_collection_permissions` — now mandatory for all new extension submissions.
+- Bumped `strict_min_version` to `140.0` to match `data_collection_permissions` support.
+- Updated test assertions to verify both `background.scripts` and `background.service_worker`, plus the `data_collection_permissions` field.
+
 ## 1.2.1 - Firefox Compatibility & Chrome Web Store Publication
 
 ### Chrome Web Store
