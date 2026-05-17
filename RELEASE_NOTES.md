@@ -1,5 +1,12 @@
 # Release Notes
 
+## 1.2.4
+
+Firefox Android compatibility. Key changes:
+
+- **Android version bump**: `strict_min_version` raised to 142.0 to match `data_collection_permissions` support on Firefox for Android.
+- **Remaining warning**: Firefox warns that `background.service_worker` is ignored (it uses `background.scripts` instead). This is harmless cross-browser behavior and does not affect functionality — Chrome uses `service_worker`, Firefox uses `scripts`. Eliminating it would require a build system for browser-specific manifests.
+
 ## 1.2.3
 
 Code audit fixes. Key changes:

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 1.2.4 - Firefox Android Compatibility
+
+### Firefox
+
+- Bumped `strict_min_version` from `140.0` to `142.0` — `data_collection_permissions` requires Firefox for Android 142+ (was warning on Android).
+
 ## 1.2.3 - Code Audit Fixes
 
 ### Bug fixes
