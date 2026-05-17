@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+## 1.2.1 - Firefox Compatibility & Chrome Web Store Publication
+
+### Chrome Web Store
+
+- Published on the Chrome Web Store at v1.2.0.
+- Added direct install link to README and Spanish README.
+
+### Firefox
+
+- Removed `background.scripts` from manifest — Firefox 113+ supports `service_worker` in MV3, eliminating the "unsupported manifest property" warning.
+- Bumped `strict_min_version` from `112.0` to `113.0` to match actual `service_worker` support in Firefox.
+- Removed `browser_specific_settings.gecko.data_collection_permissions` (requires Firefox 140+), eliminating the "manifest key not supported" warnings.
+- Updated the test assertion from `background.scripts` to `background.service_worker`.
+- Removed the stale `data_collection_permissions` assertion from extension-smoke tests.
+- Updated README Firefox section to reflect the current submission status.
+
+### Documentation
+
+- Added Chrome Web Store badge to README linking to the published listing.
+- Updated Chrome Web Store install instructions from "pending publication" to direct store link.
+
 ## 1.2.0 - Security, Validation & Release Tooling
 
 ### Security

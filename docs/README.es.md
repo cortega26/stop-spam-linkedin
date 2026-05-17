@@ -86,11 +86,11 @@ La deteccion es heuristica, no magia. Puede pasar por alto nuevos formatos de sp
 
 ### Chrome Web Store
 
-Publicacion pendiente. Por ahora usa los pasos de instalacion manual.
+[Instalar desde Chrome Web Store](https://chromewebstore.google.com/detail/linkedin-spam-blocker/eolknfnafdodmaaajdiidaanpjbfolfc)
 
 ### Firefox Add-ons
 
-Publicacion pendiente. Por ahora usa los pasos de complemento temporal.
+[Envío en revisión.](https://addons.mozilla.org/en-US/firefox/addon/linkedin-spam-blocker/) Por ahora usa los pasos de instalación manual.
 
 ### Paquete mas reciente
 

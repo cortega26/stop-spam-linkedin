@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "LinkedIn Spam Blocker",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Blocks LinkedIn engagement-bait spam that asks you to \"Comment X and I will send...\"",
   "default_locale": "en",
 
@@ -19,7 +19,6 @@
   },
 
   "background": {
-    "scripts": ["background.js"],
     "service_worker": "background.js"
   },
 
@@ -61,11 +60,8 @@
 
   "browser_specific_settings": {
     "gecko": {
-      "data_collection_permissions": {
-        "required": ["none"]
-      },
       "id": "linkedin-spam-blocker@carlos",
-      "strict_min_version": "112.0"
+      "strict_min_version": "113.0"
     }
   }
 }

@@ -3,7 +3,7 @@
 [![CI](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml/badge.svg)](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/cortega26/stop-spam-linkedin?label=release)](https://github.com/cortega26/stop-spam-linkedin/releases)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-2ea44f)](manifest.json)
-[![Chrome](https://img.shields.io/badge/Chrome-supported-4285F4?logo=googlechrome&logoColor=white)](#manual-unpacked-install)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-v1.2.0-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/linkedin-spam-blocker/eolknfnafdodmaaajdiidaanpjbfolfc)
 [![Firefox](https://img.shields.io/badge/Firefox-supported-FF7139?logo=firefoxbrowser&logoColor=white)](#manual-unpacked-install)
 [![Local only](https://img.shields.io/badge/privacy-local--only-0a7f64)](PRIVACY_POLICY.md)
 [![No telemetry](https://img.shields.io/badge/telemetry-none-0a7f64)](PRIVACY_POLICY.md)
@@ -86,11 +86,11 @@ Detection is heuristic, not magic. It can miss new spam formats, and it can occa
 
 ### Chrome Web Store
 
-Listing pending publication. Use the unpacked install steps below for now.
+[Install from the Chrome Web Store](https://chromewebstore.google.com/detail/linkedin-spam-blocker/eolknfnafdodmaaajdiidaanpjbfolfc)
 
 ### Firefox Add-ons
 
-Listing pending publication. Use the temporary add-on install steps below for now.
+[Submission under review.](https://addons.mozilla.org/en-US/firefox/addon/linkedin-spam-blocker/) Use the temporary add-on install steps below for now.
 
 ### Latest Package
 

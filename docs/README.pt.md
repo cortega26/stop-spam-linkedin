@@ -86,11 +86,11 @@ A deteccao e heuristica, nao magia. Ela pode perder novos formatos de spam e, oc
 
 ### Chrome Web Store
 
-Publicacao pendente. Por enquanto, use os passos de instalacao manual abaixo.
+[Instalar da Chrome Web Store](https://chromewebstore.google.com/detail/linkedin-spam-blocker/eolknfnafdodmaaajdiidaanpjbfolfc)
 
 ### Firefox Add-ons
 
-Publicacao pendente. Por enquanto, use os passos de complemento temporario abaixo.
+[Envio em revisão.](https://addons.mozilla.org/en-US/firefox/addon/linkedin-spam-blocker/) Por enquanto, use os passos de instalação manual abaixo.
 
 ### Pacote mais recente
 
