@@ -3,8 +3,8 @@
 [![CI](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml/badge.svg)](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/cortega26/stop-spam-linkedin?label=release)](https://github.com/cortega26/stop-spam-linkedin/releases)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-2ea44f)](../manifest.json)
-[![Chrome](https://img.shields.io/badge/Chrome-unterstuetzt-4285F4?logo=googlechrome&logoColor=white)](#manual-unpacked-install)
-[![Firefox](https://img.shields.io/badge/Firefox-unterstuetzt-FF7139?logo=firefoxbrowser&logoColor=white)](#manual-unpacked-install)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-v1.2.4-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/linkedin-spam-blocker/eolknfnafdodmaaajdiidaanpjbfolfc)
+[![Firefox Add-ons](https://img.shields.io/badge/Firefox_Add--ons-v1.2.4-FF7139?logo=firefoxbrowser&logoColor=white)](https://addons.mozilla.org/addon/linkedin-spam-blocker/)
 [![Local only](https://img.shields.io/badge/datenschutz-nur%20lokal-0a7f64)](../PRIVACY_POLICY.md)
 [![No telemetry](https://img.shields.io/badge/telemetrie-keine-0a7f64)](../PRIVACY_POLICY.md)
 [![License](https://img.shields.io/badge/lizenz-source--available-lightgrey)](../LICENSE)
@@ -90,7 +90,7 @@ Die Erkennung ist heuristisch, nicht magisch. Sie kann neue Spam-Formate verpass
 
 ### Firefox Add-ons
 
-[Einreichung in Prüfung.](https://addons.mozilla.org/en-US/firefox/addon/linkedin-spam-blocker/) Nutzen Sie vorerst die temporäre Add-on-Installation unten.
+[Installieren aus Firefox Add-ons](https://addons.mozilla.org/addon/linkedin-spam-blocker/)
 
 ### Aktuelles Paket
 
