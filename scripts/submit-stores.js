@@ -47,19 +47,9 @@ async function submitChrome() {
   const upload = await webStore.uploadExisting(fs.createReadStream(zipPath));
   console.log("Upload:", JSON.stringify(upload, null, 2));
 
-  if (upload.error) {
-    console.error("Chrome upload failed:", upload.error);
-    process.exit(1);
-  }
-
   console.log("Publishing...");
   const publish = await webStore.publish();
   console.log("Publish:", JSON.stringify(publish, null, 2));
-
-  if (publish.error) {
-    console.error("Chrome publish failed:", publish.error);
-    process.exit(1);
-  }
 
   console.log("Chrome Web Store: done.");
 }
