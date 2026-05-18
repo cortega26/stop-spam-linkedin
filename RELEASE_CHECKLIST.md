@@ -21,6 +21,25 @@
 
 ## Store Submission
 
+### Automated (CI)
+
+Pushing a `v*` tag triggers `.github/workflows/release.yml`, which packages the extension and submits to both stores.
+
+**Required GitHub secrets** (set in repo Settings → Secrets and variables → Actions):
+
+| Secret | Source |
+|--------|--------|
+| `CHROME_EXTENSION_ID` | Chrome Web Store item ID (`eolknfnafdodmaaajdiidaanpjbfolfc`) |
+| `CHROME_CLIENT_ID` | Google Cloud Console → OAuth 2.0 client |
+| `CHROME_CLIENT_SECRET` | Google Cloud Console |
+| `CHROME_REFRESH_TOKEN` | Generated via OAuth playground with `https://www.googleapis.com/auth/chromewebstore` scope |
+| `FIREFOX_API_KEY` | [addons.mozilla.org → API Keys](https://addons.mozilla.org/en-US/developers/addon/api/key/) |
+| `FIREFOX_API_SECRET` | [addons.mozilla.org → API Keys](https://addons.mozilla.org/en-US/developers/addon/api/key/) |
+
+Or run locally: `npm run submit:chrome` / `npm run submit:firefox` with the same env vars set.
+
+### Manual
+
 - Use `STORE_ASSETS.md` for short description, detailed description, category, tags, and asset references.
 - Upload the generated zip.
 - Upload screenshots and promo assets from `screenshots/`.

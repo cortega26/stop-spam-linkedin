@@ -6,9 +6,12 @@
     "smoke": "jq empty manifest.json _locales/en/messages.json _locales/es/messages.json && node --check content.js && node --check background.js && node --check popup/popup.js && node --check options/options.js && node --check i18n.js && node --check tests/extension-smoke.js",
     "test:extension": "if [ -n \"$DISPLAY\" ]; then node tests/extension-smoke.js; else xvfb-run -a node tests/extension-smoke.js; fi",
     "test:package": "npm run package && ZIP=$(node -p \"'dist/linkedin-spam-blocker-' + require('./manifest.json').version + '.zip'\") && if [ -n \"$DISPLAY\" ]; then node tests/extension-smoke.js \"$ZIP\"; else xvfb-run -a node tests/extension-smoke.js \"$ZIP\"; fi",
-    "package": "node scripts/package-extension.js"
+    "package": "node scripts/package-extension.js",
+    "submit:chrome": "node scripts/submit-stores.js chrome",
+    "submit:firefox": "node scripts/submit-stores.js firefox"
   },
   "devDependencies": {
+    "chrome-webstore-upload": "^6.0.0",
     "playwright": "^1.57.0"
   }
 }
