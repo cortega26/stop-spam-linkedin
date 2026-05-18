@@ -24,17 +24,20 @@ if (!store || !["chrome", "firefox"].includes(store)) {
 
 async function submitChrome() {
   const extensionId = process.env.CHROME_EXTENSION_ID;
+  const publisherId = process.env.CHROME_PUBLISHER_ID;
   const clientId = process.env.CHROME_CLIENT_ID;
   const clientSecret = process.env.CHROME_CLIENT_SECRET;
   const refreshToken = process.env.CHROME_REFRESH_TOKEN;
 
-  if (!extensionId || !clientId || !clientSecret || !refreshToken) {
-    console.error("Missing Chrome env vars: CHROME_EXTENSION_ID, CHROME_CLIENT_ID, CHROME_CLIENT_SECRET, CHROME_REFRESH_TOKEN");
+  if (!extensionId || !publisherId || !clientId || !clientSecret || !refreshToken) {
+    console.error("Missing Chrome env vars: CHROME_EXTENSION_ID, CHROME_PUBLISHER_ID, CHROME_CLIENT_ID, CHROME_CLIENT_SECRET, CHROME_REFRESH_TOKEN");
     process.exit(1);
   }
 
-  const webStore = require("chrome-webstore-upload")({
+  const { default: chromeWebstoreUpload } = await import("chrome-webstore-upload");
+  const webStore = chromeWebstoreUpload({
     extensionId,
+    publisherId,
     clientId,
     clientSecret,
     refreshToken,

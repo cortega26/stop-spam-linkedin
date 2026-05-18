@@ -30,6 +30,7 @@ Pushing a `v*` tag triggers `.github/workflows/release.yml`, which packages the 
 | Secret | Source |
 |--------|--------|
 | `CHROME_EXTENSION_ID` | Chrome Web Store item ID (`eolknfnafdodmaaajdiidaanpjbfolfc`) |
+| `CHROME_PUBLISHER_ID` | Chrome Web Store → Account → Publisher ID |
 | `CHROME_CLIENT_ID` | Google Cloud Console → OAuth 2.0 client |
 | `CHROME_CLIENT_SECRET` | Google Cloud Console |
 | `CHROME_REFRESH_TOKEN` | Generated via OAuth playground with `https://www.googleapis.com/auth/chromewebstore` scope |
