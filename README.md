@@ -3,7 +3,7 @@
 [![CI](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml/badge.svg)](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/cortega26/stop-spam-linkedin?label=release)](https://github.com/cortega26/stop-spam-linkedin/releases)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-2ea44f)](manifest.json)
-[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-v1.2.0-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/linkedin-spam-blocker/eolknfnafdodmaaajdiidaanpjbfolfc)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-v1.2.4-4285F4?logo=googlechrome&logoColor=white)](https://chromewebstore.google.com/detail/linkedin-spam-blocker/eolknfnafdodmaaajdiidaanpjbfolfc)
 [![Firefox Add-ons](https://img.shields.io/badge/Firefox_Add--ons-v1.2.4-FF7139?logo=firefoxbrowser&logoColor=white)](https://addons.mozilla.org/addon/linkedin-spam-blocker/)
 [![Local only](https://img.shields.io/badge/privacy-local--only-0a7f64)](PRIVACY_POLICY.md)
 [![No telemetry](https://img.shields.io/badge/telemetry-none-0a7f64)](PRIVACY_POLICY.md)
