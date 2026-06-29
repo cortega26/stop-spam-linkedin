@@ -1,5 +1,8 @@
 # LinkedIn Spam Blocker
 
+*Partie de l'[écosystème Tooltician](https://tooltician.com) — extension navigateur qui nettoie votre fil LinkedIn, privée par conception.*
+
+[![Partie de Tooltician](https://img.shields.io/badge/Partie%20de-Tooltician-6C47FF.svg?style=flat-square&logo=data:image/svg%2bxml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxNiIgaGVpZ2h0PSIxNiIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PHBhdGggZD0iTTIgM2g2YTQgNCAwIDAgMSA0IDR2MTRhMiAyIDAgMCAwLTItMkg0YTIgMiAwIDAgMS0yLTJWNVoiLz48cGF0aCBkPSJNMjIgM2gtNmE0IDQgMCAwIDAtNCA0djE0YTIgMiAwIDAgMSAyLTJoNGEyIDIgMCAwIDAgMi0yVjVhMiAyIDAgMCAwLTItMloiLz48L3N2Zz4=)](https://tooltician.com)
 [![CI](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml/badge.svg)](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/cortega26/stop-spam-linkedin?label=release)](https://github.com/cortega26/stop-spam-linkedin/releases)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-2ea44f)](../manifest.json)
@@ -152,4 +155,8 @@ Incluez la phrase ou le court extrait pertinent et le type de page LinkedIn. Evi
 ## Licence
 
 Source-available proprietaire. Vous pouvez inspecter le code source et utiliser l'extension pour un usage personnel, mais la redistribution, l'usage commercial et les produits derives concurrents ne sont pas autorises sans accord ecrit prealable. Consultez [LICENSE](../LICENSE).
+
+---
+
+*Partie de l'[écosystème Tooltician](https://tooltician.com) — extension navigateur qui nettoie votre fil LinkedIn, privée par conception.*
 
