@@ -2,7 +2,7 @@
 
 *Parte del [ecosistema Tooltician](https://tooltician.com) — extensión de navegador que limpia tu feed de LinkedIn, privada por diseño.*
 
-[![Parte de Tooltician](https://tooltician.com/badge.es.svg)](https://tooltician.com)
+[![Parte de Tooltician](https://img.shields.io/badge/Parte_de-Tooltician.com-6C47FF?v=2)](https://tooltician.com)
 [![CI](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml/badge.svg)](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/cortega26/stop-spam-linkedin?label=release)](https://github.com/cortega26/stop-spam-linkedin/releases)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-2ea44f)](../manifest.json)
