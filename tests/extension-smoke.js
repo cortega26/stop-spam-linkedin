@@ -102,6 +102,38 @@ async function main() {
       "expected extension placeholder text"
     );
 
+    const spamPost = page.locator('[data-id="urn:li:activity:spam-1"]');
+    await assert.equal(
+      await spamPost.evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected spam post to be hidden before snooze"
+    );
+
+    const snoozeResponse = await sendTabMessage(context, { action: "snooze" });
+    assert.ok(snoozeResponse, "expected snooze message to reach the content script");
+
+    await page.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display !== "none";
+      },
+      '[data-id="urn:li:activity:spam-1"]',
+      { timeout: 4000 }
+    );
+    await assertCount(page.locator("[data-ss-ph]"), 0);
+
+    await setLocalStorage(context, { ss_snooze_until: Date.now() - 1000 });
+
+    await page.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display === "none";
+      },
+      '[data-id="urn:li:activity:spam-1"]',
+      { timeout: 4000 }
+    );
+    await assertCount(page.locator("[data-ss-ph]"), 1);
+
     console.log("Extension smoke test passed.");
   } finally {
     await context.close();
@@ -137,6 +169,32 @@ async function setSyncStorage(context, patch) {
   await worker.evaluate((value) => new Promise((resolve) => {
     chrome.storage.sync.set(value, resolve);
   }), patch);
+}
+
+async function setLocalStorage(context, patch) {
+  const worker = context.serviceWorkers()[0] || await context.waitForEvent("serviceworker", {
+    timeout: 10000,
+  });
+  await worker.evaluate((value) => new Promise((resolve) => {
+    chrome.storage.local.set(value, resolve);
+  }), patch);
+}
+
+async function sendTabMessage(context, msg) {
+  const worker = context.serviceWorkers()[0] || await context.waitForEvent("serviceworker", {
+    timeout: 10000,
+  });
+  return worker.evaluate((message) => new Promise((resolve) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (!tabs[0]?.id) {
+        resolve(null);
+        return;
+      }
+      chrome.tabs.sendMessage(tabs[0].id, message, (response) => {
+        resolve(chrome.runtime.lastError ? null : response);
+      });
+    });
+  }), msg);
 }
 
 function assertPackageVersion(unpackedDir, inputPath) {
