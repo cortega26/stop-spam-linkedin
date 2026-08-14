@@ -650,6 +650,51 @@ async function main() {
     await optionsPage.close();
     await popup.close();
 
+    /* ── ES-1 accented verb regression (es1-accented-verbs) ─────── */
+
+    /* Deterministic start: reload resets the DOM to the shared 3-section
+       fixture (sections appended in earlier scenarios vanish). Only
+       spam-1 (EN match) is blocked — whitelisted-1 and clean-1 stay
+       visible — so exactly one placeholder exists. */
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* The "envío" form of the ES-1 verb alternation used to die on the
+       non-unicode `\b` after the accented í: the post never matched.
+       The appended section uses that exact verb. */
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.setAttribute("data-id", "urn:li:activity:es-spam-1");
+      section.innerHTML =
+        '<div class="update-components-actor"><a href="/in/es-spammer/">Autor ES</a></div>' +
+        "<p>Comenta CLAUDE y te envío el PDF completo, la plantilla y el flujo de trabajo gratis hoy mismo.</p>";
+      document.querySelector("main").appendChild(section);
+    });
+
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display === "none";
+      },
+      '[data-id="urn:li:activity:es-spam-1"]',
+      { timeout: 5000 }
+    );
+    /* Placeholder count grew 1 -> 2, and the placeholder sits right
+       after the hidden section (content.js inserts it as the post's
+       next sibling). */
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+    assert.equal(
+      await linkedInPage
+        .locator('[data-id="urn:li:activity:es-spam-1"]')
+        .evaluate((el) => {
+          const next = el.nextElementSibling;
+          return next !== null && next.hasAttribute("data-ss-ph");
+        }),
+      true,
+      "expected a placeholder as the next sibling of the hidden ES post"
+    );
+
     console.log("Extension interactions test passed.");
   } finally {
     await context.close();
