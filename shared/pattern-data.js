@@ -131,6 +131,27 @@
     return "sig:" + hashString(normalized);
   }
 
+  /* Label texts LinkedIn shows on sponsored posts / the profile Featured
+     section, in the extension's 5 supported UI languages. Exact-match
+     checking keeps false positives near zero (a post DISCUSSING promotion
+     won't match). */
+  const PROMOTED_LABELS = Object.freeze(["Promoted", "Patrocinado", "Promu", "Promovido", "Beworben"]);
+  const FEATURED_LABELS = Object.freeze(["Featured", "Destacados", "En vedette", "Em destaque", "Ausgewählt"]);
+
+  /* True when text is one of the labels, possibly followed by a " · "
+     separator (LinkedIn renders "Promoted · Sponsor Name" as one element). */
+  function matchesLabel(text, labels) {
+    const trimmed = String(text || "").trim();
+    if (!trimmed) return false;
+    const lower = trimmed.toLowerCase();
+    for (const label of labels) {
+      const l = label.toLowerCase();
+      if (lower === l) return true;
+      if (lower.startsWith(l + " ·")) return true;
+    }
+    return false;
+  }
+
   /* Map-based cooldown store keyed by string identity (e.g. a post's
      data-id). Entries expire after expiryMs; `has` is false for expired
      keys. Evicts oldest entries past maxEntries to bound memory. */
@@ -157,6 +178,9 @@
   }
 
   root.SS_PATTERN_DATA = PATTERN_DATA;
+  root.SS_PROMOTED_LABELS = PROMOTED_LABELS;
+  root.SS_FEATURED_LABELS = FEATURED_LABELS;
+  root.SS_matchesLabel = matchesLabel;
   root.SS_escapeRegex = escapeRegex;
   root.SS_isLinkedInHost = isLinkedInHost;
   root.SS_parseAuthorId = parseAuthorId;
@@ -167,6 +191,9 @@
   if (typeof module !== "undefined" && module.exports) {
     module.exports = {
       PATTERN_DATA,
+      PROMOTED_LABELS,
+      FEATURED_LABELS,
+      matchesLabel,
       escapeRegex,
       isLinkedInHost,
       parseAuthorId,

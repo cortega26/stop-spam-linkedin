@@ -56,6 +56,7 @@ Detection is heuristic, not magic. It can miss new spam formats, and it can occa
 - "Report missed spam" on any placeholder — copies the post text to your
   clipboard and opens a pre-filled GitHub issue (nothing is sent anywhere
   automatically)
+- Optional toggles to hide "Promoted" posts in the feed and the "Featured" section on profiles (off by default; enable in settings)
 - Author whitelist for profile, company, school, and showcase pages
 - Snooze for 30 minutes with automatic resume
 - Right-click any selected text to add it as a phrase instantly

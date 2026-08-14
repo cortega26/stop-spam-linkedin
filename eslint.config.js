@@ -33,6 +33,9 @@ const browserExtensionGlobals = {
   SS_hashString: "readonly",
   SS_getExcludedSignature: "readonly",
   SS_createCooldownStore: "readonly",
+  SS_PROMOTED_LABELS: "readonly",
+  SS_FEATURED_LABELS: "readonly",
+  SS_matchesLabel: "readonly",
   SS_CONSTANTS: "readonly",
 };
 

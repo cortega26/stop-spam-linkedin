@@ -19,6 +19,8 @@
   let pendingBlockedAuthorRemove = null;
   let excluded = [];
   let pendingExclusionRemove = null;
+  let hidePromoted = false;
+  let hideFeatured = false;
 
   /* ── DOM refs ───────────────────────────────────────────────── */
   const input = document.getElementById("phraseInput");
@@ -39,6 +41,8 @@
   const excludedSection = document.getElementById("excludedSection");
   const excludedList = document.getElementById("excludedList");
   const clearExcludedBtn = document.getElementById("clearExcludedBtn");
+  const hidePromotedCheckbox = document.getElementById("hidePromotedCheckbox");
+  const hideFeaturedCheckbox = document.getElementById("hideFeaturedCheckbox");
   const searchInput = document.getElementById("searchInput");
 
   /* ── Bootstrap ──────────────────────────────────────────────── */
@@ -78,19 +82,30 @@
     }
   });
 
+  hidePromotedCheckbox.addEventListener("change", () => {
+    hidePromoted = hidePromotedCheckbox.checked;
+    chrome.storage.sync.set({ [STORAGE_KEYS.HIDE_PROMOTED]: hidePromoted });
+  });
+  hideFeaturedCheckbox.addEventListener("change", () => {
+    hideFeatured = hideFeaturedCheckbox.checked;
+    chrome.storage.sync.set({ [STORAGE_KEYS.HIDE_FEATURED]: hideFeatured });
+  });
+
   /* Clean up toast timer on page unload. */
   window.addEventListener("beforeunload", () => clearTimeout(toastTimer));
 
   /* ── Storage ────────────────────────────────────────────────── */
 
   function load() {
-    chrome.storage.sync.get([PHRASES_STORAGE_KEY, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.DISABLED_PATTERNS], (result) => {
+    chrome.storage.sync.get([PHRASES_STORAGE_KEY, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.DISABLED_PATTERNS, STORAGE_KEYS.HIDE_PROMOTED, STORAGE_KEYS.HIDE_FEATURED], (result) => {
       phrases = result[PHRASES_STORAGE_KEY] || [];
       enabledLangs = result[STORAGE_KEYS.LANGS] || [...DEFAULT_ENABLED_LANGS];
       disabledPatterns = result[STORAGE_KEYS.DISABLED_PATTERNS] || [];
       whitelist = result[STORAGE_KEYS.WHITELIST] || [];
       blockedAuthors = result[STORAGE_KEYS.BLOCKED_AUTHORS] || [];
       excluded = normalizeExcludedEntries(result[STORAGE_KEYS.EXCLUDED] || []);
+      hidePromoted = result[STORAGE_KEYS.HIDE_PROMOTED] === true;
+      hideFeatured = result[STORAGE_KEYS.HIDE_FEATURED] === true;
       if (hasLegacyExcludedEntries(result[STORAGE_KEYS.EXCLUDED] || [])) {
         chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) });
       }
@@ -124,6 +139,14 @@
     if (changes[STORAGE_KEYS.DISABLED_PATTERNS]) {
       disabledPatterns = changes[STORAGE_KEYS.DISABLED_PATTERNS].newValue || [];
       render();
+    }
+    if (changes[STORAGE_KEYS.HIDE_PROMOTED]) {
+      hidePromoted = changes[STORAGE_KEYS.HIDE_PROMOTED].newValue === true;
+      renderHideToggles();
+    }
+    if (changes[STORAGE_KEYS.HIDE_FEATURED]) {
+      hideFeatured = changes[STORAGE_KEYS.HIDE_FEATURED].newValue === true;
+      renderHideToggles();
     }
   });
 
@@ -752,6 +775,13 @@
     reader.readAsText(file);
   }
 
+  /* ── Hide toggles (feed content) ────────────────────────────── */
+
+  function renderHideToggles() {
+    hidePromotedCheckbox.checked = hidePromoted;
+    hideFeaturedCheckbox.checked = hideFeatured;
+  }
+
   /* ── Language toggles ───────────────────────────────────────── */
 
   function saveLangs() {
@@ -1026,6 +1056,7 @@
     list.innerHTML = "";
 
     renderLangs();
+    renderHideToggles();
     renderWhitelist();
     renderBlockedAuthors();
     renderExcluded();

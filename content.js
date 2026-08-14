@@ -131,6 +131,11 @@
   /* Author IDs the user always wants blocked, independent of text. */
   let blockedAuthors = new Set();
 
+  /* Opt-in label-hide toggles (both default off): hide "Promoted" feed
+     posts and the profile "Featured" section. */
+  let hidePromoted = false;
+  let hideFeatured = false;
+
   /* ==================================================================
    *  INITIALISATION
    * ================================================================== */
@@ -183,7 +188,7 @@
   document.head.appendChild(style);
 
   chrome.storage.sync.get(
-    [STORAGE_KEYS.ENABLED, STORAGE_KEYS.COUNT, STORAGE_KEYS.ONBOARDED, STORAGE_KEYS.DAILY_COUNTS, STORAGE_KEYS.SNOOZE_UNTIL, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.DISABLED_PATTERNS, PHRASES_STORAGE_KEY],
+    [STORAGE_KEYS.ENABLED, STORAGE_KEYS.COUNT, STORAGE_KEYS.ONBOARDED, STORAGE_KEYS.DAILY_COUNTS, STORAGE_KEYS.SNOOZE_UNTIL, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.DISABLED_PATTERNS, STORAGE_KEYS.HIDE_PROMOTED, STORAGE_KEYS.HIDE_FEATURED, PHRASES_STORAGE_KEY],
     (syncResult) => {
       chrome.storage.local.get(
         [
@@ -225,6 +230,8 @@
           whitelistedAuthors = new Set(syncResult[STORAGE_KEYS.WHITELIST] || []);
           blockedAuthors = new Set(syncResult[STORAGE_KEYS.BLOCKED_AUTHORS] || []);
           disabledPatterns = new Set(syncResult[STORAGE_KEYS.DISABLED_PATTERNS] || []);
+          hidePromoted = syncResult[STORAGE_KEYS.HIDE_PROMOTED] === true;
+          hideFeatured = syncResult[STORAGE_KEYS.HIDE_FEATURED] === true;
           spamPatterns = buildPatterns(syncResult[PHRASES_STORAGE_KEY], enabledLangs);
           userPhrases = syncResult[PHRASES_STORAGE_KEY] || [];
           if (!enabled) return;
@@ -294,6 +301,12 @@
       }
       if (changes[STORAGE_KEYS.BLOCKED_AUTHORS]) {
         blockedAuthors = new Set(changes[STORAGE_KEYS.BLOCKED_AUTHORS].newValue || []);
+      }
+      if (changes[STORAGE_KEYS.HIDE_PROMOTED]) {
+        hidePromoted = changes[STORAGE_KEYS.HIDE_PROMOTED].newValue === true;
+      }
+      if (changes[STORAGE_KEYS.HIDE_FEATURED]) {
+        hideFeatured = changes[STORAGE_KEYS.HIDE_FEATURED].newValue === true;
       }
     }
   });
@@ -735,10 +748,64 @@
     }
   }
 
+  /* Label-hide pass (promoted posts): enumerate post containers with the
+     same selectors as scanForBlockedAuthors and block any whose content
+     carries LinkedIn's "Promoted" label (exact-match against the localized
+     label list — a post merely DISCUSSING promotion does not match). Only
+     runs while the opt-in toggle is on. querySelectorAll("*") per post is
+     acceptable here: the pass runs only over enumerated post containers
+     and only when the toggle is enabled. */
+  function scanForLabeledPosts(root) {
+    if (!enabled || Date.now() < snoozeUntil) return;
+    if (!hidePromoted) return;
+    root = root || document.body;
+
+    for (const selector of AUTHOR_BLOCK_SELECTORS) {
+      let posts = root.querySelectorAll(selector);
+      if (root.matches?.(selector)) posts = [root, ...posts];
+      for (const post of posts) {
+        for (const el of post.querySelectorAll("*")) {
+          if (SS_matchesLabel(el.textContent, SS_PROMOTED_LABELS)) {
+            blockPost(post, null, { reason: "promoted" });
+            break;
+          }
+        }
+      }
+    }
+  }
+
+  /* Label-hide pass (profile "Featured" section): find the section's
+     heading by its localized label and block the SECTION element that
+     contains it (walking up at most 3 ancestors, falling back to the
+     heading's parent). Only runs on /in/ profile pages while the opt-in
+     toggle is on; a profile has one Featured section, so only the first
+     match per root is hidden. */
+  function scanForFeaturedSection(root) {
+    if (!enabled || Date.now() < snoozeUntil) return;
+    if (!hideFeatured || !/^\/in\//.test(window.location.pathname)) return;
+    root = root || document.body;
+
+    let headings = root.querySelectorAll("h2, h3");
+    if (root.matches?.("h2, h3")) headings = [root, ...headings];
+    for (const heading of headings) {
+      if (!SS_matchesLabel(heading.textContent, SS_FEATURED_LABELS)) continue;
+      let section = heading;
+      for (let i = 0; i < 3 && section.parentElement; i++) {
+        section = section.parentElement;
+        if (section.tagName === "SECTION") break;
+      }
+      if (section.tagName !== "SECTION") section = heading.parentElement;
+      blockPost(section, null, { reason: "featured" });
+      break;
+    }
+  }
+
   function scheduleInitialScan() {
     const doScan = () => {
       scan(document.body);
       scanForBlockedAuthors(document.body);
+      scanForLabeledPosts(document.body);
+      scanForFeaturedSection(document.body);
     };
     if (window.requestIdleCallback) {
       requestIdleCallback(doScan, { timeout: 2000 });
@@ -771,6 +838,7 @@
 
     /* Skip if author is whitelisted. */
     const isAuthorBlock = !!(info && info.reason === "author-blocklist");
+    const isLabelBlock = !!(info && (info.reason === "promoted" || info.reason === "featured"));
     const authorId = isAuthorBlock
       ? info.authorId
       : textNode
@@ -781,16 +849,19 @@
     processed.add(post);
     post.style.display = "none";
     blockedPosts.add(post);
-    if (!counted.has(post)) {
+    /* Label hides are opt-in cosmetic filters: they must not touch the
+       stats, the badge, or the popup's undo list. Everything else below
+       (cooldown/forceShow/restore) still applies so Show/disable work. */
+    if (!isLabelBlock && !counted.has(post)) {
       counted.add(post);
       blockedCount++;
       const key = getTodayKey();
       dailyCounts[key] = (dailyCounts[key] || 0) + 1;
     }
-    setBadge(String(blockedCount));
+    if (!isLabelBlock) setBadge(String(blockedCount));
 
     /* Track last blocked for undo in popup. */
-    if (textNode) {
+    if (textNode && !isLabelBlock) {
       lastBlocked.unshift({
         post,
         triggerText: extractTrigger(textNode.textContent),
@@ -827,15 +898,20 @@
     ].join("");
 
     const label = document.createElement("span");
-    label.textContent = isAuthorBlock ? t("blockedByAuthor") : t("blockedBy");
+    label.textContent = isAuthorBlock
+      ? t("blockedByAuthor")
+      : isLabelBlock
+        ? (info.reason === "promoted" ? t("blockedPromoted") : t("blockedFeatured"))
+        : t("blockedBy");
     placeholder.appendChild(label);
 
     const matchedText = textNode ? textNode.textContent : "";
 
-    /* "Not spam" is meaningless for author-driven blocks — there is no
-       text to exclude — so it is skipped in favor of "Unblock this
-       author" below (plan 008 Decision 2). */
-    if (!isAuthorBlock) {
+    /* "Not spam" is meaningless for author-driven and label-driven blocks —
+       author blocks have no text to exclude, and a label block is a
+       LinkedIn label, not spam text — so it is skipped (plan 008 Decision 2
+       for author blocks; label blocks have no matched text at all). */
+    if (!isAuthorBlock && !isLabelBlock) {
       const notSpamBtn = document.createElement("button");
       notSpamBtn.textContent = t("notSpam");
       notSpamBtn.title = t("notSpamTooltip");
@@ -885,8 +961,9 @@
 
     /* "Never block this author" button (only if we found an author ID —
        meaningless for an author-driven block, where the inverse action
-       above already covers it). */
-    if (authorId && !isAuthorBlock) {
+       above already covers it, and for label-driven blocks, which hide a
+       whole class of posts rather than one author). */
+    if (authorId && !isAuthorBlock && !isLabelBlock) {
       const whitelistBtn = document.createElement("button");
       whitelistBtn.textContent = t("neverBlock");
       whitelistBtn.style.cssText = [
@@ -918,39 +995,44 @@
     });
     placeholder.appendChild(restoreBtn);
 
-    const reportBtn = document.createElement("button");
-    reportBtn.textContent = t("reportMissed");
-    reportBtn.style.cssText = [
-      "background:none; border:1px solid #d0d0d0; border-radius:4px;",
-      "padding:4px 12px; cursor:pointer; font-size:12px; color:#767676;",
-    ].join("");
-    reportBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      const excerpt = (textNode ? textNode.textContent : "").trim().slice(0, 600);
-      const trigger = textNode ? extractTrigger(textNode.textContent) : "";
-      const payload = [
-        "Trigger: " + trigger,
-        "",
-        excerpt,
-        "",
-        "LinkedIn page: " + window.location.href,
-      ].join("\n");
-      const copy = () => navigator.clipboard.writeText(payload);
-      if (navigator.clipboard) {
-        copy().then(
-          () => showReportToast(t("reportCopied")),
-          () => copyFallback(payload)
+    /* "Report missed spam" only makes sense when there IS matched text —
+       its payload is built from the text node, and a label block has no
+       spam text to report. */
+    if (textNode) {
+      const reportBtn = document.createElement("button");
+      reportBtn.textContent = t("reportMissed");
+      reportBtn.style.cssText = [
+        "background:none; border:1px solid #d0d0d0; border-radius:4px;",
+        "padding:4px 12px; cursor:pointer; font-size:12px; color:#767676;",
+      ].join("");
+      reportBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const excerpt = (textNode ? textNode.textContent : "").trim().slice(0, 600);
+        const trigger = textNode ? extractTrigger(textNode.textContent) : "";
+        const payload = [
+          "Trigger: " + trigger,
+          "",
+          excerpt,
+          "",
+          "LinkedIn page: " + window.location.href,
+        ].join("\n");
+        const copy = () => navigator.clipboard.writeText(payload);
+        if (navigator.clipboard) {
+          copy().then(
+            () => showReportToast(t("reportCopied")),
+            () => copyFallback(payload)
+          );
+        } else {
+          copyFallback(payload);
+        }
+        window.open(
+          "https://github.com/cortega26/stop-spam-linkedin/issues/new?template=missed_spam_pattern.yml",
+          "_blank",
+          "noopener"
         );
-      } else {
-        copyFallback(payload);
-      }
-      window.open(
-        "https://github.com/cortega26/stop-spam-linkedin/issues/new?template=missed_spam_pattern.yml",
-        "_blank",
-        "noopener"
-      );
-    });
-    placeholder.appendChild(reportBtn);
+      });
+      placeholder.appendChild(reportBtn);
+    }
 
     post.parentNode?.insertBefore(placeholder, post.nextSibling);
 
@@ -1046,6 +1128,8 @@
         for (const root of roots) {
           scan(root);
           scanForBlockedAuthors(root);
+          scanForLabeledPosts(root);
+          scanForFeaturedSection(root);
         }
       }, CONFIG.OBSERVER_DEBOUNCE_MS)
     );

@@ -750,6 +750,139 @@ async function main() {
        (es-spam-2 stays visible, so it has none). */
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 3);
 
+    /* ── Opt-in hide: "Promoted" feed posts (label-hide) ────────── */
+
+    /* Deterministic start: reload resets the DOM to the shared fixture
+       (no promoted post in it), and the toggle is off by default. */
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* Toggle off: a NON-spam section carrying a "Promoted" label span
+       must stay visible. The 1500ms window covers the observer debounce
+       (500ms) plus slack — any would-be block would have happened. */
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:promoted-1";
+      const span = document.createElement("span");
+      span.textContent = "Promoted";
+      section.appendChild(span);
+      const p = document.createElement("p");
+      p.textContent =
+        "A brief industry update from our marketing team about the launch " +
+        "event later this quarter.";
+      section.appendChild(p);
+      document.querySelector("main").appendChild(section);
+    });
+
+    await linkedInPage.waitForTimeout(1500);
+    assert.notEqual(
+      await linkedInPage
+        .locator('[data-id="urn:li:activity:promoted-1"]')
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the promoted post to stay visible while the toggle is off"
+    );
+
+    /* Toggle on (preserving the whitelist baseline). The reload wipes the
+       evaluate-added node, so the promoted section is appended again —
+       with the toggle on, only spam-1 is blocked until it is appended. */
+    await setSyncStorage(context, {
+      ss_hide_promoted: true,
+      ss_whitelist: ["trusted"],
+    });
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:promoted-1";
+      const span = document.createElement("span");
+      span.textContent = "Promoted";
+      section.appendChild(span);
+      const p = document.createElement("p");
+      p.textContent =
+        "A brief industry update from our marketing team about the launch " +
+        "event later this quarter.";
+      section.appendChild(p);
+      document.querySelector("main").appendChild(section);
+    });
+
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display === "none";
+      },
+      '[data-id="urn:li:activity:promoted-1"]',
+      { timeout: 5000 }
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+    assert.equal(
+      await linkedInPage
+        .locator('[data-id="urn:li:activity:promoted-1"]')
+        .evaluate((el) => {
+          const next = el.nextElementSibling;
+          return next !== null && next.hasAttribute("data-ss-ph");
+        }),
+      true,
+      "expected a placeholder as the next sibling of the hidden promoted post"
+    );
+
+    /* ── Opt-in hide: "Featured" section on profiles (label-hide) ── */
+
+    const mockProfilePage = `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Mock LinkedIn Profile</title>
+  </head>
+  <body>
+    <main>
+      <section id="featured-section">
+        <h2>Featured</h2>
+        <div>pinned post content here</div>
+      </section>
+    </main>
+  </body>
+</html>`;
+
+    await context.route("https://www.linkedin.com/in/test-profile/**", (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: mockProfilePage,
+      });
+    });
+
+    const profilePage = await context.newPage();
+    await setSyncStorage(context, { ss_hide_featured: true });
+    await profilePage.goto("https://www.linkedin.com/in/test-profile/", {
+      waitUntil: "domcontentloaded",
+    });
+    await profilePage.locator("[data-ss-ph]").waitFor({ state: "visible", timeout: 10000 });
+    assert.equal(
+      await profilePage
+        .locator("#featured-section")
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the Featured section to be hidden while the toggle is on"
+    );
+
+    /* Toggle-off regression: with the toggle cleared, a reload leaves the
+       section visible again. */
+    await setSyncStorage(context, { ss_hide_featured: false });
+    await profilePage.reload({ waitUntil: "domcontentloaded" });
+    await profilePage.locator("#featured-section").waitFor({ state: "visible", timeout: 10000 });
+    assert.notEqual(
+      await profilePage
+        .locator("#featured-section")
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the Featured section to be visible again after the toggle is off"
+    );
+    await profilePage.close();
+
     console.log("Extension interactions test passed.");
   } finally {
     await context.close();

@@ -14,6 +14,8 @@
     WHITELIST: "ss_whitelist",
     BLOCKED_AUTHORS: "ss_blocked_authors",
     DISABLED_PATTERNS: "ss_disabled_patterns",
+    HIDE_PROMOTED: "ss_hide_promoted",
+    HIDE_FEATURED: "ss_hide_featured",
   });
 
   const LIMITS = Object.freeze({

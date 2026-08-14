@@ -337,6 +337,24 @@
       color: var(--text-tertiary);
     }
 
+    /* ── Hide toggles ── */
+    .hide-toggles {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .hide-toggles label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+      cursor: pointer;
+    }
+    .hide-toggles input {
+      accent-color: var(--toggle-on);
+    }
+
     /* ── Empty / meta ── */
     .empty-state {
       text-align: center;
@@ -500,6 +518,21 @@
   <div class="lang-section">
     <div class="lang-section-title">__MSG_detectionLangs__</div>
     <div class="lang-toggles" id="langToggles"></div>
+  </div>
+
+  <!-- Hide toggles (feed content) -->
+  <div class="lang-section" id="hideSection">
+    <div class="lang-section-title">__MSG_hideLabelsTitle__</div>
+    <div class="hide-toggles">
+      <label>
+        <input type="checkbox" id="hidePromotedCheckbox" />
+        __MSG_hidePromotedLabel__
+      </label>
+      <label>
+        <input type="checkbox" id="hideFeaturedCheckbox" />
+        __MSG_hideFeaturedLabel__
+      </label>
+    </div>
   </div>
 
   <!-- Whitelisted authors -->

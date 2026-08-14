@@ -13,6 +13,9 @@ const {
   hashString,
   getExcludedSignature,
   PATTERN_DATA,
+  matchesLabel,
+  PROMOTED_LABELS,
+  FEATURED_LABELS,
 } = require(path.join(__dirname, "..", "..", "shared", "pattern-data.js"));
 
 test("escapeRegex escapes every regex-special character", () => {
@@ -112,4 +115,33 @@ test("ES-1 accepts imperative+clitic forms (comentame, escribele, ponme, respond
 test("ES-2 is bound like ES-1", () => {
   assert.equal(PATTERN_DATA.ES[1].regex.test("comenta CLAUDE para recibir el PDF"), true);
   assert.equal(PATTERN_DATA.ES[1].regex.test("comentaba CLAUDE para recibir el PDF"), false);
+});
+
+test("matchesLabel matches each promoted label exactly, one per language", () => {
+  for (const label of ["Promoted", "Patrocinado", "Promu", "Promovido", "Beworben"]) {
+    assert.equal(matchesLabel(label, PROMOTED_LABELS), true, `expected "${label}" to match`);
+  }
+});
+
+test("matchesLabel matches each featured label exactly, one per language", () => {
+  for (const label of ["Featured", "Destacados", "En vedette", "Em destaque", "Ausgewählt"]) {
+    assert.equal(matchesLabel(label, FEATURED_LABELS), true, `expected "${label}" to match`);
+  }
+});
+
+test("matchesLabel matches a label followed by the · separator", () => {
+  assert.equal(matchesLabel("Promoted · Acme Corp", PROMOTED_LABELS), true);
+  assert.equal(matchesLabel("Featured · Something", FEATURED_LABELS), true);
+});
+
+test("matchesLabel is case-insensitive", () => {
+  assert.equal(matchesLabel("promoted", PROMOTED_LABELS), true);
+  assert.equal(matchesLabel("FEATURED", FEATURED_LABELS), true);
+});
+
+test("matchesLabel rejects text that merely discusses labels", () => {
+  assert.equal(matchesLabel("How I promoted my business last week", PROMOTED_LABELS), false);
+  assert.equal(matchesLabel("", PROMOTED_LABELS), false);
+  assert.equal(matchesLabel("promoted posts are annoying", PROMOTED_LABELS), false);
+  assert.equal(matchesLabel("Featured by the CEO", FEATURED_LABELS), false);
 });
