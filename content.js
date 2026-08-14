@@ -93,9 +93,10 @@
   /* Strong set of blocked elements so we can restore them on disable. */
   const blockedPosts = new Set();
 
-  /* Cooldown after user presses "Show" — prevents re-blocking when
-     virtual scrolling re-creates DOM nodes for the same post. */
-  const showCooldowns = new WeakMap();
+  /* Cooldown after user presses "Show" — keyed by post identity
+     (data-id) so it survives virtual-scroll node re-creation.
+     Posts without a data-id rely on forceShow (live node only). */
+  const cooldownStore = SS_createCooldownStore(CONFIG.COOLDOWN_DURATION_MS, 100);
 
   /* Sliding window of last 5 blocked posts for undo in popup. */
   const lastBlocked = [];
@@ -656,10 +657,8 @@
 
   function blockPost(post, textNode) {
     /* Re-block cooldown — skip if user recently clicked "Show". */
-    if (showCooldowns.has(post)) {
-      if (Date.now() < showCooldowns.get(post)) return;
-      showCooldowns.delete(post);
-    }
+    const postKey = post.getAttribute("data-id");
+    if (postKey && cooldownStore.has(postKey)) return;
     if (processed.has(post) || forceShow.has(post)) return;
 
     /* Skip if author is whitelisted. */
@@ -982,7 +981,8 @@
   function restorePost(post) {
     forceShow.add(post);
     processed.delete(post);
-    showCooldowns.set(post, Date.now() + CONFIG.COOLDOWN_DURATION_MS);
+    const postKey = post.getAttribute("data-id");
+    if (postKey) cooldownStore.set(postKey);
     post.style.display = "";
     const ph = post.nextElementSibling;
     if (ph && ph.dataset && ph.dataset.ssPh) ph.remove();
