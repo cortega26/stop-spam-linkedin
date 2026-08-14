@@ -171,13 +171,20 @@
       return;
     }
 
-    phrases.push({
+    const candidate = phrases.concat([{
       id: uid(),
       text,
       enabled: true,
       created: Date.now(),
       mode: "exact",
-    });
+    }]);
+    const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
+    if (estimatePhraseBytes(candidate, STORAGE_KEY) > limit) {
+      showToast(t("phraseStorageFullToast"), true);
+      return;
+    }
+
+    phrases = candidate;
     input.value = "";
     save();
     showToast(t("addedPhraseToast", text));
@@ -278,22 +285,26 @@
       "LINK IN BIO", "DM ME", "TEMPLATE", "COMMENT", "10x",
       "SECRET", "FREE ACCESS", "GROWTH HACK", "CHATGPT", "BOT",
     ];
+    const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
     let added = 0;
+    let candidate = phrases.slice();
     for (const text of defaults) {
-      if (phrases.length >= MAX_CUSTOM_PHRASES) break;
-      const dup = phrases.some(p => p.text.toLowerCase() === text.toLowerCase());
-      if (!dup) {
-        phrases.push({
-          id: uid(),
-          text,
-          enabled: true,
-          created: Date.now(),
-          mode: "exact",
-        });
-        added++;
-      }
+      if (candidate.length >= MAX_CUSTOM_PHRASES) break;
+      const dup = candidate.some(p => p.text.toLowerCase() === text.toLowerCase());
+      if (dup) continue;
+      const next = candidate.concat([{
+        id: uid(),
+        text,
+        enabled: true,
+        created: Date.now(),
+        mode: "exact",
+      }]);
+      if (estimatePhraseBytes(next, STORAGE_KEY) > limit) break;
+      candidate = next;
+      added++;
     }
     if (added > 0) {
+      phrases = candidate;
       save();
       showToast(
         countMessage(
@@ -379,6 +390,7 @@
       /* Validate structure */
       let valid = 0,
         skipped = 0;
+      const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
       for (const item of imported) {
         if (phrases.length >= MAX_CUSTOM_PHRASES) {
           skipped++;
@@ -400,13 +412,18 @@
           skipped++;
           continue;
         }
-        phrases.push({
+        const candidateItem = {
           id: uid(),
           text: item.text.trim(),
           enabled: item.enabled !== false,
           created: item.created || Date.now(),
           mode: item.mode === "contains" ? "contains" : "exact",
-        });
+        };
+        if (estimatePhraseBytes(phrases.concat([candidateItem]), STORAGE_KEY) > limit) {
+          skipped++;
+          continue;
+        }
+        phrases.push(candidateItem);
         valid++;
       }
 

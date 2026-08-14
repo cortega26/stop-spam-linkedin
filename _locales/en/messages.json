@@ -66,6 +66,7 @@
   "addedPhraseToast": { "message": "Added: \"$1\"" },
   "deletedPhraseToast": { "message": "Deleted: \"$1\"" },
   "phraseLimitToast": { "message": "Custom phrase limit reached ($1)." },
+  "phraseStorageFullToast": { "message": "No more room for phrases — remove or shorten some to add more." },
   "phraseTooLongToast": { "message": "Phrase is too long. Keep it under $1 characters." },
   "starterPackAddedOne": { "message": "Added 1 starter phrase." },
   "starterPackAddedMany": { "message": "Added $1 starter phrases." },

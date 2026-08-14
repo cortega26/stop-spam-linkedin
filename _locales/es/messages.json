@@ -66,6 +66,7 @@
   "addedPhraseToast": { "message": "Se añadió: \"$1\"" },
   "deletedPhraseToast": { "message": "Se eliminó: \"$1\"" },
   "phraseLimitToast": { "message": "Se alcanzó el límite de frases personalizadas ($1)." },
+  "phraseStorageFullToast": { "message": "No hay más espacio para frases — elimina o acorta algunas para agregar más." },
   "phraseTooLongToast": { "message": "La frase es demasiado larga. Usa menos de $1 caracteres." },
   "starterPackAddedOne": { "message": "Se añadió 1 frase inicial." },
   "starterPackAddedMany": { "message": "Se añadieron $1 frases iniciales." },
