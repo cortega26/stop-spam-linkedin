@@ -115,12 +115,38 @@
     return "sig:" + hashString(normalized);
   }
 
+  /* Map-based cooldown store keyed by string identity (e.g. a post's
+     data-id). Entries expire after expiryMs; `has` is false for expired
+     keys. Evicts oldest entries past maxEntries to bound memory. */
+  function createCooldownStore(expiryMs, maxEntries) {
+    const map = new Map();
+    return {
+      has(key) {
+        const expiry = map.get(key);
+        if (expiry === undefined) return false;
+        if (Date.now() >= expiry) {
+          map.delete(key);
+          return false;
+        }
+        return true;
+      },
+      set(key) {
+        map.set(key, Date.now() + expiryMs);
+        while (map.size > maxEntries) {
+          const oldest = map.keys().next().value;
+          map.delete(oldest);
+        }
+      },
+    };
+  }
+
   root.SS_PATTERN_DATA = PATTERN_DATA;
   root.SS_escapeRegex = escapeRegex;
   root.SS_isLinkedInHost = isLinkedInHost;
   root.SS_parseAuthorId = parseAuthorId;
   root.SS_hashString = hashString;
   root.SS_getExcludedSignature = getExcludedSignature;
+  root.SS_createCooldownStore = createCooldownStore;
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = {
@@ -130,6 +156,7 @@
       parseAuthorId,
       hashString,
       getExcludedSignature,
+      createCooldownStore,
     };
   }
 })(typeof self !== "undefined" ? self : globalThis);
