@@ -296,6 +296,173 @@ async function main() {
       assert.equal(entry.created, null, "expected legacy hash entries to have no created timestamp");
     }
 
+    /* ── Full settings export/import (plan 009) ── */
+
+    /* Scenario 1: legacy bare-array import must keep working (backward
+       compatibility) and use the original phrases-only toast. */
+    await importFileOn(optionsPage, [
+      { text: "LEGACY IMPORT PHRASE", enabled: true },
+    ]);
+    await waitForSyncValue(context, "ss_phrases", (v) =>
+      Array.isArray(v) && v.some((p) => p.text === "LEGACY IMPORT PHRASE")
+    );
+    assert.match(
+      await optionsPage.locator("#toast").textContent(),
+      /Imported 1 phrase|Se importó 1 frase/,
+      "expected legacy import to report the imported phrase"
+    );
+
+    /* Scenario 2: versioned export round-trips phrases + whitelist +
+       exclusions + languages. */
+    const exportPhrase = {
+      id: "p-export",
+      text: "ROUND TRIP PHRASE",
+      enabled: true,
+      created: 1770000000000,
+      mode: "exact",
+    };
+    await setSyncStorage(context, {
+      ss_phrases: [exportPhrase],
+      ss_whitelist: ["jane-doe"],
+      ss_excluded: [
+        { sig: "sig:rt-001", preview: "Round trip preview", created: 1770000000001 },
+      ],
+      ss_enabled_langs: ["EN", "ES", "FR", "PT", "DE"],
+    });
+    await optionsPage.reload({ waitUntil: "domcontentloaded" });
+    await optionsPage.locator("#excludedList .whitelist-row").waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    await assertCount(optionsPage.locator("#excludedList .whitelist-row"), 1);
+
+    /* Capture the export payload by stubbing writeText: readText is
+       permission-denied on extension origins and grantPermissions
+       rejects them, while writeText itself is not stubbed in prod. */
+    await optionsPage.evaluate(() => {
+      navigator.clipboard.writeText = (text) => {
+        window.__capturedExport = text;
+        return Promise.resolve();
+      };
+    });
+    await optionsPage.locator("#exportBtn").click();
+    const exported = JSON.parse(
+      await optionsPage.waitForFunction(() => window.__capturedExport).then((h) => h.jsonValue())
+    );
+    assert.equal(exported.version, 1, "expected versioned export payload");
+    assert.equal(exported.phrases.length, 1, "expected one exported phrase");
+    assert.equal(exported.phrases[0].text, "ROUND TRIP PHRASE");
+    assert.deepEqual(exported.whitelist, ["jane-doe"]);
+    assert.equal(exported.excluded.length, 1);
+    assert.equal(exported.excluded[0].sig, "sig:rt-001");
+    assert.deepEqual(exported.langs, ["EN", "ES", "FR", "PT", "DE"]);
+    assert.match(
+      await optionsPage.locator("#toast").textContent(),
+      /export/i,
+      "expected export summary toast"
+    );
+
+    /* Wipe local state, then restore everything from the exported file. */
+    await setSyncStorage(context, {
+      ss_phrases: [],
+      ss_whitelist: [],
+      ss_excluded: [],
+      ss_enabled_langs: ["EN"],
+    });
+    await optionsPage.reload({ waitUntil: "domcontentloaded" });
+    await importFileOn(optionsPage, exported);
+    await waitForSyncValue(context, "ss_phrases", (v) =>
+      Array.isArray(v) && v.some((p) => p.text === "ROUND TRIP PHRASE")
+    );
+    await waitForSyncValue(context, "ss_whitelist", (v) =>
+      Array.isArray(v) && v.includes("jane-doe")
+    );
+    await waitForSyncValue(context, "ss_excluded", (v) =>
+      Array.isArray(v) && v.some((e) => e.sig === "sig:rt-001")
+    );
+    await waitForSyncValue(context, "ss_enabled_langs", (v) =>
+      Array.isArray(v) && v.length === 5 && v.includes("ES")
+    );
+    assert.match(
+      await optionsPage.locator("#toast").textContent(),
+      /Imported 1 phrase|Se importaron: 1 frase/,
+      "expected consolidated import summary toast"
+    );
+
+    /* Scenario 3: import merges, never replaces — pre-existing local
+       entries and imported entries must coexist. */
+    const prevToast = await optionsPage.locator("#toast").textContent();
+    await setSyncStorage(context, {
+      ss_phrases: [
+        { id: "p-existing", text: "EXISTING PHRASE", enabled: true, created: 1, mode: "exact" },
+      ],
+      ss_whitelist: ["existing-author"],
+    });
+    await optionsPage.reload({ waitUntil: "domcontentloaded" });
+    await importFileOn(optionsPage, {
+      version: 1,
+      exportedAt: Date.now(),
+      phrases: [{ text: "NEW MERGED PHRASE", enabled: true }],
+      whitelist: ["new-author"],
+    });
+    const mergedPhrases = await waitForSyncValue(context, "ss_phrases", (v) =>
+      Array.isArray(v) &&
+      v.some((p) => p.text === "NEW MERGED PHRASE") &&
+      v.some((p) => p.text === "EXISTING PHRASE")
+    );
+    assert.equal(mergedPhrases.length, 2, "expected both phrases after merge");
+    const mergedWhitelist = await waitForSyncValue(context, "ss_whitelist", (v) =>
+      Array.isArray(v) &&
+      v.includes("new-author") &&
+      v.includes("existing-author")
+    );
+    assert.equal(mergedWhitelist.length, 2, "expected both authors after merge");
+    await waitForToastChange(optionsPage, prevToast);
+
+    /* Scenario 4: whitelist cap is respected — the over-cap entry is
+       skipped and reported, not silently added. */
+    const fullWhitelist = Array.from(
+      { length: 100 },
+      (_, i) => `author-${String(i).padStart(3, "0")}`
+    );
+    await setSyncStorage(context, { ss_whitelist: fullWhitelist });
+    await optionsPage.reload({ waitUntil: "domcontentloaded" });
+    const prevToast4 = await optionsPage.locator("#toast").textContent();
+    await importFileOn(optionsPage, {
+      version: 1,
+      exportedAt: Date.now(),
+      phrases: [],
+      whitelist: ["author-over-cap"],
+    });
+    const cappedWhitelist = await waitForSyncValue(context, "ss_whitelist", (v) =>
+      Array.isArray(v) && v.length === 100
+    );
+    assert.ok(
+      !cappedWhitelist.includes("author-over-cap"),
+      "expected over-cap whitelist entry to be skipped"
+    );
+    const capToast = await waitForToastChange(optionsPage, prevToast4);
+    assert.match(capToast, /No new entries imported|entradas nuevas/);
+    assert.match(capToast, /1 skipped|se omitieron 1/, "expected skip count in toast");
+
+    /* Scenario 5: an unrecognized shape is rejected cleanly with no
+       partial state change. */
+    await setSyncStorage(context, {
+      ss_phrases: [
+        { id: "p-guard", text: "GUARD PHRASE", enabled: true, created: 1, mode: "exact" },
+      ],
+    });
+    const phrasesBefore = await getSyncStorage(context, "ss_phrases");
+    const prevToast5 = await optionsPage.locator("#toast").textContent();
+    await importFileOn(optionsPage, { foo: 1 });
+    const badToast = await waitForToastChange(optionsPage, prevToast5);
+    assert.match(badToast, /Invalid JSON file|JSON no válido/);
+    assert.deepEqual(
+      await getSyncStorage(context, "ss_phrases"),
+      phrasesBefore,
+      "expected no state change from an unrecognized import shape"
+    );
+
     await optionsPage.close();
 
     console.log("Extension smoke test passed.");
@@ -424,6 +591,38 @@ function execUnzip(zipPath, destination) {
 async function assertCount(locator, expected) {
   const actual = await locator.count();
   assert.equal(actual, expected);
+}
+
+async function importFileOn(optionsPage, data) {
+  await optionsPage.locator("#importFile").setInputFiles({
+    name: "backup.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(data)),
+  });
+}
+
+async function waitForSyncValue(context, key, predicate, timeoutMs = 10000) {
+  const start = Date.now();
+  for (;;) {
+    const value = await getSyncStorage(context, key);
+    if (predicate(value)) return value;
+    if (Date.now() - start > timeoutMs) {
+      throw new Error(`timed out waiting for ${key} to satisfy predicate`);
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+}
+
+async function waitForToastChange(optionsPage, prevText, timeoutMs = 10000) {
+  const start = Date.now();
+  for (;;) {
+    const text = await optionsPage.locator("#toast").textContent();
+    if (text && text !== prevText) return text;
+    if (Date.now() - start > timeoutMs) {
+      throw new Error(`toast never changed; last text: "${prevText}"`);
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
 }
 
 main().catch((error) => {

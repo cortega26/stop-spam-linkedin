@@ -8,6 +8,13 @@
   const MAX_CUSTOM_PHRASES = 200;
   const MAX_PHRASE_LENGTH = 120;
   const MAX_IMPORT_BYTES = 128 * 1024;
+  const MAX_WHITELIST = 100; /* mirrors content.js CONFIG.MAX_WHITELIST */
+  /* Generous safety cap for merging imported exclusions: chrome.storage.sync
+     allows at most MAX_ITEMS (512) values per key. ss_excluded is pruned by
+     byte budget (plan 007), not item count, so this only bounds memory/sync
+     limits — it is not a product cap. */
+  const MAX_EXCLUDED_ITEMS = 512;
+  const DEFAULT_LANGS = ["EN", "ES", "FR", "PT", "DE"];
 
   function estimatePhraseBytes(phrases, storageKey) {
     return storageKey.length + JSON.stringify(phrases).length;
@@ -360,12 +367,120 @@
 
   /* ── Import / Export ────────────────────────────────────────── */
 
+  function isDefaultLangs() {
+    return (
+      enabledLangs.length === DEFAULT_LANGS.length &&
+      enabledLangs.every((lang, i) => lang === DEFAULT_LANGS[i])
+    );
+  }
+
+  function hasExportableData() {
+    return (
+      phrases.length > 0 ||
+      whitelist.length > 0 ||
+      excluded.length > 0 ||
+      !isDefaultLangs()
+    );
+  }
+
+  /* Localize a count as a noun phrase ("3 phrases") for embedding in a
+     consolidated summary toast. */
+  function settingsPart(count, oneKey, manyKey) {
+    return countMessage(oneKey, manyKey, count, count);
+  }
+
+  function joinSettingsParts(parts) {
+    if (parts.length === 1) return parts[0];
+    return (
+      parts.slice(0, -1).join(", ") +
+      " " +
+      t("settingsPartAnd") +
+      " " +
+      parts[parts.length - 1]
+    );
+  }
+
+  /* Identity for an ss_excluded entry that tolerates both the current
+     { sig, preview, created } object shape and legacy bare-string
+     entries, so dedupe works regardless of the shape the file holds. */
+  function excludedIdentity(entry) {
+    if (typeof entry === "string") return entry;
+    if (entry && typeof entry === "object" && typeof entry.sig === "string") {
+      return entry.sig;
+    }
+    return null;
+  }
+
   function handleExport() {
-    if (phrases.length === 0) {
+    if (!hasExportableData()) {
       showToast(t("nothingToExport"), true);
       return;
     }
-    const json = JSON.stringify(phrases, null, 2);
+
+    const payload = {
+      version: 1,
+      exportedAt: Date.now(),
+      phrases: phrases,
+      whitelist: whitelist,
+      excluded: excluded,
+      langs: enabledLangs,
+    };
+    const json = JSON.stringify(payload, null, 2);
+
+    const parts = [
+      settingsPart(
+        phrases.length,
+        "settingsPartPhrasesOne",
+        "settingsPartPhrasesMany"
+      ),
+    ];
+    const extras = [];
+    if (whitelist.length > 0) {
+      extras.push(
+        settingsPart(
+          whitelist.length,
+          "settingsPartWhitelistOne",
+          "settingsPartWhitelistMany"
+        )
+      );
+    }
+    if (excluded.length > 0) {
+      extras.push(
+        settingsPart(
+          excluded.length,
+          "settingsPartExcludedOne",
+          "settingsPartExcludedMany"
+        )
+      );
+    }
+    if (!isDefaultLangs()) {
+      extras.push(
+        settingsPart(
+          enabledLangs.length,
+          "settingsPartLangsOne",
+          "settingsPartLangsMany"
+        )
+      );
+    }
+
+    /* When more than phrases are exported, summarize all categories;
+       otherwise keep the phrases-only toast exactly as before. */
+    const summary = extras.length > 0 ? joinSettingsParts(parts.concat(extras)) : null;
+
+    function toastFor(clipboard) {
+      if (summary === null) {
+        return countMessage(
+          clipboard ? "exportedClipboardOne" : "exportedDownloadedOne",
+          clipboard ? "exportedClipboardMany" : "exportedDownloadedMany",
+          phrases.length,
+          phrases.length
+        );
+      }
+      return t(
+        clipboard ? "exportedSummaryClipboard" : "exportedSummaryDownloaded",
+        [summary]
+      );
+    }
 
     function downloadFallback() {
       const blob = new Blob([json], { type: "application/json" });
@@ -375,31 +490,62 @@
       a.download = "linkedin-spam-blocker-phrases.json";
       a.click();
       URL.revokeObjectURL(url);
-      showToast(
-        countMessage(
-          "exportedDownloadedOne",
-          "exportedDownloadedMany",
-          phrases.length,
-          phrases.length
-        )
-      );
+      showToast(toastFor(false));
     }
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(json).then(
-        () => showToast(
-          countMessage(
-            "exportedClipboardOne",
-            "exportedClipboardMany",
-            phrases.length,
-            phrases.length
-          )
-        ),
+        () => showToast(toastFor(true)),
         downloadFallback
       );
     } else {
       downloadFallback();
     }
+  }
+
+  /* Shared phrase validation/merge loop used by both the legacy bare-array
+     format and the versioned object format. Carries the byte-quota
+     pre-check (plan 001) unchanged — both branches must respect it. */
+  function importPhraseList(items) {
+    let valid = 0,
+      skipped = 0;
+    const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
+    for (const item of items) {
+      if (phrases.length >= MAX_CUSTOM_PHRASES) {
+        skipped++;
+        continue;
+      }
+      if (
+        !item.text ||
+        typeof item.text !== "string" ||
+        !item.text.trim() ||
+        item.text.trim().length > MAX_PHRASE_LENGTH
+      ) {
+        skipped++;
+        continue;
+      }
+      const dup = phrases.some(
+        (p) => p.text.toLowerCase() === item.text.trim().toLowerCase()
+      );
+      if (dup) {
+        skipped++;
+        continue;
+      }
+      const candidateItem = {
+        id: uid(),
+        text: item.text.trim(),
+        enabled: item.enabled !== false,
+        created: item.created || Date.now(),
+        mode: item.mode === "contains" ? "contains" : "exact",
+      };
+      if (estimatePhraseBytes(phrases.concat([candidateItem]), STORAGE_KEY) > limit) {
+        skipped++;
+        continue;
+      }
+      phrases.push(candidateItem);
+      valid++;
+    }
+    return { valid, skipped };
   }
 
   function handleImport() {
@@ -421,68 +567,173 @@
         return;
       }
 
-      if (!Array.isArray(imported) || imported.length === 0) {
-        showToast(t("importFileEmpty"), true);
+      if (Array.isArray(imported)) {
+        /* Legacy format: bare phrase array — keep this path's behavior
+           exactly as before the versioned format existed. */
+        if (imported.length === 0) {
+          showToast(t("importFileEmpty"), true);
+          return;
+        }
+        const { valid, skipped } = importPhraseList(imported);
+        save();
+        importFile.value = "";
+        showToast(
+          skipped > 0
+            ? countMessage(
+                "importedPhrasesSkippedOne",
+                "importedPhrasesSkippedMany",
+                valid,
+                [valid, skipped]
+              )
+            : countMessage(
+                "importedPhrasesOne",
+                "importedPhrasesMany",
+                valid,
+                valid
+              )
+        );
         return;
       }
 
-      /* Validate structure */
-      let valid = 0,
-        skipped = 0;
-      const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
-      for (const item of imported) {
-        if (phrases.length >= MAX_CUSTOM_PHRASES) {
-          skipped++;
-          continue;
+      if (imported && typeof imported === "object" && Array.isArray(imported.phrases)) {
+        /* Versioned format: { version, exportedAt, phrases, whitelist,
+           excluded, langs } — additive merge across all categories,
+           never replacing existing local state. */
+        const phraseCounts = importPhraseList(imported.phrases);
+
+        let whitelistAdded = 0,
+          whitelistSkipped = 0;
+        if (Array.isArray(imported.whitelist)) {
+          for (const entry of imported.whitelist) {
+            if (whitelist.length >= MAX_WHITELIST) {
+              whitelistSkipped++;
+              continue;
+            }
+            if (
+              typeof entry !== "string" ||
+              !entry.trim() ||
+              whitelist.includes(entry)
+            ) {
+              whitelistSkipped++;
+              continue;
+            }
+            whitelist.push(entry);
+            whitelistAdded++;
+          }
+          chrome.storage.sync.set({ [WHITELIST_STORAGE_KEY]: whitelist });
         }
-        if (
-          !item.text ||
-          typeof item.text !== "string" ||
-          !item.text.trim() ||
-          item.text.trim().length > MAX_PHRASE_LENGTH
-        ) {
-          skipped++;
-          continue;
+
+        let excludedAdded = 0,
+          excludedSkipped = 0;
+        if (Array.isArray(imported.excluded)) {
+          const identities = new Set(
+            excluded.map((entry) => excludedIdentity(entry))
+          );
+          for (const entry of imported.excluded) {
+            const identity = excludedIdentity(entry);
+            if (!identity) {
+              excludedSkipped++;
+              continue;
+            }
+            if (excluded.length + excludedAdded >= MAX_EXCLUDED_ITEMS) {
+              excludedSkipped++;
+              continue;
+            }
+            if (identities.has(identity)) {
+              excludedSkipped++;
+              continue;
+            }
+            identities.add(identity);
+            excluded.push(entry);
+            excludedAdded++;
+          }
+          /* Keep the merged list in the object shape plan 007 established
+             for ss_excluded; normalization is identity-preserving and
+             leaves bare-string entries untouched in meaning. */
+          excluded = normalizeExcludedEntries(excluded);
+          chrome.storage.sync.set({
+            [EXCLUDED_STORAGE_KEY]: serializeExcluded(excluded),
+          });
         }
-        const dup = phrases.some(
-          (p) => p.text.toLowerCase() === item.text.trim().toLowerCase()
-        );
-        if (dup) {
-          skipped++;
-          continue;
+
+        let langsAdded = 0;
+        if (Array.isArray(imported.langs)) {
+          const known = imported.langs.filter(
+            (code) => typeof code === "string" && LANG_META[code]
+          );
+          if (known.length > 0) {
+            for (const code of known) {
+              if (!enabledLangs.includes(code)) {
+                enabledLangs.push(code);
+                langsAdded++;
+              }
+            }
+            if (langsAdded > 0) {
+              saveLangs();
+            }
+          }
         }
-        const candidateItem = {
-          id: uid(),
-          text: item.text.trim(),
-          enabled: item.enabled !== false,
-          created: item.created || Date.now(),
-          mode: item.mode === "contains" ? "contains" : "exact",
-        };
-        if (estimatePhraseBytes(phrases.concat([candidateItem]), STORAGE_KEY) > limit) {
-          skipped++;
-          continue;
+
+        save();
+        render();
+        importFile.value = "";
+
+        const parts = [];
+        if (phraseCounts.valid > 0) {
+          parts.push(
+            settingsPart(
+              phraseCounts.valid,
+              "settingsPartPhrasesOne",
+              "settingsPartPhrasesMany"
+            )
+          );
         }
-        phrases.push(candidateItem);
-        valid++;
+        if (whitelistAdded > 0) {
+          parts.push(
+            settingsPart(
+              whitelistAdded,
+              "settingsPartWhitelistOne",
+              "settingsPartWhitelistMany"
+            )
+          );
+        }
+        if (excludedAdded > 0) {
+          parts.push(
+            settingsPart(
+              excludedAdded,
+              "settingsPartExcludedOne",
+              "settingsPartExcludedMany"
+            )
+          );
+        }
+        if (langsAdded > 0) {
+          parts.push(
+            settingsPart(
+              langsAdded,
+              "settingsPartLangsOne",
+              "settingsPartLangsMany"
+            )
+          );
+        }
+        const skipped = phraseCounts.skipped + whitelistSkipped + excludedSkipped;
+        if (parts.length === 0) {
+          showToast(
+            skipped > 0
+              ? t("importedNothingSkipped", [skipped])
+              : t("importedNothing")
+          );
+        } else {
+          const summary = joinSettingsParts(parts);
+          showToast(
+            skipped > 0
+              ? t("importedSummarySkipped", [summary, skipped])
+              : t("importedSummary", [summary])
+          );
+        }
+        return;
       }
 
-      save();
-      importFile.value = "";
-      showToast(
-        skipped > 0
-          ? countMessage(
-              "importedPhrasesSkippedOne",
-              "importedPhrasesSkippedMany",
-              valid,
-              [valid, skipped]
-            )
-          : countMessage(
-              "importedPhrasesOne",
-              "importedPhrasesMany",
-              valid,
-              valid
-            )
-      );
+      showToast(t("invalidJsonFile"), true);
     };
     reader.readAsText(file);
   }
