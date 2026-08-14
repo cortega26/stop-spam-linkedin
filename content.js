@@ -1,6 +1,8 @@
 (function () {
   "use strict";
 
+  const { STORAGE_KEYS, LIMITS, DEFAULT_ENABLED_LANGS, PHRASES_STORAGE_KEY } = globalThis.SS_CONSTANTS;
+
   /* ==================================================================
    *  CONFIGURATION
    * ================================================================== */
@@ -15,29 +17,12 @@
     OBSERVER_DEBOUNCE_MS: 500,
     INITIAL_SCAN_DELAY_MS: 1000,
     COOLDOWN_DURATION_MS: 15 * 60 * 1000,  /* 15 min after "Show" */
-    SNOOZE_DURATION_MS: 30 * 60 * 1000,     /* 30 min */
-    MAX_CUSTOM_PHRASES: 200,
-    MAX_PHRASE_LENGTH: 120,
     EXCLUSION_PREVIEW_LENGTH: 60,
-    MAX_WHITELIST: 100,
   });
-
-  const PHRASES_STORAGE_KEY = "ss_phrases";
 
   function estimatePhraseBytes(phrases, storageKey) {
     return storageKey.length + JSON.stringify(phrases).length;
   }
-
-  const STORAGE_KEYS = Object.freeze({
-    ENABLED: "ss_enabled",
-    COUNT: "ss_blocked_count",
-    ONBOARDED: "ss_onboarded",
-    DAILY_COUNTS: "ss_daily_counts",
-    SNOOZE_UNTIL: "ss_snooze_until",
-    EXCLUDED: "ss_excluded",
-    LANGS: "ss_enabled_langs",
-    WHITELIST: "ss_whitelist",
-  });
 
   /* Derived from shared/pattern-data.js — see that file for the actual
      pattern definitions and their display labels. */
@@ -49,8 +34,6 @@
       ])
     )
   );
-
-  const DEFAULT_ENABLED_LANGS = Object.freeze(["EN", "ES", "FR", "PT", "DE"]);
 
   function t(key, subs) {
     return chrome.i18n.getMessage(key, subs) || key;
@@ -366,13 +349,13 @@
       case "addSuggestion":
         if (
           !msg.word ||
-          msg.word.length > CONFIG.MAX_PHRASE_LENGTH ||
+          msg.word.length > LIMITS.MAX_PHRASE_LENGTH ||
           userPhrases.some(p => p.text.toLowerCase() === msg.word.toLowerCase())
         ) {
           sendResponse({ ok: false, reason: "duplicate" });
           break;
         }
-        if (userPhrases.length >= CONFIG.MAX_CUSTOM_PHRASES) {
+        if (userPhrases.length >= LIMITS.MAX_CUSTOM_PHRASES) {
           sendResponse({ ok: false, reason: "limit" });
           break;
         }
@@ -411,7 +394,7 @@
       case "addToWhitelist":
         if (msg.authorId) {
           whitelistedAuthors.add(msg.authorId);
-          pruneSet(whitelistedAuthors, CONFIG.MAX_WHITELIST);
+          pruneSet(whitelistedAuthors, LIMITS.MAX_WHITELIST);
           chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: [...whitelistedAuthors] });
           sendResponse({ ok: true });
         } else {
@@ -452,7 +435,7 @@
         p.enabled &&
         typeof p.text === "string" &&
         p.text.trim().length > 0 &&
-        p.text.trim().length <= CONFIG.MAX_PHRASE_LENGTH
+        p.text.trim().length <= LIMITS.MAX_PHRASE_LENGTH
       ))
       .map((p) => {
         const text = p.text.trim();
@@ -707,7 +690,7 @@
           !p.enabled ||
           typeof p.text !== "string" ||
           !p.text.trim() ||
-          p.text.trim().length > CONFIG.MAX_PHRASE_LENGTH
+          p.text.trim().length > LIMITS.MAX_PHRASE_LENGTH
         ) return false;
         const text = p.text.trim();
         const escaped = SS_escapeRegex(text);
@@ -788,7 +771,7 @@
         const id = getAuthorId(post);
         if (id) {
           whitelistedAuthors.add(id);
-          pruneSet(whitelistedAuthors, CONFIG.MAX_WHITELIST);
+          pruneSet(whitelistedAuthors, LIMITS.MAX_WHITELIST);
           chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: [...whitelistedAuthors] });
         }
         restorePost(post);
@@ -886,7 +869,7 @@
    * ================================================================== */
 
   function snooze() {
-    syncSnoozeState(Date.now() + CONFIG.SNOOZE_DURATION_MS);
+    syncSnoozeState(Date.now() + LIMITS.SNOOZE_DURATION_MS);
     chrome.storage.local.set({ [STORAGE_KEYS.SNOOZE_UNTIL]: snoozeUntil });
   }
 

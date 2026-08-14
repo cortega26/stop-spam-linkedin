@@ -1,14 +1,15 @@
 (function () {
   "use strict";
 
+  importScripts("shared/constants.js");
+
+  const { PHRASES_STORAGE_KEY, LIMITS } = globalThis.SS_CONSTANTS;
+
   function t(key, subs) {
     return chrome.i18n.getMessage(key, subs) || key;
   }
 
-  const STORAGE_KEY = "ss_phrases";
   const MENU_ID = "ss-add-phrase";
-  const MAX_CUSTOM_PHRASES = 200;
-  const MAX_PHRASE_LENGTH = 120;
 
   function estimatePhraseBytes(phrases, storageKey) {
     return storageKey.length + JSON.stringify(phrases).length;
@@ -43,11 +44,11 @@
 
     const text = (info.selectionText || "").trim();
     if (!text) return;
-    if (text.length > MAX_PHRASE_LENGTH) return;
+    if (text.length > LIMITS.MAX_PHRASE_LENGTH) return;
 
-    chrome.storage.sync.get([STORAGE_KEY], (result) => {
-      const phrases = result[STORAGE_KEY] || [];
-      if (phrases.length >= MAX_CUSTOM_PHRASES) return;
+    chrome.storage.sync.get([PHRASES_STORAGE_KEY], (result) => {
+      const phrases = result[PHRASES_STORAGE_KEY] || [];
+      if (phrases.length >= LIMITS.MAX_CUSTOM_PHRASES) return;
 
       /* Duplicate check */
       const dup = phrases.find(
@@ -64,12 +65,12 @@
       }]);
 
       const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
-      if (estimatePhraseBytes(candidate, STORAGE_KEY) > limit) {
+      if (estimatePhraseBytes(candidate, PHRASES_STORAGE_KEY) > limit) {
         console.warn("Skipped adding phrase via context menu: would exceed storage.sync quota.");
         return;
       }
 
-      chrome.storage.sync.set({ [STORAGE_KEY]: candidate }, () => {
+      chrome.storage.sync.set({ [PHRASES_STORAGE_KEY]: candidate }, () => {
         if (chrome.runtime.lastError) {
           console.warn("Failed to save phrase via context menu:", chrome.runtime.lastError.message);
         }

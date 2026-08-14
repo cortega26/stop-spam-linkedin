@@ -1,20 +1,7 @@
 (function () {
   "use strict";
 
-  const STORAGE_KEY = "ss_phrases";
-  const LANG_STORAGE_KEY = "ss_enabled_langs";
-  const WHITELIST_STORAGE_KEY = "ss_whitelist";
-  const EXCLUDED_STORAGE_KEY = "ss_excluded";
-  const MAX_CUSTOM_PHRASES = 200;
-  const MAX_PHRASE_LENGTH = 120;
-  const MAX_IMPORT_BYTES = 128 * 1024;
-  const MAX_WHITELIST = 100; /* mirrors content.js CONFIG.MAX_WHITELIST */
-  /* Generous safety cap for merging imported exclusions: chrome.storage.sync
-     allows at most MAX_ITEMS (512) values per key. ss_excluded is pruned by
-     byte budget (plan 007), not item count, so this only bounds memory/sync
-     limits — it is not a product cap. */
-  const MAX_EXCLUDED_ITEMS = 512;
-  const DEFAULT_LANGS = ["EN", "ES", "FR", "PT", "DE"];
+  const { PHRASES_STORAGE_KEY, STORAGE_KEYS, LIMITS, DEFAULT_ENABLED_LANGS } = globalThis.SS_CONSTANTS;
 
   function estimatePhraseBytes(phrases, storageKey) {
     return storageKey.length + JSON.stringify(phrases).length;
@@ -23,7 +10,7 @@
   /* ── State ──────────────────────────────────────────────────── */
   let phrases = [];
   let editId = null;
-  let enabledLangs = ["EN", "ES", "FR", "PT", "DE"];
+  let enabledLangs = [...DEFAULT_ENABLED_LANGS];
   let whitelist = [];
   let pendingDeleteId = null;
   let pendingWhitelistRemove = null;
@@ -68,7 +55,7 @@
       clearExcludedBtn.title = t("excludedClearAll");
       excluded = [];
       pendingExclusionRemove = null;
-      chrome.storage.sync.set({ [EXCLUDED_STORAGE_KEY]: serializeExcluded(excluded) });
+      chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) });
       renderExcluded();
     } else {
       clearExcludedBtn.dataset.confirming = "1";
@@ -92,13 +79,13 @@
   /* ── Storage ────────────────────────────────────────────────── */
 
   function load() {
-    chrome.storage.sync.get([STORAGE_KEY, LANG_STORAGE_KEY, WHITELIST_STORAGE_KEY, EXCLUDED_STORAGE_KEY], (result) => {
-      phrases = result[STORAGE_KEY] || [];
-      enabledLangs = result[LANG_STORAGE_KEY] || ["EN", "ES", "FR", "PT", "DE"];
-      whitelist = result[WHITELIST_STORAGE_KEY] || [];
-      excluded = normalizeExcludedEntries(result[EXCLUDED_STORAGE_KEY] || []);
-      if (hasLegacyExcludedEntries(result[EXCLUDED_STORAGE_KEY] || [])) {
-        chrome.storage.sync.set({ [EXCLUDED_STORAGE_KEY]: serializeExcluded(excluded) });
+    chrome.storage.sync.get([PHRASES_STORAGE_KEY, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.EXCLUDED], (result) => {
+      phrases = result[PHRASES_STORAGE_KEY] || [];
+      enabledLangs = result[STORAGE_KEYS.LANGS] || [...DEFAULT_ENABLED_LANGS];
+      whitelist = result[STORAGE_KEYS.WHITELIST] || [];
+      excluded = normalizeExcludedEntries(result[STORAGE_KEYS.EXCLUDED] || []);
+      if (hasLegacyExcludedEntries(result[STORAGE_KEYS.EXCLUDED] || [])) {
+        chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) });
       }
       render();
     });
@@ -107,27 +94,27 @@
   /* React to storage changes from other contexts (content script, popup). */
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "sync") return;
-    if (changes[WHITELIST_STORAGE_KEY]) {
-      whitelist = changes[WHITELIST_STORAGE_KEY].newValue || [];
+    if (changes[STORAGE_KEYS.WHITELIST]) {
+      whitelist = changes[STORAGE_KEYS.WHITELIST].newValue || [];
       renderWhitelist();
     }
-    if (changes[EXCLUDED_STORAGE_KEY]) {
-      excluded = normalizeExcludedEntries(changes[EXCLUDED_STORAGE_KEY].newValue || []);
+    if (changes[STORAGE_KEYS.EXCLUDED]) {
+      excluded = normalizeExcludedEntries(changes[STORAGE_KEYS.EXCLUDED].newValue || []);
       renderExcluded();
     }
-    if (changes[STORAGE_KEY]) {
-      phrases = changes[STORAGE_KEY].newValue || [];
+    if (changes[PHRASES_STORAGE_KEY]) {
+      phrases = changes[PHRASES_STORAGE_KEY].newValue || [];
       render();
     }
-    if (changes[LANG_STORAGE_KEY]) {
-      enabledLangs = changes[LANG_STORAGE_KEY].newValue || ["EN", "ES", "FR", "PT", "DE"];
+    if (changes[STORAGE_KEYS.LANGS]) {
+      enabledLangs = changes[STORAGE_KEYS.LANGS].newValue || [...DEFAULT_ENABLED_LANGS];
       render();
     }
   });
 
   function save() {
     const prev = phrases.slice();
-    chrome.storage.sync.set({ [STORAGE_KEY]: phrases }, () => {
+    chrome.storage.sync.set({ [PHRASES_STORAGE_KEY]: phrases }, () => {
       if (chrome.runtime.lastError) {
         phrases = prev;
         render();
@@ -196,8 +183,8 @@
   function handleAdd() {
     const text = input.value.trim();
     if (!text) return;
-    if (text.length > MAX_PHRASE_LENGTH) {
-      showToast(t("phraseTooLongToast", MAX_PHRASE_LENGTH), true);
+    if (text.length > LIMITS.MAX_PHRASE_LENGTH) {
+      showToast(t("phraseTooLongToast", LIMITS.MAX_PHRASE_LENGTH), true);
       return;
     }
 
@@ -212,8 +199,8 @@
       highlightDuplicate(text);
       return;
     }
-    if (phrases.length >= MAX_CUSTOM_PHRASES) {
-      showToast(t("phraseLimitToast", MAX_CUSTOM_PHRASES), true);
+    if (phrases.length >= LIMITS.MAX_CUSTOM_PHRASES) {
+      showToast(t("phraseLimitToast", LIMITS.MAX_CUSTOM_PHRASES), true);
       return;
     }
 
@@ -225,7 +212,7 @@
       mode: "exact",
     }]);
     const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
-    if (estimatePhraseBytes(candidate, STORAGE_KEY) > limit) {
+    if (estimatePhraseBytes(candidate, PHRASES_STORAGE_KEY) > limit) {
       showToast(t("phraseStorageFullToast"), true);
       return;
     }
@@ -283,8 +270,8 @@
     if (!editInput) return;
     const text = editInput.value.trim();
     if (!text) return;
-    if (text.length > MAX_PHRASE_LENGTH) {
-      showToast(t("phraseTooLongToast", MAX_PHRASE_LENGTH), true);
+    if (text.length > LIMITS.MAX_PHRASE_LENGTH) {
+      showToast(t("phraseTooLongToast", LIMITS.MAX_PHRASE_LENGTH), true);
       return;
     }
 
@@ -335,7 +322,7 @@
     let added = 0;
     let candidate = phrases.slice();
     for (const text of defaults) {
-      if (candidate.length >= MAX_CUSTOM_PHRASES) break;
+      if (candidate.length >= LIMITS.MAX_CUSTOM_PHRASES) break;
       const dup = candidate.some(p => p.text.toLowerCase() === text.toLowerCase());
       if (dup) continue;
       const next = candidate.concat([{
@@ -345,7 +332,7 @@
         created: Date.now(),
         mode: "exact",
       }]);
-      if (estimatePhraseBytes(next, STORAGE_KEY) > limit) break;
+      if (estimatePhraseBytes(next, PHRASES_STORAGE_KEY) > limit) break;
       candidate = next;
       added++;
     }
@@ -369,8 +356,8 @@
 
   function isDefaultLangs() {
     return (
-      enabledLangs.length === DEFAULT_LANGS.length &&
-      enabledLangs.every((lang, i) => lang === DEFAULT_LANGS[i])
+      enabledLangs.length === DEFAULT_ENABLED_LANGS.length &&
+      enabledLangs.every((lang, i) => lang === DEFAULT_ENABLED_LANGS[i])
     );
   }
 
@@ -511,7 +498,7 @@
       skipped = 0;
     const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
     for (const item of items) {
-      if (phrases.length >= MAX_CUSTOM_PHRASES) {
+      if (phrases.length >= LIMITS.MAX_CUSTOM_PHRASES) {
         skipped++;
         continue;
       }
@@ -519,7 +506,7 @@
         !item.text ||
         typeof item.text !== "string" ||
         !item.text.trim() ||
-        item.text.trim().length > MAX_PHRASE_LENGTH
+        item.text.trim().length > LIMITS.MAX_PHRASE_LENGTH
       ) {
         skipped++;
         continue;
@@ -538,7 +525,7 @@
         created: item.created || Date.now(),
         mode: item.mode === "contains" ? "contains" : "exact",
       };
-      if (estimatePhraseBytes(phrases.concat([candidateItem]), STORAGE_KEY) > limit) {
+      if (estimatePhraseBytes(phrases.concat([candidateItem]), PHRASES_STORAGE_KEY) > limit) {
         skipped++;
         continue;
       }
@@ -551,7 +538,7 @@
   function handleImport() {
     const file = importFile.files[0];
     if (!file) return;
-    if (file.size > MAX_IMPORT_BYTES) {
+    if (file.size > LIMITS.MAX_IMPORT_BYTES) {
       showToast(t("importFileTooLarge"), true);
       importFile.value = "";
       return;
@@ -605,7 +592,7 @@
           whitelistSkipped = 0;
         if (Array.isArray(imported.whitelist)) {
           for (const entry of imported.whitelist) {
-            if (whitelist.length >= MAX_WHITELIST) {
+            if (whitelist.length >= LIMITS.MAX_WHITELIST) {
               whitelistSkipped++;
               continue;
             }
@@ -620,7 +607,7 @@
             whitelist.push(entry);
             whitelistAdded++;
           }
-          chrome.storage.sync.set({ [WHITELIST_STORAGE_KEY]: whitelist });
+          chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: whitelist });
         }
 
         let excludedAdded = 0,
@@ -635,7 +622,7 @@
               excludedSkipped++;
               continue;
             }
-            if (excluded.length + excludedAdded >= MAX_EXCLUDED_ITEMS) {
+            if (excluded.length + excludedAdded >= LIMITS.MAX_EXCLUDED_ITEMS) {
               excludedSkipped++;
               continue;
             }
@@ -652,7 +639,7 @@
              leaves bare-string entries untouched in meaning. */
           excluded = normalizeExcludedEntries(excluded);
           chrome.storage.sync.set({
-            [EXCLUDED_STORAGE_KEY]: serializeExcluded(excluded),
+            [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded),
           });
         }
 
@@ -741,7 +728,7 @@
   /* ── Language toggles ───────────────────────────────────────── */
 
   function saveLangs() {
-    chrome.storage.sync.set({ [LANG_STORAGE_KEY]: enabledLangs });
+    chrome.storage.sync.set({ [STORAGE_KEYS.LANGS]: enabledLangs });
   }
 
   function handleLangToggle(lang) {
@@ -822,7 +809,7 @@
         if (pendingWhitelistRemove === id) {
           pendingWhitelistRemove = null;
           whitelist = whitelist.filter(w => w !== id);
-          chrome.storage.sync.set({ [WHITELIST_STORAGE_KEY]: whitelist });
+          chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: whitelist });
           renderWhitelist();
         } else {
           pendingWhitelistRemove = id;
@@ -932,7 +919,7 @@
         if (pendingExclusionRemove === entry.sig) {
           pendingExclusionRemove = null;
           excluded = excluded.filter((e) => e.sig !== entry.sig);
-          chrome.storage.sync.set({ [EXCLUDED_STORAGE_KEY]: serializeExcluded(excluded) });
+          chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) });
           renderExcluded();
         } else {
           pendingExclusionRemove = entry.sig;

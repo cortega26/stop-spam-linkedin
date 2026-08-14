@@ -1,15 +1,7 @@
 (function () {
   "use strict";
 
-  const STORAGE_KEYS = Object.freeze({
-    ENABLED: "ss_enabled",
-    COUNT: "ss_blocked_count",
-    DAILY_COUNTS: "ss_daily_counts",
-    SNOOZE_UNTIL: "ss_snooze_until",
-    ONBOARDED: "ss_onboarded",
-  });
-
-  const SNOOZE_DURATION_MS = 30 * 60 * 1000;
+  const { STORAGE_KEYS, LIMITS } = globalThis.SS_CONSTANTS;
 
   function t(key, subs) {
     return chrome.i18n.getMessage(key, subs) || key;
@@ -372,7 +364,7 @@
 
         setExtensionState(
           null,
-          { [STORAGE_KEYS.SNOOZE_UNTIL]: Date.now() + SNOOZE_DURATION_MS },
+          { [STORAGE_KEYS.SNOOZE_UNTIL]: Date.now() + LIMITS.SNOOZE_DURATION_MS },
           refreshState
         );
       });
