@@ -51,6 +51,7 @@ Detection is heuristic, not magic. It can miss new spam formats, and it can occa
 
 **Controls**
 - Undo any blocked post from the popup or the in-feed placeholder
+- "Show all" from the popup to restore every hidden post for the session
 - "Not spam" exclusion so the same text is never blocked again
 - Author whitelist for profile, company, school, and showcase pages
 - Snooze for 30 minutes with automatic resume

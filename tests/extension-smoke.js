@@ -438,6 +438,54 @@ async function main() {
 
     await optionsPage.close();
 
+    /* ── "Show all" restore (plan 018) ── */
+
+    /* Deterministic start: the export/import scenarios left an exclusion
+       entry, a synthetic whitelist without "trusted", and a cumulative
+       persisted block count. Reset all three so a fresh load re-blocks
+       exactly spam-1 with one placeholder and blockedCount 1. */
+    await setSyncStorage(context, {
+      ss_whitelist: ["trusted"],
+      ss_excluded: [],
+    });
+    await setLocalStorage(context, { ss_blocked_count: 0 });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(page.locator("[data-ss-ph]"), 1);
+
+    /* The popup messages the active tab. Opening the popup as a page makes
+       the popup tab itself active, so bring the feed tab to the front and
+       reload the popup — it will then target the feed's content script. */
+    await page.bringToFront();
+    const popup = await context.newPage();
+    await popup.goto(`chrome-extension://${extensionId}/popup/popup.html`, {
+      waitUntil: "domcontentloaded",
+    });
+    await page.bringToFront();
+    await popup.reload({ waitUntil: "domcontentloaded" });
+    await popup.locator("#blockedCount").waitFor({ state: "visible", timeout: 10000 });
+    assert.equal(
+      await popup.locator("#blockedCount").textContent(),
+      "1",
+      "expected popup to show one blocked post before Show all"
+    );
+
+    await popup.locator("#showAllBtn").click();
+
+    await assertCount(page.locator("[data-ss-ph]"), 0);
+    await assert.notEqual(
+      await page.locator('[data-id="urn:li:activity:spam-1"]').evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected spam post to be visible after Show all"
+    );
+    await assert.notEqual(
+      await page.locator('[data-id="urn:li:activity:whitelisted-1"]').evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected whitelisted post to remain visible after Show all"
+    );
+
+    await popup.close();
+
     console.log("Extension smoke test passed.");
   } finally {
     await context.close();

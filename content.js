@@ -351,6 +351,12 @@
         }
         break;
 
+      case "restoreAll":
+        restoreBlocked();
+        lastBlocked.length = 0;
+        sendResponse({ ok: true });
+        break;
+
       case "dismissOnboard":
         onboarded = true;
         chrome.storage.local.set({ [STORAGE_KEYS.ONBOARDED]: true });

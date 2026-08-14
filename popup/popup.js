@@ -19,6 +19,7 @@
   const countEl = document.getElementById("blockedCount");
   const resetBtn = document.getElementById("resetBtn");
   const snoozeBtn = document.getElementById("snoozeBtn");
+  const showAllBtn = document.getElementById("showAllBtn");
   const snoozeStatus = document.getElementById("snoozeStatus");
   const manageLink = document.getElementById("manageLink");
   const todayCountEl = document.getElementById("todayCount");
@@ -179,6 +180,7 @@
     showConnectionState(true);
     connectionNotice.textContent = t("noLiveTabNotice");
     connectionNotice.style.display = hasLiveState ? "none" : "block";
+    showAllBtn.style.display = hasLiveState ? "" : "none";
     toggleEl.checked = response.enabled;
     countEl.textContent = response.blockedCount;
 
@@ -375,6 +377,12 @@
         );
       });
     }
+  });
+
+  showAllBtn.addEventListener("click", () => {
+    send({ action: "restoreAll" }, (response) => {
+      if (response && response.ok) refreshState();
+    });
   });
 
   /* --- Open options page --- */

@@ -16,6 +16,8 @@
   "undo": { "message": "Deshacer" },
   "blockedBy": { "message": "Bloqueado por LinkedIn Spam Blocker" },
   "show": { "message": "Mostrar" },
+  "showAll": { "message": "Mostrar todas" },
+  "showAllTooltip": { "message": "Restaurar todas las publicaciones ocultas de esta sesión" },
   "notSpam": { "message": "No es spam" },
   "notSpamTooltip": { "message": "Reportar como falso positivo" },
   "neverBlock": { "message": "No bloquear a este autor" },
