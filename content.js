@@ -60,6 +60,16 @@
     "article",
   ]);
 
+  /* Author-blocklist enumeration selectors (plan 008 Decision 1): only the
+     two post-specific selectors — deliberately NOT "article", which is
+     broad enough to match non-post elements (job cards, search results,
+     article reader views). An over-broad match would hide unrelated
+     content with no text signal to cross-check against. */
+  const AUTHOR_BLOCK_SELECTORS = Object.freeze([
+    '[data-id*="urn:li:activity:"]',
+    ".feed-shared-update-v2",
+  ]);
+
   const AUTHOR_LINK_SELECTORS = Object.freeze([
     ".update-components-actor a[href]",
     ".update-components-actor__meta-link[href]",
@@ -118,6 +128,9 @@
   /* Whitelisted author IDs. */
   let whitelistedAuthors = new Set();
 
+  /* Author IDs the user always wants blocked, independent of text. */
+  let blockedAuthors = new Set();
+
   /* ==================================================================
    *  INITIALISATION
    * ================================================================== */
@@ -170,7 +183,7 @@
   document.head.appendChild(style);
 
   chrome.storage.sync.get(
-    [STORAGE_KEYS.ENABLED, STORAGE_KEYS.COUNT, STORAGE_KEYS.ONBOARDED, STORAGE_KEYS.DAILY_COUNTS, STORAGE_KEYS.SNOOZE_UNTIL, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.DISABLED_PATTERNS, PHRASES_STORAGE_KEY],
+    [STORAGE_KEYS.ENABLED, STORAGE_KEYS.COUNT, STORAGE_KEYS.ONBOARDED, STORAGE_KEYS.DAILY_COUNTS, STORAGE_KEYS.SNOOZE_UNTIL, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.DISABLED_PATTERNS, PHRASES_STORAGE_KEY],
     (syncResult) => {
       chrome.storage.local.get(
         [
@@ -210,6 +223,7 @@
           excludedSignatures = normalizeExcludedEntries(syncResult[STORAGE_KEYS.EXCLUDED] || []);
           enabledLangs = syncResult[STORAGE_KEYS.LANGS] || [...DEFAULT_ENABLED_LANGS];
           whitelistedAuthors = new Set(syncResult[STORAGE_KEYS.WHITELIST] || []);
+          blockedAuthors = new Set(syncResult[STORAGE_KEYS.BLOCKED_AUTHORS] || []);
           disabledPatterns = new Set(syncResult[STORAGE_KEYS.DISABLED_PATTERNS] || []);
           spamPatterns = buildPatterns(syncResult[PHRASES_STORAGE_KEY], enabledLangs);
           userPhrases = syncResult[PHRASES_STORAGE_KEY] || [];
@@ -277,6 +291,9 @@
       }
       if (changes[STORAGE_KEYS.WHITELIST]) {
         whitelistedAuthors = new Set(changes[STORAGE_KEYS.WHITELIST].newValue || []);
+      }
+      if (changes[STORAGE_KEYS.BLOCKED_AUTHORS]) {
+        blockedAuthors = new Set(changes[STORAGE_KEYS.BLOCKED_AUTHORS].newValue || []);
       }
     }
   });
@@ -435,6 +452,31 @@
 
       case "getWhitelist":
         sendResponse({ whitelist: [...whitelistedAuthors] });
+        break;
+
+      case "addToBlockedAuthor":
+        if (msg.authorId) {
+          blockedAuthors.add(msg.authorId);
+          pruneSet(blockedAuthors, LIMITS.MAX_BLOCKED_AUTHORS);
+          chrome.storage.sync.set({ [STORAGE_KEYS.BLOCKED_AUTHORS]: [...blockedAuthors] });
+          sendResponse({ ok: true });
+        } else {
+          sendResponse({ ok: false });
+        }
+        break;
+
+      case "removeFromBlockedAuthor":
+        if (msg.authorId) {
+          blockedAuthors.delete(msg.authorId);
+          chrome.storage.sync.set({ [STORAGE_KEYS.BLOCKED_AUTHORS]: [...blockedAuthors] });
+          sendResponse({ ok: true });
+        } else {
+          sendResponse({ ok: false });
+        }
+        break;
+
+      case "getBlockedAuthors":
+        sendResponse({ blockedAuthors: [...blockedAuthors] });
         break;
     }
   });
@@ -668,8 +710,36 @@
     }
   }
 
+  /* Author-blocklist pass (plan 008): enumerate post containers directly
+     and block any whose author the user always wants hidden. Mirrors
+     scan()'s guards (enabled, snooze) and lets blockPost apply the same
+     whitelist/cooldown/force-show protections. Called from the same
+     places scan() is, so newly-loaded posts are checked too. */
+  function scanForBlockedAuthors(root) {
+    if (!enabled || Date.now() < snoozeUntil) return;
+    if (blockedAuthors.size === 0) return;
+    root = root || document.body;
+
+    for (const selector of AUTHOR_BLOCK_SELECTORS) {
+      /* A mutation-observer root can itself be the post element, and
+         querySelectorAll only matches descendants — include the root in
+         the candidates. */
+      let posts = root.querySelectorAll(selector);
+      if (root.matches?.(selector)) posts = [root, ...posts];
+      for (const post of posts) {
+        const authorId = getAuthorId(post);
+        if (authorId && blockedAuthors.has(authorId)) {
+          blockPost(post, null, { reason: "author-blocklist", authorId });
+        }
+      }
+    }
+  }
+
   function scheduleInitialScan() {
-    const doScan = () => scan(document.body);
+    const doScan = () => {
+      scan(document.body);
+      scanForBlockedAuthors(document.body);
+    };
     if (window.requestIdleCallback) {
       requestIdleCallback(doScan, { timeout: 2000 });
     } else {
@@ -681,7 +751,12 @@
    *  BLOCKING
    * ================================================================== */
 
-  function blockPost(post, textNode, matchInfo) {
+  /* `info` is the context for the block: the matched pattern entry
+     ({ label, source, id }) for text-based blocks, or
+     { reason: "author-blocklist", authorId } for the author-blocklist
+     pass (plan 008 Decision 2). A null textNode means the block was
+     author-driven, not text-driven. */
+  function blockPost(post, textNode, info) {
     /* Re-block cooldown — skip if user recently clicked "Show". */
     const postKey = post.getAttribute("data-id");
     if (postKey && cooldownStore.has(postKey)) return;
@@ -695,7 +770,12 @@
     if (existingPh && existingPh.dataset && existingPh.dataset.ssPh) return;
 
     /* Skip if author is whitelisted. */
-    const authorId = textNode ? getAuthorId(post) : null;
+    const isAuthorBlock = !!(info && info.reason === "author-blocklist");
+    const authorId = isAuthorBlock
+      ? info.authorId
+      : textNode
+        ? getAuthorId(post)
+        : null;
     if (authorId && whitelistedAuthors.has(authorId)) return;
 
     processed.add(post);
@@ -714,15 +794,15 @@
       lastBlocked.unshift({
         post,
         triggerText: extractTrigger(textNode.textContent),
-        label: matchInfo ? matchInfo.label : undefined,
-        source: matchInfo ? matchInfo.source : undefined,
+        label: info ? info.label : undefined,
+        source: info ? info.source : undefined,
         timestamp: Date.now(),
       });
       if (lastBlocked.length > 5) lastBlocked.pop();
     }
 
     /* Auto-suggest trigger word if matched by built-in pattern only. */
-    if (textNode && matchInfo && matchInfo.source !== "custom") {
+    if (textNode && info && info.source !== "custom") {
       const word = extractSuggestionWord(textNode.textContent);
       if (word &&
           !dismissedSuggestions.has(word) &&
@@ -747,39 +827,66 @@
     ].join("");
 
     const label = document.createElement("span");
-    label.textContent = t("blockedBy");
+    label.textContent = isAuthorBlock ? t("blockedByAuthor") : t("blockedBy");
     placeholder.appendChild(label);
 
     const matchedText = textNode ? textNode.textContent : "";
 
-    const notSpamBtn = document.createElement("button");
-    notSpamBtn.textContent = t("notSpam");
-    notSpamBtn.title = t("notSpamTooltip");
-    notSpamBtn.style.cssText = [
-      "background:none; border:1px solid #d0d0d0; border-radius:4px;",
-      "padding:4px 12px; cursor:pointer; font-size:13px; color:#767676;",
-    ].join("");
-    notSpamBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (matchedText) {
-        const sig = SS_getExcludedSignature(matchedText);
-        excludedSignatures.set(sig, {
-          preview: truncateForPreview(matchedText, CONFIG.EXCLUSION_PREVIEW_LENGTH),
-          created: Date.now(),
-        });
-        pruneExcludedByBytes(
-          excludedSignatures,
-          STORAGE_KEYS.EXCLUDED,
-          Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.9)
-        );
-        chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excludedSignatures) });
-      }
-      restorePost(post);
-    });
-    placeholder.appendChild(notSpamBtn);
+    /* "Not spam" is meaningless for author-driven blocks — there is no
+       text to exclude — so it is skipped in favor of "Unblock this
+       author" below (plan 008 Decision 2). */
+    if (!isAuthorBlock) {
+      const notSpamBtn = document.createElement("button");
+      notSpamBtn.textContent = t("notSpam");
+      notSpamBtn.title = t("notSpamTooltip");
+      notSpamBtn.style.cssText = [
+        "background:none; border:1px solid #d0d0d0; border-radius:4px;",
+        "padding:4px 12px; cursor:pointer; font-size:13px; color:#767676;",
+      ].join("");
+      notSpamBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (matchedText) {
+          const sig = SS_getExcludedSignature(matchedText);
+          excludedSignatures.set(sig, {
+            preview: truncateForPreview(matchedText, CONFIG.EXCLUSION_PREVIEW_LENGTH),
+            created: Date.now(),
+          });
+          pruneExcludedByBytes(
+            excludedSignatures,
+            STORAGE_KEYS.EXCLUDED,
+            Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.9)
+          );
+          chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excludedSignatures) });
+        }
+        restorePost(post);
+      });
+      placeholder.appendChild(notSpamBtn);
+    }
 
-    /* "Never block this author" button (only if we found an author ID). */
-    if (authorId) {
+    /* Author-driven blocks get the inverse action: remove the author
+       from the blocklist and restore the post (plan 008 Decision 2). */
+    if (isAuthorBlock) {
+      const unblockBtn = document.createElement("button");
+      unblockBtn.textContent = t("unblockAuthor");
+      unblockBtn.style.cssText = [
+        "background:none; border:1px solid #d0d0d0; border-radius:4px;",
+        "padding:4px 12px; cursor:pointer; font-size:13px; color:#767676;",
+      ].join("");
+      unblockBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (info.authorId) {
+          blockedAuthors.delete(info.authorId);
+          chrome.storage.sync.set({ [STORAGE_KEYS.BLOCKED_AUTHORS]: [...blockedAuthors] });
+        }
+        restorePost(post);
+      });
+      placeholder.appendChild(unblockBtn);
+    }
+
+    /* "Never block this author" button (only if we found an author ID —
+       meaningless for an author-driven block, where the inverse action
+       above already covers it). */
+    if (authorId && !isAuthorBlock) {
       const whitelistBtn = document.createElement("button");
       whitelistBtn.textContent = t("neverBlock");
       whitelistBtn.style.cssText = [
@@ -938,6 +1045,7 @@
         const roots = collectNewRoots(mutations);
         for (const root of roots) {
           scan(root);
+          scanForBlockedAuthors(root);
         }
       }, CONFIG.OBSERVER_DEBOUNCE_MS)
     );

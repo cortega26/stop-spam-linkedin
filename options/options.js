@@ -13,8 +13,10 @@
   let enabledLangs = [...DEFAULT_ENABLED_LANGS];
   let disabledPatterns = [];
   let whitelist = [];
+  let blockedAuthors = [];
   let pendingDeleteId = null;
   let pendingWhitelistRemove = null;
+  let pendingBlockedAuthorRemove = null;
   let excluded = [];
   let pendingExclusionRemove = null;
 
@@ -32,6 +34,8 @@
   const langToggles = document.getElementById("langToggles");
   const whitelistSection = document.getElementById("whitelistSection");
   const whitelistList = document.getElementById("whitelistList");
+  const blockedAuthorSection = document.getElementById("blockedAuthorSection");
+  const blockedAuthorList = document.getElementById("blockedAuthorList");
   const excludedSection = document.getElementById("excludedSection");
   const excludedList = document.getElementById("excludedList");
   const clearExcludedBtn = document.getElementById("clearExcludedBtn");
@@ -80,11 +84,12 @@
   /* ── Storage ────────────────────────────────────────────────── */
 
   function load() {
-    chrome.storage.sync.get([PHRASES_STORAGE_KEY, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.DISABLED_PATTERNS], (result) => {
+    chrome.storage.sync.get([PHRASES_STORAGE_KEY, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.DISABLED_PATTERNS], (result) => {
       phrases = result[PHRASES_STORAGE_KEY] || [];
       enabledLangs = result[STORAGE_KEYS.LANGS] || [...DEFAULT_ENABLED_LANGS];
       disabledPatterns = result[STORAGE_KEYS.DISABLED_PATTERNS] || [];
       whitelist = result[STORAGE_KEYS.WHITELIST] || [];
+      blockedAuthors = result[STORAGE_KEYS.BLOCKED_AUTHORS] || [];
       excluded = normalizeExcludedEntries(result[STORAGE_KEYS.EXCLUDED] || []);
       if (hasLegacyExcludedEntries(result[STORAGE_KEYS.EXCLUDED] || [])) {
         chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) });
@@ -99,6 +104,10 @@
     if (changes[STORAGE_KEYS.WHITELIST]) {
       whitelist = changes[STORAGE_KEYS.WHITELIST].newValue || [];
       renderWhitelist();
+    }
+    if (changes[STORAGE_KEYS.BLOCKED_AUTHORS]) {
+      blockedAuthors = changes[STORAGE_KEYS.BLOCKED_AUTHORS].newValue || [];
+      renderBlockedAuthors();
     }
     if (changes[STORAGE_KEYS.EXCLUDED]) {
       excluded = normalizeExcludedEntries(changes[STORAGE_KEYS.EXCLUDED].newValue || []);
@@ -851,6 +860,56 @@
     }
   }
 
+  /* ── Blocked authors (plan 008) ─────────────────────────────── */
+
+  /* Mirrors renderWhitelist: list + confirm-click remove. Entries are
+     added via the in-feed placeholder or the link context menu, not by
+     typing here — same precedent as the whitelist. */
+  function renderBlockedAuthors() {
+    if (blockedAuthors.length === 0) {
+      blockedAuthorSection.style.display = "none";
+      return;
+    }
+    blockedAuthorSection.style.display = "block";
+    blockedAuthorList.innerHTML = "";
+    for (const id of blockedAuthors) {
+      const row = document.createElement("div");
+      row.className = "whitelist-row";
+
+      const label = document.createElement("span");
+      label.className = "wl-id";
+      label.textContent = id;
+      row.appendChild(label);
+
+      const isConfirming = pendingBlockedAuthorRemove === id;
+      const rmBtn = document.createElement("button");
+      rmBtn.className = isConfirming ? "confirming" : "";
+      rmBtn.textContent = isConfirming ? t("clickToConfirm") : t("remove");
+      rmBtn.setAttribute("aria-label", t("removeBlockedAuthorLabel", id));
+      rmBtn.title = t("removeBlockedAuthorLabel", id);
+      rmBtn.addEventListener("click", () => {
+        if (pendingBlockedAuthorRemove === id) {
+          pendingBlockedAuthorRemove = null;
+          blockedAuthors = blockedAuthors.filter(a => a !== id);
+          chrome.storage.sync.set({ [STORAGE_KEYS.BLOCKED_AUTHORS]: blockedAuthors });
+          renderBlockedAuthors();
+        } else {
+          pendingBlockedAuthorRemove = id;
+          renderBlockedAuthors();
+          setTimeout(() => {
+            if (pendingBlockedAuthorRemove === id) {
+              pendingBlockedAuthorRemove = null;
+              renderBlockedAuthors();
+            }
+          }, 3000);
+        }
+      });
+      row.appendChild(rmBtn);
+
+      blockedAuthorList.appendChild(row);
+    }
+  }
+
   /* ── Excluded posts ("Not spam") ────────────────────────────── */
 
   /* Same semantics as content.js's normalizeExcludedEntries: accepts the
@@ -968,6 +1027,7 @@
 
     renderLangs();
     renderWhitelist();
+    renderBlockedAuthors();
     renderExcluded();
 
     const query = searchInput.value.trim().toLowerCase();
