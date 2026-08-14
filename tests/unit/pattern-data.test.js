@@ -12,6 +12,7 @@ const {
   parseAuthorId,
   hashString,
   getExcludedSignature,
+  PATTERN_DATA,
 } = require(path.join(__dirname, "..", "..", "shared", "pattern-data.js"));
 
 test("escapeRegex escapes every regex-special character", () => {
@@ -74,4 +75,27 @@ test("getExcludedSignature is prefixed with sig: and differs for different text"
   const sig = getExcludedSignature("some post text");
   assert.match(sig, /^sig:/);
   assert.notEqual(sig, getExcludedSignature("different post text"));
+});
+
+/* NOTE: ES-1's leading alternation (comenta|escribe|...) has no trailing
+   boundary, so verb forms like "comentaba CLAUDE y te envío ..." match via
+   prefix. That over-broadness predates the `\b` -> `(?!\w)` fix and is
+   intentionally not asserted against here. */
+test("ES-1 matches the previously-dead accented verb forms", () => {
+  assert.equal(PATTERN_DATA.ES[0].regex.test("comenta CLAUDE y te envío el PDF completo gratis"), true);
+  assert.equal(PATTERN_DATA.ES[0].regex.test("comenta CLAUDE y te enviaré el PDF completo gratis"), true);
+  assert.equal(PATTERN_DATA.ES[0].regex.test("comenta CLAUDE y te daré el acceso"), true);
+  assert.equal(PATTERN_DATA.ES[0].regex.test("comenta CLAUDE y te envía el PDF completo gratis"), true);
+  assert.equal(PATTERN_DATA.ES[0].regex.test("comenta CLAUDE y te comparto el PDF completo gratis"), true);
+  assert.equal(PATTERN_DATA.ES[0].regex.test("comenta CLAUDE y te mando el PDF completo gratis"), true);
+});
+
+test("ES-1 still rejects non-bait sentences", () => {
+  assert.equal(PATTERN_DATA.ES[0].regex.test("comentamos en el post nuestra opinión"), false);
+  assert.equal(PATTERN_DATA.ES[0].regex.test("enviaréis las tareas mañana"), false);
+  assert.equal(PATTERN_DATA.ES[0].regex.test("te envían documentos por interno"), false);
+});
+
+test("ES-2 is unchanged", () => {
+  assert.equal(PATTERN_DATA.ES[1].regex.test("comenta CLAUDE para recibir el PDF"), true);
 });
