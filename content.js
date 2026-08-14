@@ -25,12 +25,22 @@
   }
 
   /* Derived from shared/pattern-data.js — see that file for the actual
-     pattern definitions and their display labels. */
+     pattern definitions and their display labels. Each entry carries its
+     display label so blocked-post attribution can show which pattern
+     matched. */
   const BASE_PATTERNS = Object.freeze(
     Object.fromEntries(
       Object.entries(SS_PATTERN_DATA).map(([lang, entries]) => [
         lang,
-        Object.freeze(entries.map((entry) => entry.regex)),
+        Object.freeze(
+          entries.map((entry) =>
+            Object.freeze({
+              regex: entry.regex,
+              label: entry.label,
+              source: "builtin",
+            })
+          )
+        ),
       ])
     )
   );
@@ -275,6 +285,8 @@
           onboarded,
           lastBlocked: lastBlocked.map(item => ({
             triggerText: item.triggerText,
+            label: item.label,
+            source: item.source,
             timestamp: item.timestamp,
           })),
           suggestions: pendingSuggestions.map(s => ({ word: s.word, timestamp: s.timestamp })),
@@ -441,25 +453,37 @@
         const text = p.text.trim();
         const escaped = SS_escapeRegex(text);
         if (p.mode === "contains") {
-          return new RegExp(escaped, "i");
+          return { regex: new RegExp(escaped, "i"), label: text, source: "custom" };
         }
         /* Only add \b anchors when adjacent char is a word character.
            Prevents silent non-matching phrases like "hello?" where \b
            after ? can never be true (non-word → end = no boundary). */
         const start = /^\w/.test(text) ? "\\b" : "";
         const end = /\w$/.test(text) ? "\\b" : "";
-        return new RegExp(start + escaped + end, "i");
+        return { regex: new RegExp(start + escaped + end, "i"), label: text, source: "custom" };
       });
-    return [...builtin, ...custom];
+    /* Custom phrases first: when a text matches both a built-in pattern
+       and an enabled custom phrase, the first matching entry is the one
+       attributed (and gates the trigger-word suggestion). Custom-first
+       reproduces the original semantics — any custom phrase covering the
+       text wins over the generic built-in label. */
+    return [...custom, ...builtin];
   }
 
   /* ==================================================================
    *  SPAM DETECTION
    * ================================================================== */
 
-  function isSpam(text) {
-    if (excludedSignatures.has(SS_getExcludedSignature(text))) return false;
-    return spamPatterns.some((re) => re.test(text));
+  /* Returns the matched pattern entry ({ regex, label, source }) or null.
+     Because buildPatterns orders custom phrases first, a text covered by
+     both a custom phrase and a built-in pattern attributes to the custom
+     phrase. */
+  function findMatch(text) {
+    if (excludedSignatures.has(SS_getExcludedSignature(text))) return null;
+    for (const entry of spamPatterns) {
+      if (entry.regex.test(text)) return entry;
+    }
+    return null;
   }
 
   /* ==================================================================
@@ -510,9 +534,10 @@
   function findSpamTextNodes(root) {
     const hits = [];
     forEachTextNode(root, (node) => {
-      if (isSpam(node.textContent)) {
+      const match = findMatch(node.textContent);
+      if (match) {
         if (node.parentElement) processed.add(node.parentElement);
-        hits.push(node);
+        hits.push({ node, match });
       }
     });
     return hits;
@@ -619,14 +644,14 @@
     root = root || document.body;
 
     const matches = findSpamTextNodes(root);
-    for (const textNode of matches) {
+    for (const { node: textNode, match } of matches) {
       const container = findPostContainer(textNode);
       if (
         container &&
         !processed.has(container) &&
         !forceShow.has(container)
       ) {
-        blockPost(container, textNode);
+        blockPost(container, textNode, match);
       }
     }
   }
@@ -644,7 +669,7 @@
    *  BLOCKING
    * ================================================================== */
 
-  function blockPost(post, textNode) {
+  function blockPost(post, textNode, matchInfo) {
     /* Re-block cooldown — skip if user recently clicked "Show". */
     const postKey = post.getAttribute("data-id");
     if (postKey && cooldownStore.has(postKey)) return;
@@ -677,39 +702,22 @@
       lastBlocked.unshift({
         post,
         triggerText: extractTrigger(textNode.textContent),
+        label: matchInfo ? matchInfo.label : undefined,
+        source: matchInfo ? matchInfo.source : undefined,
         timestamp: Date.now(),
       });
       if (lastBlocked.length > 5) lastBlocked.pop();
     }
 
     /* Auto-suggest trigger word if matched by built-in pattern only. */
-    if (textNode) {
-      const txt = textNode.textContent;
-      const isCustom = userPhrases.some(p => {
-        if (
-          !p.enabled ||
-          typeof p.text !== "string" ||
-          !p.text.trim() ||
-          p.text.trim().length > LIMITS.MAX_PHRASE_LENGTH
-        ) return false;
-        const text = p.text.trim();
-        const escaped = SS_escapeRegex(text);
-        if (p.mode === "contains") {
-          return new RegExp(escaped, "i").test(txt);
-        }
-        const start = /^\w/.test(text) ? "\\b" : "";
-        const end = /\w$/.test(text) ? "\\b" : "";
-        return new RegExp(start + escaped + end, "i").test(txt);
-      });
-      if (!isCustom) {
-        const word = extractSuggestionWord(txt);
-        if (word &&
-            !dismissedSuggestions.has(word) &&
-            !userPhrases.some(p => p.text.toLowerCase() === word.toLowerCase()) &&
-            !pendingSuggestions.some(s => s.word === word)) {
-          pendingSuggestions.push({ word, timestamp: Date.now() });
-          if (pendingSuggestions.length > 3) pendingSuggestions.shift();
-        }
+    if (textNode && matchInfo && matchInfo.source !== "custom") {
+      const word = extractSuggestionWord(textNode.textContent);
+      if (word &&
+          !dismissedSuggestions.has(word) &&
+          !userPhrases.some(p => p.text.toLowerCase() === word.toLowerCase()) &&
+          !pendingSuggestions.some(s => s.word === word)) {
+        pendingSuggestions.push({ word, timestamp: Date.now() });
+        if (pendingSuggestions.length > 3) pendingSuggestions.shift();
       }
     }
 

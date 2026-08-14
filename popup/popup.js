@@ -200,10 +200,21 @@
         const row = document.createElement("div");
         row.className = "last-blocked-item";
 
+        const main = document.createElement("div");
+        main.className = "lb-main";
+
         const text = document.createElement("span");
         text.className = "lb-text";
         text.textContent = item.triggerText;
-        row.appendChild(text);
+        main.appendChild(text);
+
+        if (item.label) {
+          const match = document.createElement("span");
+          match.className = "lb-match";
+          match.textContent = t("matchedLabel") + " " + item.label;
+          main.appendChild(match);
+        }
+        row.appendChild(main);
 
         const time = document.createElement("span");
         time.className = "lb-time";

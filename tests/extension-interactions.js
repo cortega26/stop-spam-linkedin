@@ -310,6 +310,123 @@ async function main() {
       Array.isArray(v) && v.includes("ES")
     );
 
+    /* ── Attribution: which pattern matched (plan 010) ─────────── */
+
+    /* Deterministic start: no custom phrases, fresh feed. spam-1 matches
+       the EN built-in pattern only. */
+    await setSyncStorage(context, { ss_phrases: [] });
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* Built-in attribution: the popup must show the built-in pattern's
+       label, and the trigger-word suggestion chip must appear (suggestions
+       fire for built-in matches only). */
+    await linkedInPage.bringToFront();
+    await popup.reload({ waitUntil: "domcontentloaded" });
+    await popup.locator(".last-blocked-item").first().waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    assert.match(
+      await popup.locator(".last-blocked-item .lb-match").first().textContent(),
+      /(?:Matched|Coincide con): comment "WORD" and I'll send \/ share \.\.\./,
+      "expected the built-in EN pattern label on the last-blocked row"
+    );
+    await popup.locator(".suggestion-item").first().waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    assert.match(
+      await popup.locator(".suggestion-item .suggestion-text").first().textContent(),
+      /CLAUDE/,
+      "expected a trigger-word suggestion for a built-in match"
+    );
+
+    /* Custom-only: a phrase no built-in pattern covers. The block must
+       attribute to the custom phrase's own text, and no suggestion may be
+       offered for that phrase. */
+    await setSyncStorage(context, {
+      ss_phrases: [{ text: "TEMPLATE PACK", enabled: true, mode: "exact" }],
+    });
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:custom-1";
+      const p = document.createElement("p");
+      p.textContent = "Send me the template pack to get the full guide.";
+      section.appendChild(p);
+      document.querySelector("main").appendChild(section);
+    });
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display === "none";
+      },
+      '[data-id="urn:li:activity:custom-1"]',
+      { timeout: 5000 }
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+
+    await linkedInPage.bringToFront();
+    await popup.reload({ waitUntil: "domcontentloaded" });
+    await popup.locator(".last-blocked-item").first().waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    assert.match(
+      await popup.locator(".last-blocked-item .lb-match").first().textContent(),
+      /(?:Matched|Coincide con): TEMPLATE PACK$/,
+      "expected the custom phrase's own text as the label for a custom match"
+    );
+    const suggestionTexts = await popup.locator(".suggestion-text").allTextContents();
+    assert.ok(
+      suggestionTexts.every((t) => !t.includes("TEMPLATE PACK")),
+      "expected no suggestion for the custom-phrase match"
+    );
+
+    /* Overlap case (plan 010 Decision 2): the custom exact phrase
+       "CLAUDE" also falls inside the built-in EN pattern's quoted-word
+       matching, so both cover spam-1's text. The block must attribute to
+       the custom phrase (not the generic built-in label), and the
+       trigger-word suggestion must not fire. */
+    await setSyncStorage(context, {
+      ss_phrases: [{ text: "CLAUDE", enabled: true, mode: "exact" }],
+    });
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    await linkedInPage.bringToFront();
+    await popup.reload({ waitUntil: "domcontentloaded" });
+    await popup.locator(".last-blocked-item").first().waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    const overlapLabel = await popup
+      .locator(".last-blocked-item .lb-match")
+      .first()
+      .textContent();
+    assert.match(
+      overlapLabel,
+      /(?:Matched|Coincide con): CLAUDE$/,
+      "expected the custom phrase to win attribution over the built-in pattern"
+    );
+    assert.doesNotMatch(
+      overlapLabel,
+      /comment "WORD"/,
+      "expected no generic built-in label for the overlap case"
+    );
+    assert.equal(
+      await popup.locator(".suggestion-item").count(),
+      0,
+      "expected no trigger-word suggestion when a custom phrase covers the match"
+    );
+
+    /* Restore a clean custom-phrase state for any future scenarios. */
+    await setSyncStorage(context, { ss_phrases: [] });
+
     await optionsPage.close();
     await popup.close();
 

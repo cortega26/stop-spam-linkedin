@@ -6,6 +6,7 @@
   "weekLabel": { "message": "Semana" },
   "totalLabel": { "message": "Total" },
   "lastBlockedLabel": { "message": "Últimos bloqueados" },
+  "matchedLabel": { "message": "Coincide con:" },
   "snooze30": { "message": "Posponer 30 min" },
   "cancelSnooze": { "message": "Cancelar" },
   "resetCount": { "message": "Reiniciar contador" },
