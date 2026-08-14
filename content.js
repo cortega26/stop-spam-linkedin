@@ -382,21 +382,30 @@
           sendResponse({ ok: false, reason: "limit" });
           break;
         }
-        userPhrases.push({
-          id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 9),
-          text: msg.word,
-          enabled: true,
-          created: Date.now(),
-          mode: "exact",
-        });
-        chrome.storage.sync.set({ [PHRASES_STORAGE_KEY]: userPhrases }, () => {
-          if (chrome.runtime.lastError) {
-            userPhrases.pop();
-            console.warn("Failed to save suggestion phrase:", chrome.runtime.lastError.message);
+        {
+          const candidate = userPhrases.concat([{
+            id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 9),
+            text: msg.word,
+            enabled: true,
+            created: Date.now(),
+            mode: "exact",
+          }]);
+
+          const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
+          if (estimatePhraseBytes(candidate, PHRASES_STORAGE_KEY) > limit) {
+            sendResponse({ ok: false, reason: "quota" });
+            break;
           }
-        });
-        pendingSuggestions = pendingSuggestions.filter(s => s.word !== msg.word);
-        sendResponse({ ok: true });
+
+          userPhrases = candidate;
+          chrome.storage.sync.set({ [PHRASES_STORAGE_KEY]: userPhrases }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn("Failed to save suggestion phrase:", chrome.runtime.lastError.message);
+            }
+          });
+          pendingSuggestions = pendingSuggestions.filter(s => s.word !== msg.word);
+          sendResponse({ ok: true });
+        }
         break;
 
       case "dismissSuggestion":
