@@ -11,6 +11,7 @@
   let phrases = [];
   let editId = null;
   let enabledLangs = [...DEFAULT_ENABLED_LANGS];
+  let disabledPatterns = [];
   let whitelist = [];
   let pendingDeleteId = null;
   let pendingWhitelistRemove = null;
@@ -79,9 +80,10 @@
   /* ── Storage ────────────────────────────────────────────────── */
 
   function load() {
-    chrome.storage.sync.get([PHRASES_STORAGE_KEY, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.EXCLUDED], (result) => {
+    chrome.storage.sync.get([PHRASES_STORAGE_KEY, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.DISABLED_PATTERNS], (result) => {
       phrases = result[PHRASES_STORAGE_KEY] || [];
       enabledLangs = result[STORAGE_KEYS.LANGS] || [...DEFAULT_ENABLED_LANGS];
+      disabledPatterns = result[STORAGE_KEYS.DISABLED_PATTERNS] || [];
       whitelist = result[STORAGE_KEYS.WHITELIST] || [];
       excluded = normalizeExcludedEntries(result[STORAGE_KEYS.EXCLUDED] || []);
       if (hasLegacyExcludedEntries(result[STORAGE_KEYS.EXCLUDED] || [])) {
@@ -108,6 +110,10 @@
     }
     if (changes[STORAGE_KEYS.LANGS]) {
       enabledLangs = changes[STORAGE_KEYS.LANGS].newValue || [...DEFAULT_ENABLED_LANGS];
+      render();
+    }
+    if (changes[STORAGE_KEYS.DISABLED_PATTERNS]) {
+      disabledPatterns = changes[STORAGE_KEYS.DISABLED_PATTERNS].newValue || [];
       render();
     }
   });
@@ -229,6 +235,18 @@
       p.enabled = !p.enabled;
       save();
     }
+  }
+
+  /* Per-pattern toggle for built-in patterns: add/remove the pattern's
+     stable id (from shared/pattern-data.js) from ss_disabled_patterns. */
+  function handleBuiltinToggle(id) {
+    if (disabledPatterns.includes(id)) {
+      disabledPatterns = disabledPatterns.filter((x) => x !== id);
+    } else {
+      disabledPatterns = [...disabledPatterns, id];
+    }
+    chrome.storage.sync.set({ [STORAGE_KEYS.DISABLED_PATTERNS]: disabledPatterns });
+    render();
   }
 
   function handleDelete(id) {
@@ -747,7 +765,12 @@
   function renderLangs() {
     langToggles.innerHTML = "";
     for (const [code, names] of Object.entries(LANG_META)) {
-      const count = BUILTIN.filter((b) => b.lang === code).length;
+      /* Decision 3 (plan 011): count only ENABLED patterns — patterns whose
+         per-pattern toggle is on — matching the checkbox state shown in the
+         pattern list below, not the language's total. */
+      const count = BUILTIN.filter(
+        (b) => b.lang === code && !disabledPatterns.includes(b.id)
+      ).length;
       const enabled = enabledLangs.includes(code);
       const div = document.createElement("div");
       div.className = "lang-tog" + (enabled ? " enabled" : " disabled");
@@ -994,10 +1017,10 @@
     label.className = "toggle";
     const cb = document.createElement("input");
     cb.type = "checkbox";
-    cb.checked = true;
-    cb.disabled = true;
+    cb.checked = !disabledPatterns.includes(bp.id);
     cb.setAttribute("aria-label", t("builtinPatternToggleLabel", bp.label));
-    cb.title = t("builtinPatternToggleLabel", bp.label);
+    cb.title = t("builtinPatternToggleHint");
+    cb.addEventListener("change", () => handleBuiltinToggle(bp.id));
     label.appendChild(cb);
     label.appendChild(document.createElement("span")).className = "slider";
     div.appendChild(label);
@@ -1120,9 +1143,10 @@
   /* ── Built-in patterns (display only) ───────────────────────── */
 
   /* Derived from shared/pattern-data.js — see that file for the actual
-     pattern definitions this describes. */
+     pattern definitions this describes. The id is the stable per-pattern
+     identity users toggle on and off. */
   const BUILTIN = Object.entries(SS_PATTERN_DATA).flatMap(([lang, entries]) =>
-    entries.map((entry) => ({ lang, label: entry.label }))
+    entries.map((entry) => ({ lang, label: entry.label, id: entry.id }))
   );
 
   /* ── Helpers ────────────────────────────────────────────────── */

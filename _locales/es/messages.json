@@ -116,6 +116,7 @@
   "languageToggleLabel": { "message": "Idioma de detección $1, actualmente $2" },
   "removeWhitelistedAuthorLabel": { "message": "Eliminar autor en lista blanca $1" },
   "builtinPatternToggleLabel": { "message": "Patrón incorporado: $1" },
+  "builtinPatternToggleHint": { "message": "Activa o desactiva este patrón incorporado sin desactivar su idioma" },
   "phraseToggleLabel": { "message": "Activar o desactivar la frase $1" },
   "modeToggleLabel": { "message": "Cambiar modo de coincidencia para $1, actualmente $2" },
   "editPhraseLabel": { "message": "Editar frase $1" },
