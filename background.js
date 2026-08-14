@@ -55,16 +55,24 @@
       );
       if (dup) return; /* silently skip — no UI to report in service worker */
 
-      phrases.push({
+      const candidate = phrases.concat([{
         id: uid(),
         text,
         enabled: true,
         created: Date.now(),
         mode: "exact",
-      });
+      }]);
 
-      chrome.storage.sync.set({ [STORAGE_KEY]: phrases }, () => {
-        if (chrome.runtime.lastError) phrases.pop();
+      const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
+      if (estimatePhraseBytes(candidate, STORAGE_KEY) > limit) {
+        console.warn("Skipped adding phrase via context menu: would exceed storage.sync quota.");
+        return;
+      }
+
+      chrome.storage.sync.set({ [STORAGE_KEY]: candidate }, () => {
+        if (chrome.runtime.lastError) {
+          console.warn("Failed to save phrase via context menu:", chrome.runtime.lastError.message);
+        }
       });
     });
   });
