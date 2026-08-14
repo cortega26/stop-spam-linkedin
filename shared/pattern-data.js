@@ -60,9 +60,76 @@
     ]),
   });
 
+  function escapeRegex(str) {
+    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  }
+
+  function isLinkedInHost(hostname) {
+    return hostname === "linkedin.com" || hostname.endsWith(".linkedin.com");
+  }
+
+  /* baseOrigin defaults to a real LinkedIn origin so relative hrefs like
+     "/in/someone" resolve correctly even when window.location isn't
+     available (e.g. under Node in a unit test). Callers running inside the
+     actual content script should pass window.location.origin explicitly to
+     preserve the original behavior exactly. */
+  function parseAuthorId(href, baseOrigin) {
+    if (!href) return null;
+
+    const patterns = [
+      { re: /^\/in\/([^/?#]+)/, prefix: "" },
+      { re: /^\/company\/([^/?#]+)/, prefix: "company:" },
+      { re: /^\/school\/([^/?#]+)/, prefix: "school:" },
+      { re: /^\/showcase\/([^/?#]+)/, prefix: "showcase:" },
+    ];
+
+    let url;
+    try {
+      url = new URL(href, baseOrigin || "https://www.linkedin.com");
+    } catch (_) {
+      return null;
+    }
+    if (!isLinkedInHost(url.hostname)) return null;
+
+    for (const pattern of patterns) {
+      const match = url.pathname.match(pattern.re);
+      if (match) {
+        return pattern.prefix + decodeURIComponent(match[1].toLowerCase());
+      }
+    }
+
+    return null;
+  }
+
+  function hashString(value) {
+    let hash = 0x811c9dc5;
+    for (let i = 0; i < value.length; i++) {
+      hash ^= value.charCodeAt(i);
+      hash = Math.imul(hash, 0x01000193);
+    }
+    return (hash >>> 0).toString(36);
+  }
+
+  function getExcludedSignature(text) {
+    const normalized = text.toLowerCase().replace(/\s+/g, " ").trim();
+    return "sig:" + hashString(normalized);
+  }
+
   root.SS_PATTERN_DATA = PATTERN_DATA;
+  root.SS_escapeRegex = escapeRegex;
+  root.SS_isLinkedInHost = isLinkedInHost;
+  root.SS_parseAuthorId = parseAuthorId;
+  root.SS_hashString = hashString;
+  root.SS_getExcludedSignature = getExcludedSignature;
 
   if (typeof module !== "undefined" && module.exports) {
-    module.exports = { PATTERN_DATA };
+    module.exports = {
+      PATTERN_DATA,
+      escapeRegex,
+      isLinkedInHost,
+      parseAuthorId,
+      hashString,
+      getExcludedSignature,
+    };
   }
 })(typeof self !== "undefined" ? self : globalThis);

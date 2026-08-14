@@ -432,10 +432,6 @@
    *  PATTERN BUILDING
    * ================================================================== */
 
-  function escapeRegex(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  }
-
   function buildPatterns(phrases, langs) {
     const builtin = [];
     for (const lang of langs || DEFAULT_ENABLED_LANGS) {
@@ -453,7 +449,7 @@
       ))
       .map((p) => {
         const text = p.text.trim();
-        const escaped = escapeRegex(text);
+        const escaped = SS_escapeRegex(text);
         if (p.mode === "contains") {
           return new RegExp(escaped, "i");
         }
@@ -472,7 +468,7 @@
    * ================================================================== */
 
   function isSpam(text) {
-    if (excludedSignatures.has(getExcludedSignature(text))) return false;
+    if (excludedSignatures.has(SS_getExcludedSignature(text))) return false;
     return spamPatterns.some((re) => re.test(text));
   }
 
@@ -702,7 +698,7 @@
           p.text.trim().length > CONFIG.MAX_PHRASE_LENGTH
         ) return false;
         const text = p.text.trim();
-        const escaped = escapeRegex(text);
+        const escaped = SS_escapeRegex(text);
         if (p.mode === "contains") {
           return new RegExp(escaped, "i").test(txt);
         }
@@ -751,7 +747,7 @@
     notSpamBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       if (matchedText) {
-        excludedSignatures.add(getExcludedSignature(matchedText));
+        excludedSignatures.add(SS_getExcludedSignature(matchedText));
         pruneSet(excludedSignatures, CONFIG.MAX_EXCLUSIONS);
         chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: [...excludedSignatures] });
       }
@@ -1001,7 +997,7 @@
   function getAuthorId(post) {
     for (const selector of AUTHOR_LINK_SELECTORS) {
       for (const link of post.querySelectorAll(selector)) {
-        const authorId = parseAuthorId(link.getAttribute("href"));
+        const authorId = SS_parseAuthorId(link.getAttribute("href"), window.location.origin);
         if (authorId) return authorId;
       }
     }
@@ -1009,58 +1005,12 @@
     return null;
   }
 
-  function parseAuthorId(href) {
-    if (!href) return null;
-
-    const patterns = [
-      { re: /^\/in\/([^/?#]+)/, prefix: "" },
-      { re: /^\/company\/([^/?#]+)/, prefix: "company:" },
-      { re: /^\/school\/([^/?#]+)/, prefix: "school:" },
-      { re: /^\/showcase\/([^/?#]+)/, prefix: "showcase:" },
-    ];
-
-    let url;
-    try {
-      url = new URL(href, window.location.origin);
-    } catch (_) {
-      return null;
-    }
-    if (!isLinkedInHost(url.hostname)) return null;
-
-    for (const pattern of patterns) {
-      const match = url.pathname.match(pattern.re);
-      if (match) {
-        return pattern.prefix + decodeURIComponent(match[1].toLowerCase());
-      }
-    }
-
-    return null;
-  }
-
-  function isLinkedInHost(hostname) {
-    return hostname === "linkedin.com" || hostname.endsWith(".linkedin.com");
-  }
-
   function normalizeExcludedEntries(entries) {
     return new Set(
       (entries || [])
         .filter((entry) => typeof entry === "string" && entry.trim())
-        .map((entry) => entry.startsWith("sig:") ? entry : getExcludedSignature(entry))
+        .map((entry) => entry.startsWith("sig:") ? entry : SS_getExcludedSignature(entry))
     );
-  }
-
-  function getExcludedSignature(text) {
-    const normalized = text.toLowerCase().replace(/\s+/g, " ").trim();
-    return "sig:" + hashString(normalized);
-  }
-
-  function hashString(value) {
-    let hash = 0x811c9dc5;
-    for (let i = 0; i < value.length; i++) {
-      hash ^= value.charCodeAt(i);
-      hash = Math.imul(hash, 0x01000193);
-    }
-    return (hash >>> 0).toString(36);
   }
 
   function pruneSet(set, maxSize) {

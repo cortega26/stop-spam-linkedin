@@ -3,7 +3,8 @@
   "version": "1.2.4",
   "private": true,
   "scripts": {
-    "smoke": "jq empty manifest.json _locales/en/messages.json _locales/es/messages.json && node --check content.js && node --check shared/pattern-data.js && node --check background.js && node --check popup/popup.js && node --check options/options.js && node --check i18n.js && node --check tests/extension-smoke.js",
+    "smoke": "jq empty manifest.json _locales/en/messages.json _locales/es/messages.json && node --check content.js && node --check background.js && node --check popup/popup.js && node --check options/options.js && node --check i18n.js && node --check shared/pattern-data.js && node --check tests/extension-smoke.js && node --check tests/unit/pattern-data.test.js",
+    "test:unit": "node --test \"tests/unit/*.test.js\"",
     "test:extension": "if [ -n \"$DISPLAY\" ]; then node tests/extension-smoke.js; else xvfb-run -a node tests/extension-smoke.js; fi",
     "test:package": "npm run package && ZIP=$(node -p \"'dist/linkedin-spam-blocker-' + require('./manifest.json').version + '.zip'\") && if [ -n \"$DISPLAY\" ]; then node tests/extension-smoke.js \"$ZIP\"; else xvfb-run -a node tests/extension-smoke.js \"$ZIP\"; fi",
     "package": "node scripts/package-extension.js",
