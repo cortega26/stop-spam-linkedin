@@ -12,6 +12,7 @@
     EXCLUDED: "ss_excluded",
     LANGS: "ss_enabled_langs",
     WHITELIST: "ss_whitelist",
+    BLOCKED_AUTHORS: "ss_blocked_authors",
     DISABLED_PATTERNS: "ss_disabled_patterns",
   });
 
@@ -19,6 +20,7 @@
     MAX_CUSTOM_PHRASES: 200,
     MAX_PHRASE_LENGTH: 120,
     MAX_WHITELIST: 100,
+    MAX_BLOCKED_AUTHORS: 100,
     MAX_IMPORT_BYTES: 128 * 1024,
     SNOOZE_DURATION_MS: 30 * 60 * 1000,
     /* Generous safety cap for merging imported exclusions: chrome.storage.sync

@@ -2,14 +2,16 @@
   "use strict";
 
   importScripts("shared/constants.js");
+  importScripts("shared/pattern-data.js");
 
-  const { PHRASES_STORAGE_KEY, LIMITS } = globalThis.SS_CONSTANTS;
+  const { PHRASES_STORAGE_KEY, STORAGE_KEYS, LIMITS } = globalThis.SS_CONSTANTS;
 
   function t(key, subs) {
     return chrome.i18n.getMessage(key, subs) || key;
   }
 
   const MENU_ID = "ss-add-phrase";
+  const MENU_ID_BLOCK_AUTHOR = "ss-block-author";
 
   function estimatePhraseBytes(phrases, storageKey) {
     return storageKey.length + JSON.stringify(phrases).length;
@@ -22,6 +24,17 @@
       id: MENU_ID,
       title: t("contextMenuTitle"),
       contexts: ["selection"],
+    });
+    chrome.contextMenus.create({
+      id: MENU_ID_BLOCK_AUTHOR,
+      title: t("blockAuthorMenu"),
+      contexts: ["link"],
+      targetUrlPatterns: [
+        "*://*.linkedin.com/in/*",
+        "*://*.linkedin.com/company/*",
+        "*://*.linkedin.com/school/*",
+        "*://*.linkedin.com/showcase/*",
+      ],
     });
   });
 
@@ -40,6 +53,24 @@
 
   /* ── Click handler ──────────────────────────────────────────── */
   chrome.contextMenus.onClicked.addListener((info, _tab) => {
+    if (info.menuItemId === MENU_ID_BLOCK_AUTHOR) {
+      const authorId = SS_parseAuthorId(info.linkUrl, "https://www.linkedin.com");
+      if (!authorId) return;
+
+      chrome.storage.sync.get([STORAGE_KEYS.BLOCKED_AUTHORS], (result) => {
+        const blocked = result[STORAGE_KEYS.BLOCKED_AUTHORS] || [];
+        if (blocked.includes(authorId)) return;
+        if (blocked.length >= LIMITS.MAX_BLOCKED_AUTHORS) return;
+        blocked.push(authorId);
+        chrome.storage.sync.set({ [STORAGE_KEYS.BLOCKED_AUTHORS]: blocked }, () => {
+          if (chrome.runtime.lastError) {
+            console.warn("Failed to save blocked author via context menu:", chrome.runtime.lastError.message);
+          }
+        });
+      });
+      return;
+    }
+
     if (info.menuItemId !== MENU_ID) return;
 
     const text = (info.selectionText || "").trim();

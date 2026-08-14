@@ -556,6 +556,97 @@ async function main() {
     );
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
 
+    /* ── Author blocklist (plan 008) ────────────────────────────── */
+
+    /* Deterministic start: restore the file-start baseline whitelist
+       (the never-block-author scenario above added "spammer" to it —
+       a whitelisted author must win over the blocklist) and seed the
+       blocklist with the same author id. The fixture post carries
+       NON-spam text, so its block can only be author-driven. */
+    await setSyncStorage(context, { ss_whitelist: ["trusted"] });
+    await setSyncStorage(context, { ss_blocked_authors: ["spammer"] });
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    /* Only spam-1 is blocked: the whitelisted-1 post (author "trusted")
+       must stay visible even though its text matches, and spam-1 has no
+       actor wrapper to match the blocklist pass. */
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:author-only-1";
+      const actor = document.createElement("div");
+      actor.className = "update-components-actor";
+      const link = document.createElement("a");
+      link.href = "/in/spammer/";
+      link.textContent = "Blocked Author";
+      actor.appendChild(link);
+      section.appendChild(actor);
+      const p = document.createElement("p");
+      p.textContent =
+        "An ordinary professional update sharing our team's quarterly " +
+        "results and upcoming roadmap highlights.";
+      section.appendChild(p);
+      document.querySelector("main").appendChild(section);
+    });
+
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display === "none";
+      },
+      '[data-id="urn:li:activity:author-only-1"]',
+      { timeout: 5000 }
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+
+    const authorPlaceholder = linkedInPage.locator("[data-ss-ph]").last();
+    assert.match(
+      await authorPlaceholder.locator("span").first().textContent(),
+      /Blocked — you've blocked this author|Bloqueado/,
+      "expected the author-blocked placeholder to explain the block is by author"
+    );
+    assert.equal(
+      await authorPlaceholder.locator("button", {
+        hasText: /Unblock this author|Desbloquear a este autor/,
+      }).count(),
+      1,
+      "expected an 'Unblock this author' button on the author-blocked placeholder"
+    );
+    assert.equal(
+      await authorPlaceholder.locator("button", { hasText: /Not spam|No es spam/ }).count(),
+      0,
+      "expected NO 'Not spam' button on the author-blocked placeholder"
+    );
+    /* Regression: the text-block placeholder for spam-1 keeps the
+       standard "Not spam" button. */
+    assert.equal(
+      await linkedInPage.locator("[data-ss-ph]").first().locator("button", {
+        hasText: /Not spam|No es spam/,
+      }).count(),
+      1,
+      "expected the text-block placeholder to keep its 'Not spam' button"
+    );
+
+    /* Unblocking restores the post and removes the author from storage. */
+    await authorPlaceholder
+      .locator("button", { hasText: /Unblock this author|Desbloquear a este autor/ })
+      .click();
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display !== "none";
+      },
+      '[data-id="urn:li:activity:author-only-1"]',
+      { timeout: 4000 }
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+    const blockedAuthorsAfter = await getSyncStorage(context, "ss_blocked_authors");
+    assert.ok(
+      Array.isArray(blockedAuthorsAfter) && !blockedAuthorsAfter.includes("spammer"),
+      "expected spammer to be removed from the blocked-authors storage"
+    );
+
     await optionsPage.close();
     await popup.close();
 
