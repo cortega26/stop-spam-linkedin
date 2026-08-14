@@ -8,6 +8,10 @@
   const MAX_PHRASE_LENGTH = 120;
   const MAX_IMPORT_BYTES = 128 * 1024;
 
+  function estimatePhraseBytes(phrases, storageKey) {
+    return storageKey.length + JSON.stringify(phrases).length;
+  }
+
   /* ── State ──────────────────────────────────────────────────── */
   let phrases = [];
   let editId = null;

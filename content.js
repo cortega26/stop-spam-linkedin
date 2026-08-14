@@ -24,6 +24,10 @@
 
   const PHRASES_STORAGE_KEY = "ss_phrases";
 
+  function estimatePhraseBytes(phrases, storageKey) {
+    return storageKey.length + JSON.stringify(phrases).length;
+  }
+
   const STORAGE_KEYS = Object.freeze({
     ENABLED: "ss_enabled",
     COUNT: "ss_blocked_count",

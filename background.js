@@ -10,6 +10,10 @@
   const MAX_CUSTOM_PHRASES = 200;
   const MAX_PHRASE_LENGTH = 120;
 
+  function estimatePhraseBytes(phrases, storageKey) {
+    return storageKey.length + JSON.stringify(phrases).length;
+  }
+
   /* ── Init ───────────────────────────────────────────────────── */
   chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason !== "install" && details.reason !== "update") return;
