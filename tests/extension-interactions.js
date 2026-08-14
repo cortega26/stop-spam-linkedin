@@ -427,6 +427,135 @@ async function main() {
     /* Restore a clean custom-phrase state for any future scenarios. */
     await setSyncStorage(context, { ss_phrases: [] });
 
+    /* ── Per-pattern disable (plan 011) ─────────────────────────── */
+
+    /* Deterministic start: no custom phrases, no disabled patterns.
+       Fixture post ids: en2-only-1 matches ONLY EN-2 ("WORD" and I will
+       send ...), en1-only-1 matches ONLY EN-1 (comment/type "WORD" and
+       I'll send ... — verified against both regexes at plan time),
+       es1-only-1 matches ONLY ES-1 (comenta "WORD" y te comparto ...). */
+    await setSyncStorage(context, { ss_phrases: [], ss_disabled_patterns: [] });
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* Baseline: with both EN patterns enabled, the EN-2-only post is
+       blocked too. */
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:en2-only-1";
+      const p = document.createElement("p");
+      p.textContent =
+        '"TEMPLATE" and I will send you the full checklist, ' +
+        "template, and workflow for free today.";
+      section.appendChild(p);
+      document.querySelector("main").appendChild(section);
+    });
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display === "none";
+      },
+      '[data-id="urn:li:activity:en2-only-1"]',
+      { timeout: 5000 }
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+
+    /* Disable EN-1 via the options page's per-pattern toggle. */
+    const en1Row = optionsPage.locator(".phrase-row.builtin", {
+      hasText: 'comment "WORD"',
+    });
+    await en1Row.locator("label.toggle").click();
+    await waitForSyncValue(context, "ss_disabled_patterns", (v) =>
+      Array.isArray(v) && v.includes("EN-1")
+    );
+
+    /* Reload: spam-1 matches EN-1 AND EN-2, so it must stay blocked
+       (proves EN-2 is unaffected by EN-1's disablement). The EN-1-only
+       fixture must stay VISIBLE (proves EN-1 is genuinely off). */
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:en1-only-1";
+      const p = document.createElement("p");
+      p.textContent =
+        "Type MAGIC and I'll send you the complete checklist, " +
+        "template, and workflow for free today.";
+      section.appendChild(p);
+      document.querySelector("main").appendChild(section);
+    });
+    /* Watch the placeholder count for ~4s: any block of the EN-1-only
+       post would raise it to 2 and fail the assertion. */
+    const en1OnlyWatchStart = Date.now();
+    for (;;) {
+      const phCount = await linkedInPage.locator("[data-ss-ph]").count();
+      assert.ok(
+        phCount <= 1,
+        "expected the EN-1-only post NOT to be blocked while EN-1 is disabled"
+      );
+      if (Date.now() - en1OnlyWatchStart > 4000) break;
+      await new Promise((r) => setTimeout(r, 250));
+    }
+    assert.notEqual(
+      await linkedInPage
+        .locator('[data-id="urn:li:activity:en1-only-1"]')
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the EN-1-only post to stay visible while EN-1 is disabled"
+    );
+
+    /* Cross-language isolation: an ES-1-only post is still blocked
+       while EN-1 is off. */
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:es1-only-1";
+      const p = document.createElement("p");
+      p.textContent =
+        'Comenta "CLAVE" y te comparto la guía completa, la plantilla ' +
+        "y el flujo de trabajo gratis hoy.";
+      section.appendChild(p);
+      document.querySelector("main").appendChild(section);
+    });
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display === "none";
+      },
+      '[data-id="urn:li:activity:es1-only-1"]',
+      { timeout: 5000 }
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+
+    /* Re-enable EN-1: spam-1 is blocked again and the EN-1-only post is
+       blocked too. */
+    await en1Row.locator("label.toggle").click();
+    await waitForSyncValue(context, "ss_disabled_patterns", (v) =>
+      Array.isArray(v) && v.length === 0
+    );
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:en1-only-2";
+      const p = document.createElement("p");
+      p.textContent =
+        "Type MAGIC and I'll send you the complete checklist, " +
+        "template, and workflow for free today.";
+      section.appendChild(p);
+      document.querySelector("main").appendChild(section);
+    });
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display === "none";
+      },
+      '[data-id="urn:li:activity:en1-only-2"]',
+      { timeout: 5000 }
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+
     await optionsPage.close();
     await popup.close();
 

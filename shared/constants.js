@@ -12,6 +12,7 @@
     EXCLUDED: "ss_excluded",
     LANGS: "ss_enabled_langs",
     WHITELIST: "ss_whitelist",
+    DISABLED_PATTERNS: "ss_disabled_patterns",
   });
 
   const LIMITS = Object.freeze({

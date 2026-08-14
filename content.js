@@ -27,7 +27,7 @@
   /* Derived from shared/pattern-data.js — see that file for the actual
      pattern definitions and their display labels. Each entry carries its
      display label so blocked-post attribution can show which pattern
-     matched. */
+     matched, and its stable id so users can disable individual patterns. */
   const BASE_PATTERNS = Object.freeze(
     Object.fromEntries(
       Object.entries(SS_PATTERN_DATA).map(([lang, entries]) => [
@@ -38,6 +38,7 @@
               regex: entry.regex,
               label: entry.label,
               source: "builtin",
+              id: entry.id,
             })
           )
         ),
@@ -104,6 +105,9 @@
   /* Enabled detection languages (subset of BASE_PATTERNS keys). */
   let enabledLangs = [...DEFAULT_ENABLED_LANGS];
 
+  /* Built-in pattern ids the user turned off (from ss_disabled_patterns). */
+  let disabledPatterns = new Set();
+
   /* User phrases (for checking if a match was built-in or custom). */
   let userPhrases = [];
 
@@ -166,7 +170,7 @@
   document.head.appendChild(style);
 
   chrome.storage.sync.get(
-    [STORAGE_KEYS.ENABLED, STORAGE_KEYS.COUNT, STORAGE_KEYS.ONBOARDED, STORAGE_KEYS.DAILY_COUNTS, STORAGE_KEYS.SNOOZE_UNTIL, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, PHRASES_STORAGE_KEY],
+    [STORAGE_KEYS.ENABLED, STORAGE_KEYS.COUNT, STORAGE_KEYS.ONBOARDED, STORAGE_KEYS.DAILY_COUNTS, STORAGE_KEYS.SNOOZE_UNTIL, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.DISABLED_PATTERNS, PHRASES_STORAGE_KEY],
     (syncResult) => {
       chrome.storage.local.get(
         [
@@ -206,6 +210,7 @@
           excludedSignatures = normalizeExcludedEntries(syncResult[STORAGE_KEYS.EXCLUDED] || []);
           enabledLangs = syncResult[STORAGE_KEYS.LANGS] || [...DEFAULT_ENABLED_LANGS];
           whitelistedAuthors = new Set(syncResult[STORAGE_KEYS.WHITELIST] || []);
+          disabledPatterns = new Set(syncResult[STORAGE_KEYS.DISABLED_PATTERNS] || []);
           spamPatterns = buildPatterns(syncResult[PHRASES_STORAGE_KEY], enabledLangs);
           userPhrases = syncResult[PHRASES_STORAGE_KEY] || [];
           if (!enabled) return;
@@ -264,6 +269,10 @@
       }
       if (changes[STORAGE_KEYS.LANGS]) {
         enabledLangs = changes[STORAGE_KEYS.LANGS].newValue || [...DEFAULT_ENABLED_LANGS];
+        spamPatterns = buildPatterns(userPhrases, enabledLangs);
+      }
+      if (changes[STORAGE_KEYS.DISABLED_PATTERNS]) {
+        disabledPatterns = new Set(changes[STORAGE_KEYS.DISABLED_PATTERNS].newValue || []);
         spamPatterns = buildPatterns(userPhrases, enabledLangs);
       }
       if (changes[STORAGE_KEYS.WHITELIST]) {
@@ -438,7 +447,10 @@
     const builtin = [];
     for (const lang of langs || DEFAULT_ENABLED_LANGS) {
       if (BASE_PATTERNS[lang]) {
-        builtin.push(...BASE_PATTERNS[lang]);
+        for (const entry of BASE_PATTERNS[lang]) {
+          if (disabledPatterns.has(entry.id)) continue;
+          builtin.push(entry);
+        }
       }
     }
     const custom = (phrases || [])

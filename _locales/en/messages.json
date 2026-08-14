@@ -116,6 +116,7 @@
   "languageToggleLabel": { "message": "$1 detection language, currently $2" },
   "removeWhitelistedAuthorLabel": { "message": "Remove whitelisted author $1" },
   "builtinPatternToggleLabel": { "message": "Built-in pattern: $1" },
+  "builtinPatternToggleHint": { "message": "Turn this built-in pattern on or off without disabling its language" },
   "phraseToggleLabel": { "message": "Enable or disable phrase $1" },
   "modeToggleLabel": { "message": "Change matching mode for $1, currently $2" },
   "editPhraseLabel": { "message": "Edit phrase $1" },
