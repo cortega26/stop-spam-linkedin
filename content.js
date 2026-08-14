@@ -1,6 +1,8 @@
 (function () {
   "use strict";
 
+  const { STORAGE_KEYS, LIMITS, DEFAULT_ENABLED_LANGS, PHRASES_STORAGE_KEY } = globalThis.SS_CONSTANTS;
+
   /* ==================================================================
    *  CONFIGURATION
    * ================================================================== */
@@ -15,52 +17,23 @@
     OBSERVER_DEBOUNCE_MS: 500,
     INITIAL_SCAN_DELAY_MS: 1000,
     COOLDOWN_DURATION_MS: 15 * 60 * 1000,  /* 15 min after "Show" */
-    SNOOZE_DURATION_MS: 30 * 60 * 1000,     /* 30 min */
-    MAX_CUSTOM_PHRASES: 200,
-    MAX_PHRASE_LENGTH: 120,
-    MAX_EXCLUSIONS: 100,
-    MAX_WHITELIST: 100,
+    EXCLUSION_PREVIEW_LENGTH: 60,
   });
 
-  const PHRASES_STORAGE_KEY = "ss_phrases";
+  function estimatePhraseBytes(phrases, storageKey) {
+    return storageKey.length + JSON.stringify(phrases).length;
+  }
 
-  const STORAGE_KEYS = Object.freeze({
-    ENABLED: "ss_enabled",
-    COUNT: "ss_blocked_count",
-    ONBOARDED: "ss_onboarded",
-    DAILY_COUNTS: "ss_daily_counts",
-    SNOOZE_UNTIL: "ss_snooze_until",
-    EXCLUDED: "ss_excluded",
-    LANGS: "ss_enabled_langs",
-    WHITELIST: "ss_whitelist",
-  });
-
-  /* Keep in sync with options.js BUILTIN, LANG_META, and lang toggle logic. */
-  const BASE_PATTERNS = Object.freeze({
-    EN: Object.freeze([
-      /(?:comment|type|write|reply|drop)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:and|to)\s+(?:i'? ?ll|i will)\s+(?:send|share|give|dm|message|get|receive|send you|share the|give you)\b/i,
-      /[`'""«»\u201c\u201d\u201e]\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]\s+and\s+(?:i'? ?ll|i will)\s+(?:send|share|give|dm|message)\b/i,
-    ]),
-    ES: Object.freeze([
-      /(?:comenta|escribe|responde|pon|poner)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:y\s+(?:te\s+|le\s+|me\s+)?)(?:env\u00ed|enviar\u00e9|comparto|mando|dar\u00e9|doy|regalo)\b/i,
-      /(?:comenta|escribe|responde|pon|poner)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:para|y)\s+(?:recibir|obtener|acceder|descargar)\b/i,
-    ]),
-    FR: Object.freeze([
-      /(?:commentez|commente|ecrivez|ecris|reponds|tape|tapez)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:et\s+(?:je\s+|j'|je\s+vais\s+))?(?:enverrai|envoie|partage|donne|donnerai|envoie le|partage le)\b/i,
-      /(?:commentez|commente|ecrivez|ecris|reponds|tape|tapez)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:pour|afin\s+d')(?:recevoir|obtenir|acceder|avoir|telecharger)\b/i,
-    ]),
-    PT: Object.freeze([
-      /(?:comente|escreva|responda|digite|coloca)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:e\s+(?:eu\s+|vou\s+)?)(?:enviarei|envio|compartilho|mando|mandei|dou|darei|envio o|compartilho o)\b/i,
-      /(?:comente|escreva|responda|digite|coloca)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:para|e)\s+(?:receber|obter|acessar|baixar|pegar)\b/i,
-    ]),
-    DE: Object.freeze([
-      /(?:kommentiere|schreib|schreibe|tippe|antworte|gib)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:und\s+(?:ich\s+)?)(?:schicke|sende|teile|gebe|schick dir|send dir)\b/i,
-      /(?:kommentiere|schreib|schreibe|tippe|antworte|gib)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:um\s+|damit\s+)(?:zugriff|zu\s+bekommen|zu\s+erhalten|kostenlos)\b/i,
-    ]),
-  });
-
-
-  const DEFAULT_ENABLED_LANGS = Object.freeze(["EN", "ES", "FR", "PT", "DE"]);
+  /* Derived from shared/pattern-data.js — see that file for the actual
+     pattern definitions and their display labels. */
+  const BASE_PATTERNS = Object.freeze(
+    Object.fromEntries(
+      Object.entries(SS_PATTERN_DATA).map(([lang, entries]) => [
+        lang,
+        Object.freeze(entries.map((entry) => entry.regex)),
+      ])
+    )
+  );
 
   function t(key, subs) {
     return chrome.i18n.getMessage(key, subs) || key;
@@ -96,15 +69,17 @@
   let observer = null;
   let processed = new WeakSet();
   let forceShow = new WeakSet();
+  let counted = new WeakSet();
   let snoozeTimer = null;
   let snoozeUntil = 0;
 
   /* Strong set of blocked elements so we can restore them on disable. */
   const blockedPosts = new Set();
 
-  /* Cooldown after user presses "Show" — prevents re-blocking when
-     virtual scrolling re-creates DOM nodes for the same post. */
-  const showCooldowns = new WeakMap();
+  /* Cooldown after user presses "Show" — keyed by post identity
+     (data-id) so it survives virtual-scroll node re-creation.
+     Posts without a data-id rely on forceShow (live node only). */
+  const cooldownStore = SS_createCooldownStore(CONFIG.COOLDOWN_DURATION_MS, 100);
 
   /* Sliding window of last 5 blocked posts for undo in popup. */
   const lastBlocked = [];
@@ -114,7 +89,7 @@
   let dailyCounts = {};
 
   /* User-excluded text signatures (false-positive feedback). */
-  let excludedSignatures = new Set();
+  let excludedSignatures = new Map();
 
   /* Enabled detection languages (subset of BASE_PATTERNS keys). */
   let enabledLangs = [...DEFAULT_ENABLED_LANGS];
@@ -359,6 +334,12 @@
         }
         break;
 
+      case "restoreAll":
+        restoreBlocked();
+        lastBlocked.length = 0;
+        sendResponse({ ok: true });
+        break;
+
       case "dismissOnboard":
         onboarded = true;
         chrome.storage.local.set({ [STORAGE_KEYS.ONBOARDED]: true });
@@ -368,31 +349,40 @@
       case "addSuggestion":
         if (
           !msg.word ||
-          msg.word.length > CONFIG.MAX_PHRASE_LENGTH ||
+          msg.word.length > LIMITS.MAX_PHRASE_LENGTH ||
           userPhrases.some(p => p.text.toLowerCase() === msg.word.toLowerCase())
         ) {
           sendResponse({ ok: false, reason: "duplicate" });
           break;
         }
-        if (userPhrases.length >= CONFIG.MAX_CUSTOM_PHRASES) {
+        if (userPhrases.length >= LIMITS.MAX_CUSTOM_PHRASES) {
           sendResponse({ ok: false, reason: "limit" });
           break;
         }
-        userPhrases.push({
-          id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 9),
-          text: msg.word,
-          enabled: true,
-          created: Date.now(),
-          mode: "exact",
-        });
-        chrome.storage.sync.set({ [PHRASES_STORAGE_KEY]: userPhrases }, () => {
-          if (chrome.runtime.lastError) {
-            userPhrases.pop();
-            console.warn("Failed to save suggestion phrase:", chrome.runtime.lastError.message);
+        {
+          const candidate = userPhrases.concat([{
+            id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 9),
+            text: msg.word,
+            enabled: true,
+            created: Date.now(),
+            mode: "exact",
+          }]);
+
+          const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
+          if (estimatePhraseBytes(candidate, PHRASES_STORAGE_KEY) > limit) {
+            sendResponse({ ok: false, reason: "quota" });
+            break;
           }
-        });
-        pendingSuggestions = pendingSuggestions.filter(s => s.word !== msg.word);
-        sendResponse({ ok: true });
+
+          userPhrases = candidate;
+          chrome.storage.sync.set({ [PHRASES_STORAGE_KEY]: userPhrases }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn("Failed to save suggestion phrase:", chrome.runtime.lastError.message);
+            }
+          });
+          pendingSuggestions = pendingSuggestions.filter(s => s.word !== msg.word);
+          sendResponse({ ok: true });
+        }
         break;
 
       case "dismissSuggestion":
@@ -404,7 +394,7 @@
       case "addToWhitelist":
         if (msg.authorId) {
           whitelistedAuthors.add(msg.authorId);
-          pruneSet(whitelistedAuthors, CONFIG.MAX_WHITELIST);
+          pruneSet(whitelistedAuthors, LIMITS.MAX_WHITELIST);
           chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: [...whitelistedAuthors] });
           sendResponse({ ok: true });
         } else {
@@ -432,10 +422,6 @@
    *  PATTERN BUILDING
    * ================================================================== */
 
-  function escapeRegex(str) {
-    return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  }
-
   function buildPatterns(phrases, langs) {
     const builtin = [];
     for (const lang of langs || DEFAULT_ENABLED_LANGS) {
@@ -449,11 +435,11 @@
         p.enabled &&
         typeof p.text === "string" &&
         p.text.trim().length > 0 &&
-        p.text.trim().length <= CONFIG.MAX_PHRASE_LENGTH
+        p.text.trim().length <= LIMITS.MAX_PHRASE_LENGTH
       ))
       .map((p) => {
         const text = p.text.trim();
-        const escaped = escapeRegex(text);
+        const escaped = SS_escapeRegex(text);
         if (p.mode === "contains") {
           return new RegExp(escaped, "i");
         }
@@ -472,7 +458,7 @@
    * ================================================================== */
 
   function isSpam(text) {
-    if (excludedSignatures.has(getExcludedSignature(text))) return false;
+    if (excludedSignatures.has(SS_getExcludedSignature(text))) return false;
     return spamPatterns.some((re) => re.test(text));
   }
 
@@ -660,11 +646,16 @@
 
   function blockPost(post, textNode) {
     /* Re-block cooldown — skip if user recently clicked "Show". */
-    if (showCooldowns.has(post)) {
-      if (Date.now() < showCooldowns.get(post)) return;
-      showCooldowns.delete(post);
-    }
+    const postKey = post.getAttribute("data-id");
+    if (postKey && cooldownStore.has(postKey)) return;
     if (processed.has(post) || forceShow.has(post)) return;
+
+    /* Idempotency guard: a placeholder as the post's next sibling means
+       it is already blocked — a duplicate scan (toggle-on schedules one
+       while storage.onChanged schedules another) must not block it again,
+       which would stack a second placeholder and a second undo entry. */
+    const existingPh = post.nextElementSibling;
+    if (existingPh && existingPh.dataset && existingPh.dataset.ssPh) return;
 
     /* Skip if author is whitelisted. */
     const authorId = textNode ? getAuthorId(post) : null;
@@ -673,7 +664,12 @@
     processed.add(post);
     post.style.display = "none";
     blockedPosts.add(post);
-    blockedCount++;
+    if (!counted.has(post)) {
+      counted.add(post);
+      blockedCount++;
+      const key = getTodayKey();
+      dailyCounts[key] = (dailyCounts[key] || 0) + 1;
+    }
     setBadge(String(blockedCount));
 
     /* Track last blocked for undo in popup. */
@@ -694,10 +690,10 @@
           !p.enabled ||
           typeof p.text !== "string" ||
           !p.text.trim() ||
-          p.text.trim().length > CONFIG.MAX_PHRASE_LENGTH
+          p.text.trim().length > LIMITS.MAX_PHRASE_LENGTH
         ) return false;
         const text = p.text.trim();
-        const escaped = escapeRegex(text);
+        const escaped = SS_escapeRegex(text);
         if (p.mode === "contains") {
           return new RegExp(escaped, "i").test(txt);
         }
@@ -716,10 +712,6 @@
         }
       }
     }
-
-    /* Daily stats. */
-    const key = getTodayKey();
-    dailyCounts[key] = (dailyCounts[key] || 0) + 1;
 
     /* First-run toast. */
     if (!onboarded) showFirstRunToast();
@@ -750,9 +742,17 @@
     notSpamBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       if (matchedText) {
-        excludedSignatures.add(getExcludedSignature(matchedText));
-        pruneSet(excludedSignatures, CONFIG.MAX_EXCLUSIONS);
-        chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: [...excludedSignatures] });
+        const sig = SS_getExcludedSignature(matchedText);
+        excludedSignatures.set(sig, {
+          preview: truncateForPreview(matchedText, CONFIG.EXCLUSION_PREVIEW_LENGTH),
+          created: Date.now(),
+        });
+        pruneExcludedByBytes(
+          excludedSignatures,
+          STORAGE_KEYS.EXCLUDED,
+          Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.9)
+        );
+        chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excludedSignatures) });
       }
       restorePost(post);
     });
@@ -771,7 +771,7 @@
         const id = getAuthorId(post);
         if (id) {
           whitelistedAuthors.add(id);
-          pruneSet(whitelistedAuthors, CONFIG.MAX_WHITELIST);
+          pruneSet(whitelistedAuthors, LIMITS.MAX_WHITELIST);
           chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: [...whitelistedAuthors] });
         }
         restorePost(post);
@@ -790,6 +790,40 @@
       restorePost(post);
     });
     placeholder.appendChild(restoreBtn);
+
+    const reportBtn = document.createElement("button");
+    reportBtn.textContent = t("reportMissed");
+    reportBtn.style.cssText = [
+      "background:none; border:1px solid #d0d0d0; border-radius:4px;",
+      "padding:4px 12px; cursor:pointer; font-size:12px; color:#767676;",
+    ].join("");
+    reportBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const excerpt = (textNode ? textNode.textContent : "").trim().slice(0, 600);
+      const trigger = textNode ? extractTrigger(textNode.textContent) : "";
+      const payload = [
+        "Trigger: " + trigger,
+        "",
+        excerpt,
+        "",
+        "LinkedIn page: " + window.location.href,
+      ].join("\n");
+      const copy = () => navigator.clipboard.writeText(payload);
+      if (navigator.clipboard) {
+        copy().then(
+          () => showReportToast(t("reportCopied")),
+          () => copyFallback(payload)
+        );
+      } else {
+        copyFallback(payload);
+      }
+      window.open(
+        "https://github.com/cortega26/stop-spam-linkedin/issues/new?template=missed_spam_pattern.yml",
+        "_blank",
+        "noopener"
+      );
+    });
+    placeholder.appendChild(reportBtn);
 
     post.parentNode?.insertBefore(placeholder, post.nextSibling);
 
@@ -826,6 +860,7 @@
       if (ph && ph.dataset && ph.dataset.ssPh) ph.remove();
     }
     blockedPosts.clear();
+    processed = new WeakSet();
     setBadge("");
   }
 
@@ -834,7 +869,7 @@
    * ================================================================== */
 
   function snooze() {
-    syncSnoozeState(Date.now() + CONFIG.SNOOZE_DURATION_MS);
+    syncSnoozeState(Date.now() + LIMITS.SNOOZE_DURATION_MS);
     chrome.storage.local.set({ [STORAGE_KEYS.SNOOZE_UNTIL]: snoozeUntil });
   }
 
@@ -975,6 +1010,41 @@
     return t.length > 40 ? t.slice(0, 40) + "..." : t;
   }
 
+  function copyFallback(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+      showReportToast(t("reportCopied"));
+    } catch (_) {
+      showReportToast(t("reportFailed"), true);
+    }
+    ta.remove();
+  }
+
+  function showReportToast(message, warn) {
+    const toast = document.createElement("div");
+    toast.textContent = message;
+    Object.assign(toast.style, {
+      position: "fixed",
+      bottom: "16px",
+      right: "16px",
+      zIndex: "999999",
+      padding: "10px 16px",
+      borderRadius: "6px",
+      color: "#fff",
+      background: warn ? "#a94442" : "#2a6f97",
+      fontSize: "13px",
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    });
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
+  }
+
   /* Extract a clean trigger word (no quotes) for suggestions, or null. */
   function extractSuggestionWord(text) {
     const m = text.match(/[`'""«»“”„](\w+(?:\s+\w+)?)[`'""»“”„]/);
@@ -984,7 +1054,8 @@
   function restorePost(post) {
     forceShow.add(post);
     processed.delete(post);
-    showCooldowns.set(post, Date.now() + CONFIG.COOLDOWN_DURATION_MS);
+    const postKey = post.getAttribute("data-id");
+    if (postKey) cooldownStore.set(postKey);
     post.style.display = "";
     const ph = post.nextElementSibling;
     if (ph && ph.dataset && ph.dataset.ssPh) ph.remove();
@@ -999,7 +1070,7 @@
   function getAuthorId(post) {
     for (const selector of AUTHOR_LINK_SELECTORS) {
       for (const link of post.querySelectorAll(selector)) {
-        const authorId = parseAuthorId(link.getAttribute("href"));
+        const authorId = SS_parseAuthorId(link.getAttribute("href"), window.location.origin);
         if (authorId) return authorId;
       }
     }
@@ -1007,58 +1078,74 @@
     return null;
   }
 
-  function parseAuthorId(href) {
-    if (!href) return null;
-
-    const patterns = [
-      { re: /^\/in\/([^/?#]+)/, prefix: "" },
-      { re: /^\/company\/([^/?#]+)/, prefix: "company:" },
-      { re: /^\/school\/([^/?#]+)/, prefix: "school:" },
-      { re: /^\/showcase\/([^/?#]+)/, prefix: "showcase:" },
-    ];
-
-    let url;
-    try {
-      url = new URL(href, window.location.origin);
-    } catch (_) {
-      return null;
-    }
-    if (!isLinkedInHost(url.hostname)) return null;
-
-    for (const pattern of patterns) {
-      const match = url.pathname.match(pattern.re);
-      if (match) {
-        return pattern.prefix + decodeURIComponent(match[1].toLowerCase());
-      }
-    }
-
-    return null;
-  }
-
-  function isLinkedInHost(hostname) {
-    return hostname === "linkedin.com" || hostname.endsWith(".linkedin.com");
+  function truncateForPreview(text, maxLen) {
+    const trimmed = String(text).trim();
+    if (trimmed.length <= maxLen) return trimmed;
+    return trimmed.slice(0, maxLen) + "…";
   }
 
   function normalizeExcludedEntries(entries) {
-    return new Set(
-      (entries || [])
-        .filter((entry) => typeof entry === "string" && entry.trim())
-        .map((entry) => entry.startsWith("sig:") ? entry : getExcludedSignature(entry))
-    );
-  }
-
-  function getExcludedSignature(text) {
-    const normalized = text.toLowerCase().replace(/\s+/g, " ").trim();
-    return "sig:" + hashString(normalized);
-  }
-
-  function hashString(value) {
-    let hash = 0x811c9dc5;
-    for (let i = 0; i < value.length; i++) {
-      hash ^= value.charCodeAt(i);
-      hash = Math.imul(hash, 0x01000193);
+    const map = new Map();
+    for (const entry of entries || []) {
+      if (typeof entry === "string" && entry.trim()) {
+        if (entry.startsWith("sig:")) {
+          if (!map.has(entry)) {
+            map.set(entry, { preview: null, created: null });
+          }
+        } else {
+          const sig = SS_getExcludedSignature(entry);
+          if (!map.has(sig)) {
+            map.set(sig, {
+              preview: truncateForPreview(entry, CONFIG.EXCLUSION_PREVIEW_LENGTH),
+              created: null,
+            });
+          }
+        }
+      } else if (entry && typeof entry === "object" &&
+                 typeof entry.sig === "string" && entry.sig.startsWith("sig:")) {
+        if (!map.has(entry.sig)) {
+          const preview = typeof entry.preview === "string" && entry.preview.trim()
+            ? entry.preview
+            : null;
+          const created = typeof entry.created === "number" ? entry.created : null;
+          map.set(entry.sig, { preview, created });
+        }
+      }
     }
-    return (hash >>> 0).toString(36);
+    return map;
+  }
+
+  function serializeExcluded(map) {
+    return Array.from(map, ([sig, meta]) => ({
+      sig,
+      preview: meta.preview,
+      created: meta.created,
+    }));
+  }
+
+  function estimateEntriesBytes(map, storageKey) {
+    return storageKey.length + JSON.stringify(serializeExcluded(map)).length;
+  }
+
+  function pruneExcludedByBytes(map, storageKey, safeByteLimit) {
+    while (map.size > 0 && estimateEntriesBytes(map, storageKey) > safeByteLimit) {
+      /* Evict the least useful entry: prefer removing entries with no
+         preview (already-unrecoverable legacy hashes, or migrated
+         plain-text that's already been through one round of truncation)
+         over ones with a live preview; break ties by oldest `created`
+         (nulls sort first — treat as "oldest"). */
+      let victimSig = null;
+      let victimScore = Infinity;
+      for (const [sig, meta] of map) {
+        const score = (meta.preview ? 1_000_000_000_000 : 0) + (meta.created || 0);
+        if (score < victimScore) {
+          victimScore = score;
+          victimSig = sig;
+        }
+      }
+      if (victimSig === null) break;
+      map.delete(victimSig);
+    }
   }
 
   function pruneSet(set, maxSize) {

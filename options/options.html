@@ -261,6 +261,18 @@
     }
     .action-bar button:hover { background: var(--bg-hover); }
     .action-bar button:active { background: var(--bg-active); }
+    .action-bar-button {
+      padding: 8px 16px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      cursor: pointer;
+      font-size: 13px;
+      color: var(--text-secondary);
+      transition: background 0.1s;
+    }
+    .action-bar-button:hover { background: var(--bg-hover); }
+    .action-bar-button:active { background: var(--bg-active); }
 
     /* ── Toast ── */
     #toast {
@@ -496,6 +508,13 @@
     <div class="whitelist-list" id="whitelistList"></div>
   </div>
 
+  <!-- Excluded posts ("Not spam") -->
+  <div class="lang-section" id="excludedSection" style="display:none">
+    <div class="lang-section-title">__MSG_excludedTitle__</div>
+    <div class="whitelist-list" id="excludedList"></div>
+    <button class="action-bar-button" id="clearExcludedBtn" style="display:none">__MSG_excludedClearAll__</button>
+  </div>
+
   <!-- Search -->
   <div class="search-bar">
     <input type="text" id="searchInput" placeholder="__MSG_searchPhrases__" autocomplete="off" aria-label="__MSG_searchPhrasesLabel__" />
@@ -513,6 +532,8 @@
   <div id="toast"></div>
 
   <script src="../i18n.js"></script>
+  <script src="../shared/constants.js"></script>
+  <script src="../shared/pattern-data.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

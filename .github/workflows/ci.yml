@@ -33,6 +33,9 @@ jobs:
       - name: Run smoke checks
         run: npm run smoke
 
+      - name: Run unit tests
+        run: npm run test:unit
+
       - name: Test unpacked extension
         run: npm run test:extension
 

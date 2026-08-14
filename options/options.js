@@ -1,20 +1,21 @@
 (function () {
   "use strict";
 
-  const STORAGE_KEY = "ss_phrases";
-  const LANG_STORAGE_KEY = "ss_enabled_langs";
-  const WHITELIST_STORAGE_KEY = "ss_whitelist";
-  const MAX_CUSTOM_PHRASES = 200;
-  const MAX_PHRASE_LENGTH = 120;
-  const MAX_IMPORT_BYTES = 128 * 1024;
+  const { PHRASES_STORAGE_KEY, STORAGE_KEYS, LIMITS, DEFAULT_ENABLED_LANGS } = globalThis.SS_CONSTANTS;
+
+  function estimatePhraseBytes(phrases, storageKey) {
+    return storageKey.length + JSON.stringify(phrases).length;
+  }
 
   /* ── State ──────────────────────────────────────────────────── */
   let phrases = [];
   let editId = null;
-  let enabledLangs = ["EN", "ES", "FR", "PT", "DE"];
+  let enabledLangs = [...DEFAULT_ENABLED_LANGS];
   let whitelist = [];
   let pendingDeleteId = null;
   let pendingWhitelistRemove = null;
+  let excluded = [];
+  let pendingExclusionRemove = null;
 
   /* ── DOM refs ───────────────────────────────────────────────── */
   const input = document.getElementById("phraseInput");
@@ -30,6 +31,9 @@
   const langToggles = document.getElementById("langToggles");
   const whitelistSection = document.getElementById("whitelistSection");
   const whitelistList = document.getElementById("whitelistList");
+  const excludedSection = document.getElementById("excludedSection");
+  const excludedList = document.getElementById("excludedList");
+  const clearExcludedBtn = document.getElementById("clearExcludedBtn");
   const searchInput = document.getElementById("searchInput");
 
   /* ── Bootstrap ──────────────────────────────────────────────── */
@@ -43,6 +47,31 @@
   exportBtn.addEventListener("click", handleExport);
   starterPackBtn.addEventListener("click", handleStarterPack);
   searchInput.addEventListener("input", debounce(() => render(), 200));
+  clearExcludedBtn.addEventListener("click", () => {
+    if (clearExcludedBtn.dataset.confirming === "1") {
+      clearExcludedBtn.dataset.confirming = "";
+      clearExcludedBtn.textContent = t("excludedClearAll");
+      clearExcludedBtn.setAttribute("aria-label", t("excludedClearAll"));
+      clearExcludedBtn.title = t("excludedClearAll");
+      excluded = [];
+      pendingExclusionRemove = null;
+      chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) });
+      renderExcluded();
+    } else {
+      clearExcludedBtn.dataset.confirming = "1";
+      clearExcludedBtn.textContent = t("clickToConfirm");
+      clearExcludedBtn.setAttribute("aria-label", t("clickToConfirm"));
+      clearExcludedBtn.title = t("clickToConfirm");
+      setTimeout(() => {
+        if (clearExcludedBtn.dataset.confirming === "1") {
+          clearExcludedBtn.dataset.confirming = "";
+          clearExcludedBtn.textContent = t("excludedClearAll");
+          clearExcludedBtn.setAttribute("aria-label", t("excludedClearAll"));
+          clearExcludedBtn.title = t("excludedClearAll");
+        }
+      }, 3000);
+    }
+  });
 
   /* Clean up toast timer on page unload. */
   window.addEventListener("beforeunload", () => clearTimeout(toastTimer));
@@ -50,10 +79,14 @@
   /* ── Storage ────────────────────────────────────────────────── */
 
   function load() {
-    chrome.storage.sync.get([STORAGE_KEY, LANG_STORAGE_KEY, WHITELIST_STORAGE_KEY], (result) => {
-      phrases = result[STORAGE_KEY] || [];
-      enabledLangs = result[LANG_STORAGE_KEY] || ["EN", "ES", "FR", "PT", "DE"];
-      whitelist = result[WHITELIST_STORAGE_KEY] || [];
+    chrome.storage.sync.get([PHRASES_STORAGE_KEY, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.EXCLUDED], (result) => {
+      phrases = result[PHRASES_STORAGE_KEY] || [];
+      enabledLangs = result[STORAGE_KEYS.LANGS] || [...DEFAULT_ENABLED_LANGS];
+      whitelist = result[STORAGE_KEYS.WHITELIST] || [];
+      excluded = normalizeExcludedEntries(result[STORAGE_KEYS.EXCLUDED] || []);
+      if (hasLegacyExcludedEntries(result[STORAGE_KEYS.EXCLUDED] || [])) {
+        chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) });
+      }
       render();
     });
   }
@@ -61,23 +94,27 @@
   /* React to storage changes from other contexts (content script, popup). */
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area !== "sync") return;
-    if (changes[WHITELIST_STORAGE_KEY]) {
-      whitelist = changes[WHITELIST_STORAGE_KEY].newValue || [];
+    if (changes[STORAGE_KEYS.WHITELIST]) {
+      whitelist = changes[STORAGE_KEYS.WHITELIST].newValue || [];
       renderWhitelist();
     }
-    if (changes[STORAGE_KEY]) {
-      phrases = changes[STORAGE_KEY].newValue || [];
+    if (changes[STORAGE_KEYS.EXCLUDED]) {
+      excluded = normalizeExcludedEntries(changes[STORAGE_KEYS.EXCLUDED].newValue || []);
+      renderExcluded();
+    }
+    if (changes[PHRASES_STORAGE_KEY]) {
+      phrases = changes[PHRASES_STORAGE_KEY].newValue || [];
       render();
     }
-    if (changes[LANG_STORAGE_KEY]) {
-      enabledLangs = changes[LANG_STORAGE_KEY].newValue || ["EN", "ES", "FR", "PT", "DE"];
+    if (changes[STORAGE_KEYS.LANGS]) {
+      enabledLangs = changes[STORAGE_KEYS.LANGS].newValue || [...DEFAULT_ENABLED_LANGS];
       render();
     }
   });
 
   function save() {
     const prev = phrases.slice();
-    chrome.storage.sync.set({ [STORAGE_KEY]: phrases }, () => {
+    chrome.storage.sync.set({ [PHRASES_STORAGE_KEY]: phrases }, () => {
       if (chrome.runtime.lastError) {
         phrases = prev;
         render();
@@ -146,8 +183,8 @@
   function handleAdd() {
     const text = input.value.trim();
     if (!text) return;
-    if (text.length > MAX_PHRASE_LENGTH) {
-      showToast(t("phraseTooLongToast", MAX_PHRASE_LENGTH), true);
+    if (text.length > LIMITS.MAX_PHRASE_LENGTH) {
+      showToast(t("phraseTooLongToast", LIMITS.MAX_PHRASE_LENGTH), true);
       return;
     }
 
@@ -162,18 +199,25 @@
       highlightDuplicate(text);
       return;
     }
-    if (phrases.length >= MAX_CUSTOM_PHRASES) {
-      showToast(t("phraseLimitToast", MAX_CUSTOM_PHRASES), true);
+    if (phrases.length >= LIMITS.MAX_CUSTOM_PHRASES) {
+      showToast(t("phraseLimitToast", LIMITS.MAX_CUSTOM_PHRASES), true);
       return;
     }
 
-    phrases.push({
+    const candidate = phrases.concat([{
       id: uid(),
       text,
       enabled: true,
       created: Date.now(),
       mode: "exact",
-    });
+    }]);
+    const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
+    if (estimatePhraseBytes(candidate, PHRASES_STORAGE_KEY) > limit) {
+      showToast(t("phraseStorageFullToast"), true);
+      return;
+    }
+
+    phrases = candidate;
     input.value = "";
     save();
     showToast(t("addedPhraseToast", text));
@@ -226,8 +270,8 @@
     if (!editInput) return;
     const text = editInput.value.trim();
     if (!text) return;
-    if (text.length > MAX_PHRASE_LENGTH) {
-      showToast(t("phraseTooLongToast", MAX_PHRASE_LENGTH), true);
+    if (text.length > LIMITS.MAX_PHRASE_LENGTH) {
+      showToast(t("phraseTooLongToast", LIMITS.MAX_PHRASE_LENGTH), true);
       return;
     }
 
@@ -274,22 +318,26 @@
       "LINK IN BIO", "DM ME", "TEMPLATE", "COMMENT", "10x",
       "SECRET", "FREE ACCESS", "GROWTH HACK", "CHATGPT", "BOT",
     ];
+    const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
     let added = 0;
+    let candidate = phrases.slice();
     for (const text of defaults) {
-      if (phrases.length >= MAX_CUSTOM_PHRASES) break;
-      const dup = phrases.some(p => p.text.toLowerCase() === text.toLowerCase());
-      if (!dup) {
-        phrases.push({
-          id: uid(),
-          text,
-          enabled: true,
-          created: Date.now(),
-          mode: "exact",
-        });
-        added++;
-      }
+      if (candidate.length >= LIMITS.MAX_CUSTOM_PHRASES) break;
+      const dup = candidate.some(p => p.text.toLowerCase() === text.toLowerCase());
+      if (dup) continue;
+      const next = candidate.concat([{
+        id: uid(),
+        text,
+        enabled: true,
+        created: Date.now(),
+        mode: "exact",
+      }]);
+      if (estimatePhraseBytes(next, PHRASES_STORAGE_KEY) > limit) break;
+      candidate = next;
+      added++;
     }
     if (added > 0) {
+      phrases = candidate;
       save();
       showToast(
         countMessage(
@@ -306,12 +354,120 @@
 
   /* ── Import / Export ────────────────────────────────────────── */
 
+  function isDefaultLangs() {
+    return (
+      enabledLangs.length === DEFAULT_ENABLED_LANGS.length &&
+      enabledLangs.every((lang, i) => lang === DEFAULT_ENABLED_LANGS[i])
+    );
+  }
+
+  function hasExportableData() {
+    return (
+      phrases.length > 0 ||
+      whitelist.length > 0 ||
+      excluded.length > 0 ||
+      !isDefaultLangs()
+    );
+  }
+
+  /* Localize a count as a noun phrase ("3 phrases") for embedding in a
+     consolidated summary toast. */
+  function settingsPart(count, oneKey, manyKey) {
+    return countMessage(oneKey, manyKey, count, count);
+  }
+
+  function joinSettingsParts(parts) {
+    if (parts.length === 1) return parts[0];
+    return (
+      parts.slice(0, -1).join(", ") +
+      " " +
+      t("settingsPartAnd") +
+      " " +
+      parts[parts.length - 1]
+    );
+  }
+
+  /* Identity for an ss_excluded entry that tolerates both the current
+     { sig, preview, created } object shape and legacy bare-string
+     entries, so dedupe works regardless of the shape the file holds. */
+  function excludedIdentity(entry) {
+    if (typeof entry === "string") return entry;
+    if (entry && typeof entry === "object" && typeof entry.sig === "string") {
+      return entry.sig;
+    }
+    return null;
+  }
+
   function handleExport() {
-    if (phrases.length === 0) {
+    if (!hasExportableData()) {
       showToast(t("nothingToExport"), true);
       return;
     }
-    const json = JSON.stringify(phrases, null, 2);
+
+    const payload = {
+      version: 1,
+      exportedAt: Date.now(),
+      phrases: phrases,
+      whitelist: whitelist,
+      excluded: excluded,
+      langs: enabledLangs,
+    };
+    const json = JSON.stringify(payload, null, 2);
+
+    const parts = [
+      settingsPart(
+        phrases.length,
+        "settingsPartPhrasesOne",
+        "settingsPartPhrasesMany"
+      ),
+    ];
+    const extras = [];
+    if (whitelist.length > 0) {
+      extras.push(
+        settingsPart(
+          whitelist.length,
+          "settingsPartWhitelistOne",
+          "settingsPartWhitelistMany"
+        )
+      );
+    }
+    if (excluded.length > 0) {
+      extras.push(
+        settingsPart(
+          excluded.length,
+          "settingsPartExcludedOne",
+          "settingsPartExcludedMany"
+        )
+      );
+    }
+    if (!isDefaultLangs()) {
+      extras.push(
+        settingsPart(
+          enabledLangs.length,
+          "settingsPartLangsOne",
+          "settingsPartLangsMany"
+        )
+      );
+    }
+
+    /* When more than phrases are exported, summarize all categories;
+       otherwise keep the phrases-only toast exactly as before. */
+    const summary = extras.length > 0 ? joinSettingsParts(parts.concat(extras)) : null;
+
+    function toastFor(clipboard) {
+      if (summary === null) {
+        return countMessage(
+          clipboard ? "exportedClipboardOne" : "exportedDownloadedOne",
+          clipboard ? "exportedClipboardMany" : "exportedDownloadedMany",
+          phrases.length,
+          phrases.length
+        );
+      }
+      return t(
+        clipboard ? "exportedSummaryClipboard" : "exportedSummaryDownloaded",
+        [summary]
+      );
+    }
 
     function downloadFallback() {
       const blob = new Blob([json], { type: "application/json" });
@@ -321,26 +477,12 @@
       a.download = "linkedin-spam-blocker-phrases.json";
       a.click();
       URL.revokeObjectURL(url);
-      showToast(
-        countMessage(
-          "exportedDownloadedOne",
-          "exportedDownloadedMany",
-          phrases.length,
-          phrases.length
-        )
-      );
+      showToast(toastFor(false));
     }
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(json).then(
-        () => showToast(
-          countMessage(
-            "exportedClipboardOne",
-            "exportedClipboardMany",
-            phrases.length,
-            phrases.length
-          )
-        ),
+        () => showToast(toastFor(true)),
         downloadFallback
       );
     } else {
@@ -348,10 +490,55 @@
     }
   }
 
+  /* Shared phrase validation/merge loop used by both the legacy bare-array
+     format and the versioned object format. Carries the byte-quota
+     pre-check (plan 001) unchanged — both branches must respect it. */
+  function importPhraseList(items) {
+    let valid = 0,
+      skipped = 0;
+    const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
+    for (const item of items) {
+      if (phrases.length >= LIMITS.MAX_CUSTOM_PHRASES) {
+        skipped++;
+        continue;
+      }
+      if (
+        !item.text ||
+        typeof item.text !== "string" ||
+        !item.text.trim() ||
+        item.text.trim().length > LIMITS.MAX_PHRASE_LENGTH
+      ) {
+        skipped++;
+        continue;
+      }
+      const dup = phrases.some(
+        (p) => p.text.toLowerCase() === item.text.trim().toLowerCase()
+      );
+      if (dup) {
+        skipped++;
+        continue;
+      }
+      const candidateItem = {
+        id: uid(),
+        text: item.text.trim(),
+        enabled: item.enabled !== false,
+        created: item.created || Date.now(),
+        mode: item.mode === "contains" ? "contains" : "exact",
+      };
+      if (estimatePhraseBytes(phrases.concat([candidateItem]), PHRASES_STORAGE_KEY) > limit) {
+        skipped++;
+        continue;
+      }
+      phrases.push(candidateItem);
+      valid++;
+    }
+    return { valid, skipped };
+  }
+
   function handleImport() {
     const file = importFile.files[0];
     if (!file) return;
-    if (file.size > MAX_IMPORT_BYTES) {
+    if (file.size > LIMITS.MAX_IMPORT_BYTES) {
       showToast(t("importFileTooLarge"), true);
       importFile.value = "";
       return;
@@ -367,62 +554,173 @@
         return;
       }
 
-      if (!Array.isArray(imported) || imported.length === 0) {
-        showToast(t("importFileEmpty"), true);
+      if (Array.isArray(imported)) {
+        /* Legacy format: bare phrase array — keep this path's behavior
+           exactly as before the versioned format existed. */
+        if (imported.length === 0) {
+          showToast(t("importFileEmpty"), true);
+          return;
+        }
+        const { valid, skipped } = importPhraseList(imported);
+        save();
+        importFile.value = "";
+        showToast(
+          skipped > 0
+            ? countMessage(
+                "importedPhrasesSkippedOne",
+                "importedPhrasesSkippedMany",
+                valid,
+                [valid, skipped]
+              )
+            : countMessage(
+                "importedPhrasesOne",
+                "importedPhrasesMany",
+                valid,
+                valid
+              )
+        );
         return;
       }
 
-      /* Validate structure */
-      let valid = 0,
-        skipped = 0;
-      for (const item of imported) {
-        if (phrases.length >= MAX_CUSTOM_PHRASES) {
-          skipped++;
-          continue;
+      if (imported && typeof imported === "object" && Array.isArray(imported.phrases)) {
+        /* Versioned format: { version, exportedAt, phrases, whitelist,
+           excluded, langs } — additive merge across all categories,
+           never replacing existing local state. */
+        const phraseCounts = importPhraseList(imported.phrases);
+
+        let whitelistAdded = 0,
+          whitelistSkipped = 0;
+        if (Array.isArray(imported.whitelist)) {
+          for (const entry of imported.whitelist) {
+            if (whitelist.length >= LIMITS.MAX_WHITELIST) {
+              whitelistSkipped++;
+              continue;
+            }
+            if (
+              typeof entry !== "string" ||
+              !entry.trim() ||
+              whitelist.includes(entry)
+            ) {
+              whitelistSkipped++;
+              continue;
+            }
+            whitelist.push(entry);
+            whitelistAdded++;
+          }
+          chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: whitelist });
         }
-        if (
-          !item.text ||
-          typeof item.text !== "string" ||
-          !item.text.trim() ||
-          item.text.trim().length > MAX_PHRASE_LENGTH
-        ) {
-          skipped++;
-          continue;
+
+        let excludedAdded = 0,
+          excludedSkipped = 0;
+        if (Array.isArray(imported.excluded)) {
+          const identities = new Set(
+            excluded.map((entry) => excludedIdentity(entry))
+          );
+          for (const entry of imported.excluded) {
+            const identity = excludedIdentity(entry);
+            if (!identity) {
+              excludedSkipped++;
+              continue;
+            }
+            if (excluded.length + excludedAdded >= LIMITS.MAX_EXCLUDED_ITEMS) {
+              excludedSkipped++;
+              continue;
+            }
+            if (identities.has(identity)) {
+              excludedSkipped++;
+              continue;
+            }
+            identities.add(identity);
+            excluded.push(entry);
+            excludedAdded++;
+          }
+          /* Keep the merged list in the object shape plan 007 established
+             for ss_excluded; normalization is identity-preserving and
+             leaves bare-string entries untouched in meaning. */
+          excluded = normalizeExcludedEntries(excluded);
+          chrome.storage.sync.set({
+            [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded),
+          });
         }
-        const dup = phrases.some(
-          (p) => p.text.toLowerCase() === item.text.trim().toLowerCase()
-        );
-        if (dup) {
-          skipped++;
-          continue;
+
+        let langsAdded = 0;
+        if (Array.isArray(imported.langs)) {
+          const known = imported.langs.filter(
+            (code) => typeof code === "string" && LANG_META[code]
+          );
+          if (known.length > 0) {
+            for (const code of known) {
+              if (!enabledLangs.includes(code)) {
+                enabledLangs.push(code);
+                langsAdded++;
+              }
+            }
+            if (langsAdded > 0) {
+              saveLangs();
+            }
+          }
         }
-        phrases.push({
-          id: uid(),
-          text: item.text.trim(),
-          enabled: item.enabled !== false,
-          created: item.created || Date.now(),
-          mode: item.mode === "contains" ? "contains" : "exact",
-        });
-        valid++;
+
+        save();
+        render();
+        importFile.value = "";
+
+        const parts = [];
+        if (phraseCounts.valid > 0) {
+          parts.push(
+            settingsPart(
+              phraseCounts.valid,
+              "settingsPartPhrasesOne",
+              "settingsPartPhrasesMany"
+            )
+          );
+        }
+        if (whitelistAdded > 0) {
+          parts.push(
+            settingsPart(
+              whitelistAdded,
+              "settingsPartWhitelistOne",
+              "settingsPartWhitelistMany"
+            )
+          );
+        }
+        if (excludedAdded > 0) {
+          parts.push(
+            settingsPart(
+              excludedAdded,
+              "settingsPartExcludedOne",
+              "settingsPartExcludedMany"
+            )
+          );
+        }
+        if (langsAdded > 0) {
+          parts.push(
+            settingsPart(
+              langsAdded,
+              "settingsPartLangsOne",
+              "settingsPartLangsMany"
+            )
+          );
+        }
+        const skipped = phraseCounts.skipped + whitelistSkipped + excludedSkipped;
+        if (parts.length === 0) {
+          showToast(
+            skipped > 0
+              ? t("importedNothingSkipped", [skipped])
+              : t("importedNothing")
+          );
+        } else {
+          const summary = joinSettingsParts(parts);
+          showToast(
+            skipped > 0
+              ? t("importedSummarySkipped", [summary, skipped])
+              : t("importedSummary", [summary])
+          );
+        }
+        return;
       }
 
-      save();
-      importFile.value = "";
-      showToast(
-        skipped > 0
-          ? countMessage(
-              "importedPhrasesSkippedOne",
-              "importedPhrasesSkippedMany",
-              valid,
-              [valid, skipped]
-            )
-          : countMessage(
-              "importedPhrasesOne",
-              "importedPhrasesMany",
-              valid,
-              valid
-            )
-      );
+      showToast(t("invalidJsonFile"), true);
     };
     reader.readAsText(file);
   }
@@ -430,7 +728,7 @@
   /* ── Language toggles ───────────────────────────────────────── */
 
   function saveLangs() {
-    chrome.storage.sync.set({ [LANG_STORAGE_KEY]: enabledLangs });
+    chrome.storage.sync.set({ [STORAGE_KEYS.LANGS]: enabledLangs });
   }
 
   function handleLangToggle(lang) {
@@ -511,7 +809,7 @@
         if (pendingWhitelistRemove === id) {
           pendingWhitelistRemove = null;
           whitelist = whitelist.filter(w => w !== id);
-          chrome.storage.sync.set({ [WHITELIST_STORAGE_KEY]: whitelist });
+          chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: whitelist });
           renderWhitelist();
         } else {
           pendingWhitelistRemove = id;
@@ -530,6 +828,116 @@
     }
   }
 
+  /* ── Excluded posts ("Not spam") ────────────────────────────── */
+
+  /* Same semantics as content.js's normalizeExcludedEntries: accepts the
+     legacy bare-"sig:"-string and plain-text shapes as well as the current
+     { sig, preview, created } object shape. Uses SS_getExcludedSignature
+     from shared/pattern-data.js for hashing. */
+  function normalizeExcludedEntries(entries) {
+    const map = new Map();
+    for (const entry of entries || []) {
+      if (typeof entry === "string" && entry.trim()) {
+        if (entry.startsWith("sig:")) {
+          if (!map.has(entry)) {
+            map.set(entry, { preview: null, created: null });
+          }
+        } else {
+          const sig = SS_getExcludedSignature(entry);
+          if (!map.has(sig)) {
+            map.set(sig, {
+              preview: truncateForPreview(entry, 60),
+              created: null,
+            });
+          }
+        }
+      } else if (entry && typeof entry === "object" &&
+                 typeof entry.sig === "string" && entry.sig.startsWith("sig:")) {
+        if (!map.has(entry.sig)) {
+          const preview = typeof entry.preview === "string" && entry.preview.trim()
+            ? entry.preview
+            : null;
+          const created = typeof entry.created === "number" ? entry.created : null;
+          map.set(entry.sig, { preview, created });
+        }
+      }
+    }
+    return Array.from(map, ([sig, meta]) => ({ sig, preview: meta.preview, created: meta.created }));
+  }
+
+  function hasLegacyExcludedEntries(entries) {
+    return (entries || []).some((entry) =>
+      typeof entry === "string" && entry.trim()
+    );
+  }
+
+  function serializeExcluded(entries) {
+    return entries.map((entry) => ({
+      sig: entry.sig,
+      preview: entry.preview,
+      created: entry.created,
+    }));
+  }
+
+  function truncateForPreview(text, maxLen) {
+    const trimmed = String(text).trim();
+    if (trimmed.length <= maxLen) return trimmed;
+    return trimmed.slice(0, maxLen) + "…";
+  }
+
+  function renderExcluded() {
+    if (excluded.length === 0) {
+      excludedSection.style.display = "none";
+      excludedList.innerHTML = "";
+      clearExcludedBtn.style.display = "none";
+      clearExcludedBtn.dataset.confirming = "";
+      clearExcludedBtn.textContent = t("excludedClearAll");
+      clearExcludedBtn.setAttribute("aria-label", t("excludedClearAll"));
+      clearExcludedBtn.title = t("excludedClearAll");
+      return;
+    }
+    excludedSection.style.display = "block";
+    clearExcludedBtn.style.display = "block";
+    excludedList.innerHTML = "";
+    for (const entry of excluded) {
+      const row = document.createElement("div");
+      row.className = "whitelist-row";
+
+      const label = document.createElement("span");
+      label.className = "wl-id";
+      label.textContent = entry.preview || t("excludedNoPreview");
+      row.appendChild(label);
+
+      const removeLabel = entry.preview || t("excludedNoPreview");
+      const isConfirming = pendingExclusionRemove === entry.sig;
+      const rmBtn = document.createElement("button");
+      rmBtn.className = isConfirming ? "confirming" : "";
+      rmBtn.textContent = isConfirming ? t("clickToConfirm") : t("remove");
+      rmBtn.setAttribute("aria-label", t("removeExcludedLabel", removeLabel));
+      rmBtn.title = t("removeExcludedLabel", removeLabel);
+      rmBtn.addEventListener("click", () => {
+        if (pendingExclusionRemove === entry.sig) {
+          pendingExclusionRemove = null;
+          excluded = excluded.filter((e) => e.sig !== entry.sig);
+          chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) });
+          renderExcluded();
+        } else {
+          pendingExclusionRemove = entry.sig;
+          renderExcluded();
+          setTimeout(() => {
+            if (pendingExclusionRemove === entry.sig) {
+              pendingExclusionRemove = null;
+              renderExcluded();
+            }
+          }, 3000);
+        }
+      });
+      row.appendChild(rmBtn);
+
+      excludedList.appendChild(row);
+    }
+  }
+
   /* ── Render ─────────────────────────────────────────────────── */
 
   function render() {
@@ -537,6 +945,7 @@
 
     renderLangs();
     renderWhitelist();
+    renderExcluded();
 
     const query = searchInput.value.trim().toLowerCase();
 
@@ -708,23 +1117,13 @@
     DE: { native: "Deutsch",   english: "German" },
   };
 
-  /* ── Built-in patterns (display only) ─────────────────────────
-     Keep in sync with BASE_PATTERNS and LANG_META above.
-     When adding a language or pattern to content.js, update
-     LANG_META, BUILTIN, and the language toggle logic here.     */
+  /* ── Built-in patterns (display only) ───────────────────────── */
 
-  const BUILTIN = [
-    { lang: "EN", label: 'comment "WORD" and I\'ll send / share ...' },
-    { lang: "EN", label: '"WORD" and I will send ...' },
-    { lang: "ES", label: 'comenta "WORD" y te enviaré / comparto ...' },
-    { lang: "ES", label: 'comenta "WORD" para recibir / descargar ...' },
-    { lang: "FR", label: 'commentez "WORD" et j\'enverrai / je partage ...' },
-    { lang: "FR", label: 'commentez "WORD" pour recevoir / télécharger ...' },
-    { lang: "PT", label: 'comente "WORD" e enviarei / compartilho ...' },
-    { lang: "PT", label: 'comente "WORD" para receber / baixar ...' },
-    { lang: "DE", label: 'kommentiere "WORD" und ich schicke / teile ...' },
-    { lang: "DE", label: 'kommentiere "WORD" um zu bekommen / erhalten ...' },
-  ];
+  /* Derived from shared/pattern-data.js — see that file for the actual
+     pattern definitions this describes. */
+  const BUILTIN = Object.entries(SS_PATTERN_DATA).flatMap(([lang, entries]) =>
+    entries.map((entry) => ({ lang, label: entry.label }))
+  );
 
   /* ── Helpers ────────────────────────────────────────────────── */
 

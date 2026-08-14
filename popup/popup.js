@@ -1,15 +1,7 @@
 (function () {
   "use strict";
 
-  const STORAGE_KEYS = Object.freeze({
-    ENABLED: "ss_enabled",
-    COUNT: "ss_blocked_count",
-    DAILY_COUNTS: "ss_daily_counts",
-    SNOOZE_UNTIL: "ss_snooze_until",
-    ONBOARDED: "ss_onboarded",
-  });
-
-  const SNOOZE_DURATION_MS = 30 * 60 * 1000;
+  const { STORAGE_KEYS, LIMITS } = globalThis.SS_CONSTANTS;
 
   function t(key, subs) {
     return chrome.i18n.getMessage(key, subs) || key;
@@ -19,6 +11,7 @@
   const countEl = document.getElementById("blockedCount");
   const resetBtn = document.getElementById("resetBtn");
   const snoozeBtn = document.getElementById("snoozeBtn");
+  const showAllBtn = document.getElementById("showAllBtn");
   const snoozeStatus = document.getElementById("snoozeStatus");
   const manageLink = document.getElementById("manageLink");
   const todayCountEl = document.getElementById("todayCount");
@@ -179,6 +172,7 @@
     showConnectionState(true);
     connectionNotice.textContent = t("noLiveTabNotice");
     connectionNotice.style.display = hasLiveState ? "none" : "block";
+    showAllBtn.style.display = hasLiveState ? "" : "none";
     toggleEl.checked = response.enabled;
     countEl.textContent = response.blockedCount;
 
@@ -370,11 +364,17 @@
 
         setExtensionState(
           null,
-          { [STORAGE_KEYS.SNOOZE_UNTIL]: Date.now() + SNOOZE_DURATION_MS },
+          { [STORAGE_KEYS.SNOOZE_UNTIL]: Date.now() + LIMITS.SNOOZE_DURATION_MS },
           refreshState
         );
       });
     }
+  });
+
+  showAllBtn.addEventListener("click", () => {
+    send({ action: "restoreAll" }, (response) => {
+      if (response && response.ok) refreshState();
+    });
   });
 
   /* --- Open options page --- */

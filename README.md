@@ -51,7 +51,11 @@ Detection is heuristic, not magic. It can miss new spam formats, and it can occa
 
 **Controls**
 - Undo any blocked post from the popup or the in-feed placeholder
+- "Show all" from the popup to restore every hidden post for the session
 - "Not spam" exclusion so the same text is never blocked again
+- "Report missed spam" on any placeholder — copies the post text to your
+  clipboard and opens a pre-filled GitHub issue (nothing is sent anywhere
+  automatically)
 - Author whitelist for profile, company, school, and showcase pages
 - Snooze for 30 minutes with automatic resume
 - Right-click any selected text to add it as a phrase instantly

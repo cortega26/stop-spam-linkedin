@@ -15,6 +15,8 @@ const zipPath = path.join(packageDir, zipName);
 const files = [
   "manifest.json",
   "background.js",
+  "shared/constants.js",
+  "shared/pattern-data.js",
   "content.js",
   "i18n.js",
   "LICENSE",
