@@ -808,6 +808,40 @@
     });
     placeholder.appendChild(restoreBtn);
 
+    const reportBtn = document.createElement("button");
+    reportBtn.textContent = t("reportMissed");
+    reportBtn.style.cssText = [
+      "background:none; border:1px solid #d0d0d0; border-radius:4px;",
+      "padding:4px 12px; cursor:pointer; font-size:12px; color:#767676;",
+    ].join("");
+    reportBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const excerpt = (textNode ? textNode.textContent : "").trim().slice(0, 600);
+      const trigger = textNode ? extractTrigger(textNode.textContent) : "";
+      const payload = [
+        "Trigger: " + trigger,
+        "",
+        excerpt,
+        "",
+        "LinkedIn page: " + window.location.href,
+      ].join("\n");
+      const copy = () => navigator.clipboard.writeText(payload);
+      if (navigator.clipboard) {
+        copy().then(
+          () => showReportToast(t("reportCopied")),
+          () => copyFallback(payload)
+        );
+      } else {
+        copyFallback(payload);
+      }
+      window.open(
+        "https://github.com/cortega26/stop-spam-linkedin/issues/new?template=missed_spam_pattern.yml",
+        "_blank",
+        "noopener"
+      );
+    });
+    placeholder.appendChild(reportBtn);
+
     post.parentNode?.insertBefore(placeholder, post.nextSibling);
 
     /* Note: multi-tab race — two LinkedIn tabs can overwrite each
@@ -991,6 +1025,41 @@
     if (m) return m[0];
     const t = text.trim();
     return t.length > 40 ? t.slice(0, 40) + "..." : t;
+  }
+
+  function copyFallback(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    ta.style.position = "fixed";
+    ta.style.opacity = "0";
+    document.body.appendChild(ta);
+    ta.select();
+    try {
+      document.execCommand("copy");
+      showReportToast(t("reportCopied"));
+    } catch (_) {
+      showReportToast(t("reportFailed"), true);
+    }
+    ta.remove();
+  }
+
+  function showReportToast(message, warn) {
+    const toast = document.createElement("div");
+    toast.textContent = message;
+    Object.assign(toast.style, {
+      position: "fixed",
+      bottom: "16px",
+      right: "16px",
+      zIndex: "999999",
+      padding: "10px 16px",
+      borderRadius: "6px",
+      color: "#fff",
+      background: warn ? "#a94442" : "#2a6f97",
+      fontSize: "13px",
+      fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    });
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 3000);
   }
 
   /* Extract a clean trigger word (no quotes) for suggestions, or null. */

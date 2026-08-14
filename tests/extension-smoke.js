@@ -486,6 +486,55 @@ async function main() {
 
     await popup.close();
 
+    /* ── "Report missed spam" (plan 019) ── */
+
+    /* Deterministic start: plan 007's scenario excluded spam-1's text;
+       clear it so a fresh load re-blocks exactly one placeholder. */
+    await setSyncStorage(context, { ss_excluded: [] });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(page.locator("[data-ss-ph]"), 1);
+
+    const reportBtn = page.locator("[data-ss-ph] button", {
+      hasText: /Report missed spam|Reportar spam no detectado/,
+    });
+
+    /* The content script writes the payload to the real clipboard with a
+       user gesture, so granting clipboard permissions on the page origin
+       lets us read it back. */
+    await context.grantPermissions(
+      ["clipboard-read", "clipboard-write"],
+      { origin: "https://www.linkedin.com" }
+    );
+    await reportBtn.click();
+
+    let copied = "";
+    const started = Date.now();
+    while (!copied && Date.now() - started < 3000) {
+      try {
+        copied = await page.evaluate(() => navigator.clipboard.readText());
+      } catch (_) {
+        /* Permission not effective yet — retry briefly. */
+      }
+      if (!copied) await page.waitForTimeout(200);
+    }
+
+    assert.match(
+      copied,
+      /Comment "CLAUDE"/,
+      "expected the spam excerpt on the clipboard"
+    );
+    assert.match(
+      copied,
+      /Trigger: "CLAUDE"/,
+      "expected the trigger word in the report payload"
+    );
+    assert.match(
+      copied,
+      /LinkedIn page:/,
+      "expected the page URL in the report payload"
+    );
+
     console.log("Extension smoke test passed.");
   } finally {
     await context.close();
