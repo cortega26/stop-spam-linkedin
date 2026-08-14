@@ -22,6 +22,7 @@ ships.
 | Command | What it does |
 |---------|--------------|
 | `npm run smoke` | `jq` JSON validation of `manifest.json` + both locale files, then `node --check` on every runtime JS file plus `tests/extension-smoke.js` and `tests/unit/pattern-data.test.js` |
+| `npm run lint` | ESLint 9 flat config — recommended rules per execution context (`eslint.config.js`) |
 | `npm run test:unit` | Node's built-in test runner over `tests/unit/*.test.js` (glob form — needs Node ≥ 24); currently 16 tests |
 | `npm run test:extension` | Playwright e2e against the unpacked repo: `tests/extension-smoke.js` then `tests/extension-interactions.js` |
 | `npm run test:package` | `npm run package`, then the same two e2e files against `dist/linkedin-spam-blocker-{version}.zip` |
