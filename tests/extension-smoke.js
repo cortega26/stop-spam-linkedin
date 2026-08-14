@@ -203,6 +203,101 @@ async function main() {
     );
     await assertCount(page.locator("[data-ss-ph]"), 0);
 
+    /* ── Exclusion management (plan 007) ── */
+
+    /* Deterministic start: reload resets the cooldown state to a fresh
+       single initial scan — exactly one placeholder. */
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(page.locator("[data-ss-ph]"), 1);
+
+    const spamPostText = 'Comment "CLAUDE" and I\'ll send you the complete checklist, template, and workflow for free today.';
+
+    await page
+      .locator("[data-ss-ph] button", { hasText: /Not spam|No es spam/ })
+      .click();
+    await assertCount(page.locator("[data-ss-ph]"), 0);
+
+    const storedExcluded = await getSyncStorage(context, "ss_excluded");
+    assert.equal(storedExcluded.length, 1, "expected exactly one stored exclusion");
+    assert.equal(typeof storedExcluded[0].sig, "string", "expected object-shaped entry with sig");
+    assert.ok(
+      storedExcluded[0].sig.startsWith("sig:"),
+      "expected sig hash in stored exclusion"
+    );
+    assert.equal(typeof storedExcluded[0].created, "number", "expected created timestamp");
+    assert.ok(
+      typeof storedExcluded[0].preview === "string" && storedExcluded[0].preview.length > 0,
+      "expected non-empty preview in stored exclusion"
+    );
+    assert.ok(
+      spamPostText.startsWith(storedExcluded[0].preview.replace(/…$/, "")) ||
+        storedExcluded[0].preview.replace(/…$/, "").startsWith(spamPostText.slice(0, 20)),
+      "expected preview to match a prefix of the original post text"
+    );
+
+    const worker = context.serviceWorkers()[0];
+    const extensionId = new URL(worker.url()).host;
+    const optionsPage = await context.newPage();
+    await optionsPage.goto(`chrome-extension://${extensionId}/options/options.html`, {
+      waitUntil: "domcontentloaded",
+    });
+    await optionsPage.locator("#excludedList .whitelist-row").waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    await assertCount(optionsPage.locator("#excludedList .whitelist-row"), 1);
+    assert.ok(
+      (await optionsPage.locator("#excludedList").textContent()).includes(
+        storedExcluded[0].preview
+      ),
+      "expected options page to show the exclusion preview"
+    );
+
+    await optionsPage
+      .locator("#excludedList .whitelist-row button", { hasText: /Remove|Eliminar/ })
+      .first()
+      .click();
+    await optionsPage
+      .locator("#excludedList .whitelist-row button", { hasText: /Click again to confirm|Clic para confirmar/ })
+      .first()
+      .click();
+    await assertCount(optionsPage.locator("#excludedList .whitelist-row"), 0);
+    assert.deepEqual(
+      await getSyncStorage(context, "ss_excluded"),
+      [],
+      "expected ss_excluded to be empty after removing the only entry"
+    );
+
+    /* Migration path (plan 007): seed legacy bare-hash entries, then a
+       fresh options-page load must upgrade them to the object shape
+       without dropping any. */
+    const legacyEntries = Array.from({ length: 100 }, (_, i) => `sig:legacy-${String(i).padStart(3, "0")}`);
+    await setSyncStorage(context, { ss_excluded: legacyEntries });
+
+    await optionsPage.reload({ waitUntil: "domcontentloaded" });
+    await optionsPage.locator("#excludedList .whitelist-row").first().waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    await assertCount(optionsPage.locator("#excludedList .whitelist-row"), 100);
+    assert.match(
+      await optionsPage.locator("#excludedList").textContent(),
+      /no preview available|vista previa no disponible/,
+      "expected legacy entries to show the no-preview fallback text"
+    );
+
+    const migrated = await getSyncStorage(context, "ss_excluded");
+    assert.equal(migrated.length, 100, "expected no exclusions lost during migration");
+    for (const entry of migrated) {
+      assert.equal(typeof entry.sig, "string", "expected migrated entry to be object-shaped");
+      assert.ok(entry.sig.startsWith("sig:legacy-"), "expected migrated entry to keep its sig");
+      assert.equal(entry.preview, null, "expected legacy hash entries to have no preview");
+      assert.equal(entry.created, null, "expected legacy hash entries to have no created timestamp");
+    }
+
+    await optionsPage.close();
+
     console.log("Extension smoke test passed.");
   } finally {
     await context.close();
@@ -238,6 +333,15 @@ async function setSyncStorage(context, patch) {
   await worker.evaluate((value) => new Promise((resolve) => {
     chrome.storage.sync.set(value, resolve);
   }), patch);
+}
+
+async function getSyncStorage(context, key) {
+  const worker = context.serviceWorkers()[0] || await context.waitForEvent("serviceworker", {
+    timeout: 10000,
+  });
+  return worker.evaluate((k) => new Promise((resolve) => {
+    chrome.storage.sync.get(k, (result) => resolve(result[k]));
+  }), key);
 }
 
 async function setLocalStorage(context, patch) {

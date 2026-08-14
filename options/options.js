@@ -4,6 +4,7 @@
   const STORAGE_KEY = "ss_phrases";
   const LANG_STORAGE_KEY = "ss_enabled_langs";
   const WHITELIST_STORAGE_KEY = "ss_whitelist";
+  const EXCLUDED_STORAGE_KEY = "ss_excluded";
   const MAX_CUSTOM_PHRASES = 200;
   const MAX_PHRASE_LENGTH = 120;
   const MAX_IMPORT_BYTES = 128 * 1024;
@@ -19,6 +20,8 @@
   let whitelist = [];
   let pendingDeleteId = null;
   let pendingWhitelistRemove = null;
+  let excluded = [];
+  let pendingExclusionRemove = null;
 
   /* ── DOM refs ───────────────────────────────────────────────── */
   const input = document.getElementById("phraseInput");
@@ -34,6 +37,9 @@
   const langToggles = document.getElementById("langToggles");
   const whitelistSection = document.getElementById("whitelistSection");
   const whitelistList = document.getElementById("whitelistList");
+  const excludedSection = document.getElementById("excludedSection");
+  const excludedList = document.getElementById("excludedList");
+  const clearExcludedBtn = document.getElementById("clearExcludedBtn");
   const searchInput = document.getElementById("searchInput");
 
   /* ── Bootstrap ──────────────────────────────────────────────── */
@@ -47,6 +53,31 @@
   exportBtn.addEventListener("click", handleExport);
   starterPackBtn.addEventListener("click", handleStarterPack);
   searchInput.addEventListener("input", debounce(() => render(), 200));
+  clearExcludedBtn.addEventListener("click", () => {
+    if (clearExcludedBtn.dataset.confirming === "1") {
+      clearExcludedBtn.dataset.confirming = "";
+      clearExcludedBtn.textContent = t("excludedClearAll");
+      clearExcludedBtn.setAttribute("aria-label", t("excludedClearAll"));
+      clearExcludedBtn.title = t("excludedClearAll");
+      excluded = [];
+      pendingExclusionRemove = null;
+      chrome.storage.sync.set({ [EXCLUDED_STORAGE_KEY]: serializeExcluded(excluded) });
+      renderExcluded();
+    } else {
+      clearExcludedBtn.dataset.confirming = "1";
+      clearExcludedBtn.textContent = t("clickToConfirm");
+      clearExcludedBtn.setAttribute("aria-label", t("clickToConfirm"));
+      clearExcludedBtn.title = t("clickToConfirm");
+      setTimeout(() => {
+        if (clearExcludedBtn.dataset.confirming === "1") {
+          clearExcludedBtn.dataset.confirming = "";
+          clearExcludedBtn.textContent = t("excludedClearAll");
+          clearExcludedBtn.setAttribute("aria-label", t("excludedClearAll"));
+          clearExcludedBtn.title = t("excludedClearAll");
+        }
+      }, 3000);
+    }
+  });
 
   /* Clean up toast timer on page unload. */
   window.addEventListener("beforeunload", () => clearTimeout(toastTimer));
@@ -54,10 +85,14 @@
   /* ── Storage ────────────────────────────────────────────────── */
 
   function load() {
-    chrome.storage.sync.get([STORAGE_KEY, LANG_STORAGE_KEY, WHITELIST_STORAGE_KEY], (result) => {
+    chrome.storage.sync.get([STORAGE_KEY, LANG_STORAGE_KEY, WHITELIST_STORAGE_KEY, EXCLUDED_STORAGE_KEY], (result) => {
       phrases = result[STORAGE_KEY] || [];
       enabledLangs = result[LANG_STORAGE_KEY] || ["EN", "ES", "FR", "PT", "DE"];
       whitelist = result[WHITELIST_STORAGE_KEY] || [];
+      excluded = normalizeExcludedEntries(result[EXCLUDED_STORAGE_KEY] || []);
+      if (hasLegacyExcludedEntries(result[EXCLUDED_STORAGE_KEY] || [])) {
+        chrome.storage.sync.set({ [EXCLUDED_STORAGE_KEY]: serializeExcluded(excluded) });
+      }
       render();
     });
   }
@@ -68,6 +103,10 @@
     if (changes[WHITELIST_STORAGE_KEY]) {
       whitelist = changes[WHITELIST_STORAGE_KEY].newValue || [];
       renderWhitelist();
+    }
+    if (changes[EXCLUDED_STORAGE_KEY]) {
+      excluded = normalizeExcludedEntries(changes[EXCLUDED_STORAGE_KEY].newValue || []);
+      renderExcluded();
     }
     if (changes[STORAGE_KEY]) {
       phrases = changes[STORAGE_KEY].newValue || [];
@@ -551,6 +590,116 @@
     }
   }
 
+  /* ── Excluded posts ("Not spam") ────────────────────────────── */
+
+  /* Same semantics as content.js's normalizeExcludedEntries: accepts the
+     legacy bare-"sig:"-string and plain-text shapes as well as the current
+     { sig, preview, created } object shape. Uses SS_getExcludedSignature
+     from shared/pattern-data.js for hashing. */
+  function normalizeExcludedEntries(entries) {
+    const map = new Map();
+    for (const entry of entries || []) {
+      if (typeof entry === "string" && entry.trim()) {
+        if (entry.startsWith("sig:")) {
+          if (!map.has(entry)) {
+            map.set(entry, { preview: null, created: null });
+          }
+        } else {
+          const sig = SS_getExcludedSignature(entry);
+          if (!map.has(sig)) {
+            map.set(sig, {
+              preview: truncateForPreview(entry, 60),
+              created: null,
+            });
+          }
+        }
+      } else if (entry && typeof entry === "object" &&
+                 typeof entry.sig === "string" && entry.sig.startsWith("sig:")) {
+        if (!map.has(entry.sig)) {
+          const preview = typeof entry.preview === "string" && entry.preview.trim()
+            ? entry.preview
+            : null;
+          const created = typeof entry.created === "number" ? entry.created : null;
+          map.set(entry.sig, { preview, created });
+        }
+      }
+    }
+    return Array.from(map, ([sig, meta]) => ({ sig, preview: meta.preview, created: meta.created }));
+  }
+
+  function hasLegacyExcludedEntries(entries) {
+    return (entries || []).some((entry) =>
+      typeof entry === "string" && entry.trim()
+    );
+  }
+
+  function serializeExcluded(entries) {
+    return entries.map((entry) => ({
+      sig: entry.sig,
+      preview: entry.preview,
+      created: entry.created,
+    }));
+  }
+
+  function truncateForPreview(text, maxLen) {
+    const trimmed = String(text).trim();
+    if (trimmed.length <= maxLen) return trimmed;
+    return trimmed.slice(0, maxLen) + "…";
+  }
+
+  function renderExcluded() {
+    if (excluded.length === 0) {
+      excludedSection.style.display = "none";
+      excludedList.innerHTML = "";
+      clearExcludedBtn.style.display = "none";
+      clearExcludedBtn.dataset.confirming = "";
+      clearExcludedBtn.textContent = t("excludedClearAll");
+      clearExcludedBtn.setAttribute("aria-label", t("excludedClearAll"));
+      clearExcludedBtn.title = t("excludedClearAll");
+      return;
+    }
+    excludedSection.style.display = "block";
+    clearExcludedBtn.style.display = "block";
+    excludedList.innerHTML = "";
+    for (const entry of excluded) {
+      const row = document.createElement("div");
+      row.className = "whitelist-row";
+
+      const label = document.createElement("span");
+      label.className = "wl-id";
+      label.textContent = entry.preview || t("excludedNoPreview");
+      row.appendChild(label);
+
+      const removeLabel = entry.preview || t("excludedNoPreview");
+      const isConfirming = pendingExclusionRemove === entry.sig;
+      const rmBtn = document.createElement("button");
+      rmBtn.className = isConfirming ? "confirming" : "";
+      rmBtn.textContent = isConfirming ? t("clickToConfirm") : t("remove");
+      rmBtn.setAttribute("aria-label", t("removeExcludedLabel", removeLabel));
+      rmBtn.title = t("removeExcludedLabel", removeLabel);
+      rmBtn.addEventListener("click", () => {
+        if (pendingExclusionRemove === entry.sig) {
+          pendingExclusionRemove = null;
+          excluded = excluded.filter((e) => e.sig !== entry.sig);
+          chrome.storage.sync.set({ [EXCLUDED_STORAGE_KEY]: serializeExcluded(excluded) });
+          renderExcluded();
+        } else {
+          pendingExclusionRemove = entry.sig;
+          renderExcluded();
+          setTimeout(() => {
+            if (pendingExclusionRemove === entry.sig) {
+              pendingExclusionRemove = null;
+              renderExcluded();
+            }
+          }, 3000);
+        }
+      });
+      row.appendChild(rmBtn);
+
+      excludedList.appendChild(row);
+    }
+  }
+
   /* ── Render ─────────────────────────────────────────────────── */
 
   function render() {
@@ -558,6 +707,7 @@
 
     renderLangs();
     renderWhitelist();
+    renderExcluded();
 
     const query = searchInput.value.trim().toLowerCase();
 

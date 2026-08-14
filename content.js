@@ -18,7 +18,7 @@
     SNOOZE_DURATION_MS: 30 * 60 * 1000,     /* 30 min */
     MAX_CUSTOM_PHRASES: 200,
     MAX_PHRASE_LENGTH: 120,
-    MAX_EXCLUSIONS: 100,
+    EXCLUSION_PREVIEW_LENGTH: 60,
     MAX_WHITELIST: 100,
   });
 
@@ -106,7 +106,7 @@
   let dailyCounts = {};
 
   /* User-excluded text signatures (false-positive feedback). */
-  let excludedSignatures = new Set();
+  let excludedSignatures = new Map();
 
   /* Enabled detection languages (subset of BASE_PATTERNS keys). */
   let enabledLangs = [...DEFAULT_ENABLED_LANGS];
@@ -746,9 +746,17 @@
     notSpamBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       if (matchedText) {
-        excludedSignatures.add(SS_getExcludedSignature(matchedText));
-        pruneSet(excludedSignatures, CONFIG.MAX_EXCLUSIONS);
-        chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: [...excludedSignatures] });
+        const sig = SS_getExcludedSignature(matchedText);
+        excludedSignatures.set(sig, {
+          preview: truncateForPreview(matchedText, CONFIG.EXCLUSION_PREVIEW_LENGTH),
+          created: Date.now(),
+        });
+        pruneExcludedByBytes(
+          excludedSignatures,
+          STORAGE_KEYS.EXCLUDED,
+          Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.9)
+        );
+        chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excludedSignatures) });
       }
       restorePost(post);
     });
@@ -1005,12 +1013,74 @@
     return null;
   }
 
+  function truncateForPreview(text, maxLen) {
+    const trimmed = String(text).trim();
+    if (trimmed.length <= maxLen) return trimmed;
+    return trimmed.slice(0, maxLen) + "…";
+  }
+
   function normalizeExcludedEntries(entries) {
-    return new Set(
-      (entries || [])
-        .filter((entry) => typeof entry === "string" && entry.trim())
-        .map((entry) => entry.startsWith("sig:") ? entry : SS_getExcludedSignature(entry))
-    );
+    const map = new Map();
+    for (const entry of entries || []) {
+      if (typeof entry === "string" && entry.trim()) {
+        if (entry.startsWith("sig:")) {
+          if (!map.has(entry)) {
+            map.set(entry, { preview: null, created: null });
+          }
+        } else {
+          const sig = SS_getExcludedSignature(entry);
+          if (!map.has(sig)) {
+            map.set(sig, {
+              preview: truncateForPreview(entry, CONFIG.EXCLUSION_PREVIEW_LENGTH),
+              created: null,
+            });
+          }
+        }
+      } else if (entry && typeof entry === "object" &&
+                 typeof entry.sig === "string" && entry.sig.startsWith("sig:")) {
+        if (!map.has(entry.sig)) {
+          const preview = typeof entry.preview === "string" && entry.preview.trim()
+            ? entry.preview
+            : null;
+          const created = typeof entry.created === "number" ? entry.created : null;
+          map.set(entry.sig, { preview, created });
+        }
+      }
+    }
+    return map;
+  }
+
+  function serializeExcluded(map) {
+    return Array.from(map, ([sig, meta]) => ({
+      sig,
+      preview: meta.preview,
+      created: meta.created,
+    }));
+  }
+
+  function estimateEntriesBytes(map, storageKey) {
+    return storageKey.length + JSON.stringify(serializeExcluded(map)).length;
+  }
+
+  function pruneExcludedByBytes(map, storageKey, safeByteLimit) {
+    while (map.size > 0 && estimateEntriesBytes(map, storageKey) > safeByteLimit) {
+      /* Evict the least useful entry: prefer removing entries with no
+         preview (already-unrecoverable legacy hashes, or migrated
+         plain-text that's already been through one round of truncation)
+         over ones with a live preview; break ties by oldest `created`
+         (nulls sort first — treat as "oldest"). */
+      let victimSig = null;
+      let victimScore = Infinity;
+      for (const [sig, meta] of map) {
+        const score = (meta.preview ? 1_000_000_000_000 : 0) + (meta.created || 0);
+        if (score < victimScore) {
+          victimScore = score;
+          victimSig = sig;
+        }
+      }
+      if (victimSig === null) break;
+      map.delete(victimSig);
+    }
   }
 
   function pruneSet(set, maxSize) {
