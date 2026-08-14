@@ -1,5 +1,19 @@
 # Release Notes
 
+## 1.3.0
+
+New features, detection fixes, and quality improvements. Key changes:
+
+- **Author blocklist**: right-click any LinkedIn profile/company/school/showcase link and choose "Block this author" — posts from that author are hidden regardless of text. Manage the list in the options page.
+- **Per-pattern toggles**: disable a single built-in pattern (e.g. only the second English pattern) instead of an entire language, from the options page.
+- **Match attribution**: the popup's "Last blocked" list now shows which pattern or custom phrase triggered each block.
+- **"Show all"**: restore every hidden post for the session from the popup.
+- **"Report missed spam"**: placeholders now copy the matched post text to the clipboard and open a pre-filled GitHub issue form — nothing is sent automatically.
+- **Exclusion management**: review and remove "Not spam" exclusions in the options page, now with preview text; byte-budget eviction instead of a silent item-count cap.
+- **Full settings backup**: Export/Import now covers phrases, whitelist, exclusions, and language toggles (old phrase-only exports still import).
+- **Detection fixes**: Spanish patterns now correctly match "te envío / enviaré / daré" and no longer false-positive on non-imperative forms like "comentaba"; a duplicate-placeholder race on toggle was fixed.
+- **Reliability fixes**: storage-quota pre-checks on all phrase write paths; snooze now resumes blocking correctly; toggle no longer double-counts stats; the 15-minute "Show" cooldown is now real; custom-phrase writes can no longer fail silently.
+
 ## 1.2.4
 
 Firefox Android compatibility. Key changes:

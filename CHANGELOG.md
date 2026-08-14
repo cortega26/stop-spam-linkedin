@@ -1,6 +1,37 @@
 # Changelog
 
-## Unreleased
+## 1.3.0 - Features, Detection Fixes, Quality
+
+### Features
+
+- Added an **author blocklist**: a new "Block this author" right-click menu item on LinkedIn profile/company/school/showcase links (via `contextMenus` link context), an in-feed "Unblock this author" placeholder action, and a management section in the options page.
+- Added **per-pattern toggles**: each built-in detection pattern (10 total, ids `EN-1`…`DE-2`) can be disabled individually from the options page, independent of language toggles.
+- Added **match attribution**: the popup's "Last blocked" list shows which pattern or custom phrase matched each blocked post.
+- Added a **"Show all"** popup button that restores every hidden post for the session.
+- Added a **"Report missed spam"** placeholder button that copies the matched post text (plus trigger word and page URL) to the clipboard and opens a pre-filled GitHub issue form — no data is sent automatically.
+- Added **exclusion management**: "Not spam" exclusions are now stored with preview text and can be reviewed/removed in the options page; eviction is byte-budget based instead of a silent item-count cap.
+- **Export/Import now covers all settings**: phrases, author whitelist, exclusions, and enabled languages travel with the export (versioned format); legacy phrase-only exports still import.
+
+### Bug fixes
+
+- Fixed Spanish detection: `enviaré`/`daré`/`envío` forms never matched (dead `\b` after accented characters); non-imperative forms like "comentaba… y te envío…" no longer false-positive; imperative+clitic forms ("comentame…") still match.
+- Fixed a duplicate-placeholder race on toggle-on (two scans could block the same post twice) — `blockPost` is now idempotent.
+- Fixed custom-phrase writes failing silently: all three write paths (options, context menu, popup suggestion) now pre-check the real `chrome.storage.sync` byte quota and report failures.
+- Fixed snooze never resuming blocking for posts that were already hidden when snooze started.
+- Fixed toggle off/on double-counting stats (`counted` set survives re-enable; badge still updates unconditionally).
+- Fixed the "Show" re-block cooldown being dead code — now keyed by post identity (`data-id`) so re-created posts honor the 15-minute window.
+
+### Quality & tooling
+
+- Added 20 unit tests (`npm run test:unit`), a 14-scenario Playwright interactions suite, and a shared e2e harness (`tests/helpers.js`).
+- Extracted `shared/pattern-data.js` (single source of pattern regexes + labels + ids) and `shared/constants.js` (single source of storage keys and limits).
+- Added ESLint 9 flat config (`npm run lint`) with a CI gate; cached Playwright browsers in CI.
+- Added `AGENTS.md` with repo conventions and verification commands.
+
+### Documentation
+
+- Updated `PRIVACY_POLICY.md` (blocked-author IDs and disabled-pattern preferences; second context-menu item).
+- Added `plans/` with the full implementation-plan backlog and execution record.
 
 ## 1.2.4 - Firefox Android Compatibility
 

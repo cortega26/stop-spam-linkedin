@@ -1,6 +1,6 @@
 # Privacy Policy — LinkedIn Spam Blocker
 
-**Last updated:** 13 May 2026
+**Last updated:** 14 August 2026
 
 ## Data Collection
 
@@ -9,7 +9,7 @@ LinkedIn Spam Blocker **does not collect, store, transmit, or share any personal
 ## What the extension accesses
 
 ### `chrome.storage.sync`
-Your enabled/disabled preference, custom phrase list, enabled detection languages, false-positive exclusion signatures, and whitelisted author IDs are stored in your browser's `chrome.storage.sync`. This data stays in your browser profile and may be synchronized across your Chrome browsers via your Google account (Chrome's built-in sync, not our service). We have no access to this data.
+Your enabled/disabled preference, custom phrase list, enabled detection languages, per-pattern disable toggles, false-positive exclusion signatures, whitelisted author IDs, and blocked author IDs are stored in your browser's `chrome.storage.sync`. This data stays in your browser profile and may be synchronized across your Chrome browsers via your Google account (Chrome's built-in sync, not our service). We have no access to this data.
 
 False-positive exclusions are created only when you click "Not spam" on a blocked post. In that case, the extension saves a normalized signature of the matched text, not the full post text, so it can avoid blocking that exact text again.
 
@@ -19,7 +19,7 @@ Synced lists are capped to avoid browser sync quota issues during long-term use.
 Your blocked count, daily stats, snooze state, and onboarding flag are stored in your browser's `chrome.storage.local`. This runtime data remains on the local browser profile and is not synced by the extension.
 
 ### `contextMenus`
-The extension adds a right-click menu item ("Add to LinkedIn Spam Blocker") that reads the text you selected and saves it as a blocking phrase only when you choose that menu action. This data is stored in your browser's `chrome.storage.sync`. No selection data is ever transmitted externally.
+The extension adds two right-click menu items. "Add to LinkedIn Spam Blocker" reads the text you selected and saves it as a blocking phrase only when you choose that menu action. "Block this author" (shown on LinkedIn profile, company, school, and showcase links) reads the link URL to identify the author and saves their ID to your blocklist only when you choose that menu action. This data is stored in your browser's `chrome.storage.sync`. No selection or link data is ever transmitted externally.
 
 ### LinkedIn pages (`*.linkedin.com/*`)
 The content script runs on LinkedIn pages solely to scan post text for spam patterns and remove matching posts from the page. Page content, user data, and LinkedIn activity are not sent anywhere beyond your local browser.
