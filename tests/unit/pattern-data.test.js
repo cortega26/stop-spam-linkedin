@@ -77,10 +77,12 @@ test("getExcludedSignature is prefixed with sig: and differs for different text"
   assert.notEqual(sig, getExcludedSignature("different post text"));
 });
 
-/* NOTE: ES-1's leading alternation (comenta|escribe|...) has no trailing
-   boundary, so verb forms like "comentaba CLAUDE y te envío ..." match via
-   prefix. That over-broadness predates the `\b` -> `(?!\w)` fix and is
-   intentionally not asserted against here. */
+/* NOTE: ES-1's leading alternation (comenta|escribe|responde|pon|poner)
+   is bounded with a word boundary plus an optional clitic
+   (me|te|le|nos|os|les), so non-imperative forms like "comentaba ..."
+   no longer match via prefix while real imperative+clitic bait
+   ("comentame ...") still does. EN/FR/PT/DE keep their pre-existing
+   stem-prefix matching behavior intentionally (out of scope). */
 test("ES-1 matches the previously-dead accented verb forms", () => {
   assert.equal(PATTERN_DATA.ES[0].regex.test("comenta CLAUDE y te envío el PDF completo gratis"), true);
   assert.equal(PATTERN_DATA.ES[0].regex.test("comenta CLAUDE y te enviaré el PDF completo gratis"), true);
@@ -94,8 +96,20 @@ test("ES-1 still rejects non-bait sentences", () => {
   assert.equal(PATTERN_DATA.ES[0].regex.test("comentamos en el post nuestra opinión"), false);
   assert.equal(PATTERN_DATA.ES[0].regex.test("enviaréis las tareas mañana"), false);
   assert.equal(PATTERN_DATA.ES[0].regex.test("te envían documentos por interno"), false);
+  assert.equal(PATTERN_DATA.ES[0].regex.test("comentaba CLAUDE y te envío el PDF"), false);
+  assert.equal(PATTERN_DATA.ES[0].regex.test("comentamos CLAUDE y te envío el PDF"), false);
+  assert.equal(PATTERN_DATA.ES[0].regex.test("comentario CLAUDE y te envío el PDF"), false);
 });
 
-test("ES-2 is unchanged", () => {
+test("ES-1 accepts imperative+clitic forms (comentame, escribele, ponme, respondeles, comentanos)", () => {
+  assert.equal(PATTERN_DATA.ES[0].regex.test("comentame CLAUDE y te mando el PDF"), true);
+  assert.equal(PATTERN_DATA.ES[0].regex.test("escribele CLAUDE y te doy el pack"), true);
+  assert.equal(PATTERN_DATA.ES[0].regex.test("ponme CLAUDE y te regalo el curso"), true);
+  assert.equal(PATTERN_DATA.ES[0].regex.test("respondeles CLAUDE y te comparto el PDF"), true);
+  assert.equal(PATTERN_DATA.ES[0].regex.test("comentanos CLAUDE y te envío el PDF"), true);
+});
+
+test("ES-2 is bound like ES-1", () => {
   assert.equal(PATTERN_DATA.ES[1].regex.test("comenta CLAUDE para recibir el PDF"), true);
+  assert.equal(PATTERN_DATA.ES[1].regex.test("comentaba CLAUDE para recibir el PDF"), false);
 });

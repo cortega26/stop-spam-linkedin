@@ -29,12 +29,12 @@
     ES: Object.freeze([
       Object.freeze({
         id: "ES-1",
-        regex: /(?:comenta|escribe|responde|pon|poner)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:y\s+(?:te\s+|le\s+|me\s+)?)(?:env\u00ed[oa]|enviar\u00e9|comparto|mando|dar\u00e9|doy|regalo)(?!\w)/i,
+        regex: /(?:comenta|escribe|responde|pon|poner)(?:me|te|le|nos|os|les)?\b\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:y\s+(?:te\s+|le\s+|me\s+)?)(?:env\u00ed[oa]|enviar\u00e9|comparto|mando|dar\u00e9|doy|regalo)(?!\w)/i,
         label: 'comenta "WORD" y te enviaré / comparto ...',
       }),
       Object.freeze({
         id: "ES-2",
-        regex: /(?:comenta|escribe|responde|pon|poner)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:para|y)\s+(?:recibir|obtener|acceder|descargar)\b/i,
+        regex: /(?:comenta|escribe|responde|pon|poner)(?:me|te|le|nos|os|les)?\b\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:para|y)\s+(?:recibir|obtener|acceder|descargar)\b/i,
         label: 'comenta "WORD" para recibir / descargar ...',
       }),
     ]),
