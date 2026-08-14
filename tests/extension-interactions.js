@@ -695,6 +695,61 @@ async function main() {
       "expected a placeholder as the next sibling of the hidden ES post"
     );
 
+    /* ES over-broadness regression (es-imperative-boundary): the leading
+       alternation is now bounded (clitic-tolerant), so the non-imperative
+       "Comentaba ..." section must stay visible while the clitic form
+       "Comentame ..." must still be caught. Both sections are appended in
+       one evaluate so the observer scans them in the same debounced batch —
+       waiting for es-spam-3 to hide proves that batch ran, making the
+       es-spam-2 "stays visible" assertion meaningful. */
+    await linkedInPage.evaluate(() => {
+      const append = (id, text) => {
+        const section = document.createElement("section");
+        section.setAttribute("data-id", id);
+        section.innerHTML =
+          '<div class="update-components-actor"><a href="/in/es-spammer/">Autor ES</a></div>' +
+          "<p>" + text + "</p>";
+        document.querySelector("main").appendChild(section);
+      };
+      append(
+        "urn:li:activity:es-spam-2",
+        "Comentaba CLAUDE y te envío el PDF completo, la plantilla y el flujo de trabajo gratis hoy mismo."
+      );
+      append(
+        "urn:li:activity:es-spam-3",
+        "Comentame CLAUDE y te mando el PDF completo, la plantilla y el flujo de trabajo gratis hoy mismo."
+      );
+    });
+
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display === "none";
+      },
+      '[data-id="urn:li:activity:es-spam-3"]',
+      { timeout: 5000 }
+    );
+    assert.notEqual(
+      await linkedInPage
+        .locator('[data-id="urn:li:activity:es-spam-2"]')
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the non-imperative 'Comentaba ...' section to stay visible (boundary fix)"
+    );
+    assert.equal(
+      await linkedInPage
+        .locator('[data-id="urn:li:activity:es-spam-3"]')
+        .evaluate((el) => {
+          const next = el.nextElementSibling;
+          return next !== null && next.hasAttribute("data-ss-ph");
+        }),
+      true,
+      "expected a placeholder as the next sibling of the hidden clitic-form ES post"
+    );
+    /* Placeholder count grew 2 -> 3: only es-spam-3 earned a placeholder
+       (es-spam-2 stays visible, so it has none). */
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 3);
+
     console.log("Extension interactions test passed.");
   } finally {
     await context.close();
