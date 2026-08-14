@@ -729,23 +729,13 @@
     DE: { native: "Deutsch",   english: "German" },
   };
 
-  /* ── Built-in patterns (display only) ─────────────────────────
-     Keep in sync with BASE_PATTERNS and LANG_META above.
-     When adding a language or pattern to content.js, update
-     LANG_META, BUILTIN, and the language toggle logic here.     */
+  /* ── Built-in patterns (display only) ───────────────────────── */
 
-  const BUILTIN = [
-    { lang: "EN", label: 'comment "WORD" and I\'ll send / share ...' },
-    { lang: "EN", label: '"WORD" and I will send ...' },
-    { lang: "ES", label: 'comenta "WORD" y te enviaré / comparto ...' },
-    { lang: "ES", label: 'comenta "WORD" para recibir / descargar ...' },
-    { lang: "FR", label: 'commentez "WORD" et j\'enverrai / je partage ...' },
-    { lang: "FR", label: 'commentez "WORD" pour recevoir / télécharger ...' },
-    { lang: "PT", label: 'comente "WORD" e enviarei / compartilho ...' },
-    { lang: "PT", label: 'comente "WORD" para receber / baixar ...' },
-    { lang: "DE", label: 'kommentiere "WORD" und ich schicke / teile ...' },
-    { lang: "DE", label: 'kommentiere "WORD" um zu bekommen / erhalten ...' },
-  ];
+  /* Derived from shared/pattern-data.js — see that file for the actual
+     pattern definitions this describes. */
+  const BUILTIN = Object.entries(SS_PATTERN_DATA).flatMap(([lang, entries]) =>
+    entries.map((entry) => ({ lang, label: entry.label }))
+  );
 
   /* ── Helpers ────────────────────────────────────────────────── */
 
