@@ -839,6 +839,7 @@
       if (ph && ph.dataset && ph.dataset.ssPh) ph.remove();
     }
     blockedPosts.clear();
+    processed = new WeakSet();
     setBadge("");
   }
 
