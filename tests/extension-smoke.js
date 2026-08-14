@@ -161,10 +161,7 @@ async function main() {
       '[data-id="urn:li:activity:spam-1"]',
       { timeout: 4000 }
     );
-    await assert.ok(
-      (await page.locator("[data-ss-ph]").count()) >= 1,
-      "expected post to be re-blocked with a placeholder after toggle-on"
-    );
+    await assertCount(page.locator("[data-ss-ph]"), 1);
 
     const countAfterToggle = await getLocalStorage(context, "ss_blocked_count");
     assert.equal(

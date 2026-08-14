@@ -661,6 +661,13 @@
     if (postKey && cooldownStore.has(postKey)) return;
     if (processed.has(post) || forceShow.has(post)) return;
 
+    /* Idempotency guard: a placeholder as the post's next sibling means
+       it is already blocked — a duplicate scan (toggle-on schedules one
+       while storage.onChanged schedules another) must not block it again,
+       which would stack a second placeholder and a second undo entry. */
+    const existingPh = post.nextElementSibling;
+    if (existingPh && existingPh.dataset && existingPh.dataset.ssPh) return;
+
     /* Skip if author is whitelisted. */
     const authorId = textNode ? getAuthorId(post) : null;
     if (authorId && whitelistedAuthors.has(authorId)) return;
