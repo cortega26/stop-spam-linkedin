@@ -173,6 +173,36 @@ async function main() {
       "expected blocked count unchanged after toggle off/on"
     );
 
+    await page.reload({ waitUntil: "domcontentloaded" });
+
+    const placeholderAfterReload = page.locator("[data-ss-ph]");
+    await placeholderAfterReload.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(placeholderAfterReload, 1);
+
+    await page.getByRole("button", { name: /Show|Mostrar/ }).first().click();
+
+    await assertCount(page.locator("[data-ss-ph]"), 0);
+    await assert.notEqual(
+      await page.locator('[data-id="urn:li:activity:spam-1"]').evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected spam post to be visible after Show"
+    );
+
+    await page.evaluate(() => {
+      const section = document.querySelector('[data-id="urn:li:activity:spam-1"]');
+      const clone = section.cloneNode(true);
+      section.replaceWith(clone);
+    });
+
+    await page.waitForTimeout(1500);
+
+    await assert.notEqual(
+      await page.locator('[data-id="urn:li:activity:spam-1"]').evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected re-created spam post to stay visible during cooldown"
+    );
+    await assertCount(page.locator("[data-ss-ph]"), 0);
+
     console.log("Extension smoke test passed.");
   } finally {
     await context.close();
