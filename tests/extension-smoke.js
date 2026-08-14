@@ -134,6 +134,45 @@ async function main() {
     );
     await assertCount(page.locator("[data-ss-ph]"), 1);
 
+    const countBeforeToggle = await getLocalStorage(context, "ss_blocked_count");
+    assert.equal(countBeforeToggle, 1, "expected one spam post counted before toggle");
+
+    const offResponse = await sendTabMessage(context, { action: "toggle", enabled: false });
+    assert.ok(offResponse, "expected toggle-off message to reach the content script");
+
+    await page.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display !== "none";
+      },
+      '[data-id="urn:li:activity:spam-1"]',
+      { timeout: 4000 }
+    );
+    await assertCount(page.locator("[data-ss-ph]"), 0);
+
+    const onResponse = await sendTabMessage(context, { action: "toggle", enabled: true });
+    assert.ok(onResponse, "expected toggle-on message to reach the content script");
+
+    await page.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display === "none";
+      },
+      '[data-id="urn:li:activity:spam-1"]',
+      { timeout: 4000 }
+    );
+    await assert.ok(
+      (await page.locator("[data-ss-ph]").count()) >= 1,
+      "expected post to be re-blocked with a placeholder after toggle-on"
+    );
+
+    const countAfterToggle = await getLocalStorage(context, "ss_blocked_count");
+    assert.equal(
+      countAfterToggle,
+      countBeforeToggle,
+      "expected blocked count unchanged after toggle off/on"
+    );
+
     console.log("Extension smoke test passed.");
   } finally {
     await context.close();
@@ -178,6 +217,15 @@ async function setLocalStorage(context, patch) {
   await worker.evaluate((value) => new Promise((resolve) => {
     chrome.storage.local.set(value, resolve);
   }), patch);
+}
+
+async function getLocalStorage(context, key) {
+  const worker = context.serviceWorkers()[0] || await context.waitForEvent("serviceworker", {
+    timeout: 10000,
+  });
+  return worker.evaluate((k) => new Promise((resolve) => {
+    chrome.storage.local.get(k, (result) => resolve(result[k]));
+  }), key);
 }
 
 async function sendTabMessage(context, msg) {

@@ -100,6 +100,7 @@
   let observer = null;
   let processed = new WeakSet();
   let forceShow = new WeakSet();
+  let counted = new WeakSet();
   let snoozeTimer = null;
   let snoozeUntil = 0;
 
@@ -686,7 +687,12 @@
     processed.add(post);
     post.style.display = "none";
     blockedPosts.add(post);
-    blockedCount++;
+    if (!counted.has(post)) {
+      counted.add(post);
+      blockedCount++;
+      const key = getTodayKey();
+      dailyCounts[key] = (dailyCounts[key] || 0) + 1;
+    }
     setBadge(String(blockedCount));
 
     /* Track last blocked for undo in popup. */
@@ -729,10 +735,6 @@
         }
       }
     }
-
-    /* Daily stats. */
-    const key = getTodayKey();
-    dailyCounts[key] = (dailyCounts[key] || 0) + 1;
 
     /* First-run toast. */
     if (!onboarded) showFirstRunToast();
