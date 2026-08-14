@@ -19,6 +19,8 @@ node_modules/
 .codacy/
 .github/instructions/
 skills-lock.json
+.codegraph/
+daemon.pid
 
 # Python (used for screenshot generation)
 __pycache__/
