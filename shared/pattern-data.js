@@ -246,6 +246,54 @@
     };
   }
 
+  /* Exclusion-map byte accounting and eviction (plan 022). Entries are
+     { sig, preview, created } objects keyed by signature; the entry shape
+     MUST stay in sync with content.js's normalizeExcludedEntries, which
+     lives in a different file since this logic was extracted. */
+  /**
+   * Serialized byte size of an exclusion map plus its storage key, using
+   * the same serialization shape as content.js's write path.
+   * @param {Map<string, {preview: (string|null), created: (number|null)}>} map
+   * @param {string} storageKey
+   * @returns {number}
+   */
+  function estimateEntriesBytes(map, storageKey) {
+    return storageKey.length + JSON.stringify(Array.from(map, ([sig, meta]) => ({
+      sig,
+      preview: meta.preview,
+      created: meta.created,
+    }))).length;
+  }
+
+  /**
+   * Evicts entries from an exclusion map until its estimated bytes fit
+   * under safeByteLimit. Mutates the map in place. The victim policy is
+   * documented in content.js's "Not spam" flow: preview-less entries
+   * (already-unrecoverable legacy hashes) evict before preview-ful ones,
+   * ties broken by oldest `created` (nulls sort first — treat as
+   * "oldest").
+   * @param {Map<string, {preview: (string|null), created: (number|null)}>} map
+   * @param {string} storageKey
+   * @param {number} safeByteLimit
+   */
+  function pruneExcludedByBytes(map, storageKey, safeByteLimit) {
+    while (map.size > 0 && estimateEntriesBytes(map, storageKey) > safeByteLimit) {
+      let victimSig = null;
+      let victimScore = Infinity;
+      for (const [sig, meta] of map) {
+        /* 1e12 — sort-priority constant, exact and well below 2^53: makes
+           preview-less entries evict first regardless of created time. */
+        const score = (meta.preview ? 1e12 : 0) + (meta.created || 0);
+        if (score < victimScore) {
+          victimScore = score;
+          victimSig = sig;
+        }
+      }
+      if (victimSig === null) break;
+      map.delete(victimSig);
+    }
+  }
+
   root.SS_PATTERN_DATA = PATTERN_DATA;
   root.SS_PROMOTED_LABELS = PROMOTED_LABELS;
   root.SS_FEATURED_LABELS = FEATURED_LABELS;
@@ -257,6 +305,8 @@
   root.SS_getExcludedSignature = getExcludedSignature;
   root.SS_getLocalDayKey = getLocalDayKey;
   root.SS_createCooldownStore = createCooldownStore;
+  root.SS_estimateEntriesBytes = estimateEntriesBytes;
+  root.SS_pruneExcludedByBytes = pruneExcludedByBytes;
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = {
@@ -271,6 +321,8 @@
       getExcludedSignature,
       getLocalDayKey,
       createCooldownStore,
+      estimateEntriesBytes,
+      pruneExcludedByBytes,
     };
   }
 })(typeof self !== "undefined" ? self : globalThis);

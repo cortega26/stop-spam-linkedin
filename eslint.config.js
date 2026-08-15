@@ -34,6 +34,8 @@ const browserExtensionGlobals = {
   SS_getExcludedSignature: "readonly",
   SS_getLocalDayKey: "readonly",
   SS_createCooldownStore: "readonly",
+  SS_estimateEntriesBytes: "readonly",
+  SS_pruneExcludedByBytes: "readonly",
   SS_PROMOTED_LABELS: "readonly",
   SS_FEATURED_LABELS: "readonly",
   SS_matchesLabel: "readonly",

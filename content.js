@@ -868,7 +868,7 @@
             preview: truncateForPreview(matchedText, CONFIG.EXCLUSION_PREVIEW_LENGTH),
             created: Date.now(),
           });
-          pruneExcludedByBytes(
+          SS_pruneExcludedByBytes(
             excludedSignatures,
             STORAGE_KEYS.EXCLUDED,
             Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.9)
@@ -1285,33 +1285,6 @@
       preview: meta.preview,
       created: meta.created,
     }));
-  }
-
-  function estimateEntriesBytes(map, storageKey) {
-    return storageKey.length + JSON.stringify(serializeExcluded(map)).length;
-  }
-
-  function pruneExcludedByBytes(map, storageKey, safeByteLimit) {
-    while (map.size > 0 && estimateEntriesBytes(map, storageKey) > safeByteLimit) {
-      /* Evict the least useful entry: prefer removing entries with no
-         preview (already-unrecoverable legacy hashes, or migrated
-         plain-text that's already been through one round of truncation)
-         over ones with a live preview; break ties by oldest `created`
-         (nulls sort first — treat as "oldest"). */
-      let victimSig = null;
-      let victimScore = Infinity;
-      for (const [sig, meta] of map) {
-        /* 1e12 — sort-priority constant, exact and well below 2^53: makes
-           preview-less entries evict first regardless of created time. */
-        const score = (meta.preview ? 1e12 : 0) + (meta.created || 0);
-        if (score < victimScore) {
-          victimScore = score;
-          victimSig = sig;
-        }
-      }
-      if (victimSig === null) break;
-      map.delete(victimSig);
-    }
   }
 
   function pruneSet(set, maxSize) {
