@@ -95,6 +95,72 @@ async function main() {
     );
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 0);
 
+    /* ── Popup: undo resolves by stable id, not index (021) ─────── */
+
+    /* Reload for a deterministic blocked state (the undo above put
+       spam-1 on the re-block cooldown). */
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* Block a second post so the popup renders two undo rows. */
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:spam-2";
+      section.innerHTML =
+        '<p>Comment "CLAUDE" and I\'ll send you the second checklist for free today.</p>';
+      document.querySelector("main").appendChild(section);
+    });
+    await linkedInPage.waitForFunction(
+      () => document.querySelectorAll("[data-ss-ph]").length === 2,
+      { timeout: 10000 }
+    );
+
+    /* Snapshot the two rows: row 0 = spam-2, row 1 = spam-1. */
+    await linkedInPage.bringToFront();
+    await popup.reload({ waitUntil: "domcontentloaded" });
+    await popup.waitForFunction(
+      () => document.querySelectorAll(".last-blocked-item").length === 2,
+      { timeout: 10000 }
+    );
+
+    /* A third block lands AFTER the popup rendered its rows, shifting
+       indices to [spam-3, spam-2, spam-1]. The clicked row must still
+       resolve to spam-1 by its stable id — index lookup would restore
+       spam-2 instead. */
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:spam-3";
+      section.innerHTML =
+        '<p>Comment "CLAUDE" and I\'ll send you the third checklist for free today.</p>';
+      document.querySelector("main").appendChild(section);
+    });
+    await linkedInPage.waitForFunction(
+      () => document.querySelectorAll("[data-ss-ph]").length === 3,
+      { timeout: 10000 }
+    );
+
+    await linkedInPage.bringToFront();
+    await popup.locator(".lb-undo").nth(1).click();
+
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display !== "none";
+      },
+      '[data-id="urn:li:activity:spam-1"]',
+      { timeout: 4000 }
+    );
+    const spam2Display = await linkedInPage
+      .locator('[data-id="urn:li:activity:spam-2"]')
+      .evaluate((el) => getComputedStyle(el).display);
+    const spam3Display = await linkedInPage
+      .locator('[data-id="urn:li:activity:spam-3"]')
+      .evaluate((el) => getComputedStyle(el).display);
+    assert.equal(spam2Display, "none", "undo must restore spam-1, not the index-shifted spam-2");
+    assert.equal(spam3Display, "none", "spam-3 must stay hidden");
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+
     /* ── Popup: toggle off/on (plan 014 step 3.1-3.2) ───────────── */
 
     /* The undo above put spam-1 on the 15-minute re-block cooldown

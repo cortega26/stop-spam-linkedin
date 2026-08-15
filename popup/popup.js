@@ -196,7 +196,7 @@
     if (hasLiveState && response.lastBlocked && response.lastBlocked.length > 0) {
       lastBlockedSection.style.display = "block";
       lastBlockedList.innerHTML = "";
-      response.lastBlocked.forEach((item, index) => {
+      response.lastBlocked.forEach((item) => {
         const row = document.createElement("div");
         row.className = "last-blocked-item";
 
@@ -226,7 +226,7 @@
         undoBtn.className = "lb-undo";
         undoBtn.textContent = t("undo");
         undoBtn.addEventListener("click", () => {
-          send({ action: "undoBlock", index }, (resp) => {
+          send({ action: "undoBlock", id: item.id }, (resp) => {
             if (resp && resp.ok) refreshState();
           });
         });

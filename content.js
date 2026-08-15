@@ -104,6 +104,7 @@
 
   /* Sliding window of last 5 blocked posts for undo in popup. */
   const lastBlocked = [];
+  let lastBlockedSeq = 0;
 
   /* Onboarding & daily stats. */
   let onboarded = false;
@@ -327,6 +328,7 @@
           dailyCounts,
           onboarded,
           lastBlocked: lastBlocked.map(item => ({
+            id: item.id,
             triggerText: item.triggerText,
             label: item.label,
             source: item.source,
@@ -378,10 +380,13 @@
 
       case "undoBlock":
         {
-          const entry = lastBlocked[msg.index];
+          /* Resolve by stable id, not index: the popup's row order can
+             shift when a new block lands between render and click. */
+          const index = lastBlocked.findIndex(item => item.id === msg.id);
+          const entry = index >= 0 ? lastBlocked[index] : undefined;
           if (entry) {
             restorePost(entry.post);
-            lastBlocked.splice(msg.index, 1);
+            lastBlocked.splice(index, 1);
             sendResponse({ ok: true });
           } else {
             sendResponse({ ok: false });
@@ -777,10 +782,16 @@
     }
     if (!isLabelBlock) setBadge(String(blockedCount));
 
-    /* Track last blocked for undo in popup. */
+    /* Track last blocked for undo in popup. The id is the post's stable
+       data-id when present (survives node re-creation), else a unique
+       session id — the popup resolves undo by id, never by array index,
+       so a new block between render and click can't shift the wrong post
+       into the clicked row. */
     if (textNode && !isLabelBlock) {
+      const postKey = post.getAttribute("data-id");
       lastBlocked.unshift({
         post,
+        id: postKey || `uid:${++lastBlockedSeq}`,
         triggerText: extractTrigger(textNode.textContent),
         label: info ? info.label : undefined,
         source: info ? info.source : undefined,
