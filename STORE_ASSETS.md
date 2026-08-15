@@ -71,6 +71,67 @@ For bugs, false positives, or missed spam patterns, report the phrase and Linked
 
 ---
 
+## Español — Texto para la ficha de la tienda
+
+### Short Description (≤132 chars)
+
+Oculta el spam de engagement de LinkedIn ("Comenta X y te envío..."), publicaciones promocionadas y más — de forma privada, en tu navegador.
+
+### Detailed Description
+
+El feed de LinkedIn está inundado de publicaciones de engagement bait de bajo esfuerzo. El patrón es siempre el mismo: publicar un "truco de carrera" o "secreto de IA" genérico y pedir a los lectores que comenten una palabra concreta (CLAUDE, SKILL, PROMPTS, etc.) a cambio de un archivo, PDF, plantilla o "acceso". Satura tu feed y aporta cero valor.
+
+Por qué existe: el flujo de reportes de LinkedIn a menudo deja intacto el spam de engagement, mientras que los incentivos por alcance premian las publicaciones que generan comentarios vacíos. LinkedIn Spam Blocker te da una forma local y privada de limpiar tu propio feed sin esperar a la intervención de la plataforma.
+
+**LinkedIn Spam Blocker detecta y elimina automáticamente estas publicaciones — sin necesidad de reportarlas manualmente.**
+
+### Cómo funciona
+
+La extensión analiza las páginas compatibles de LinkedIn buscando patrones de engagement bait en 5 idiomas (inglés, español, francés, portugués y alemán). Cuando encuentra una coincidencia, oculta la publicación y la sustituye por un marcador discreto. Puedes hacer clic en "Mostrar" para restaurar cualquier publicación temporalmente o en "No es spam" si se bloqueó incorrectamente.
+
+Todo ocurre localmente en tu navegador. La extensión no reporta publicaciones, no contacta a LinkedIn, no usa IA, no llama APIs externas, no recopila analíticas ni envía tus datos de navegación a ningún sitio.
+
+### Funciones
+
+- **Detección automática** — 10 patrones integrados que cubren las estructuras de spam más comunes en 5 idiomas
+- **Frases personalizadas** — Añade tus propias palabras o frases desde la página de ajustes, con coincidencia "Exacta" (palabra completa) o "Contiene" (subcadena)
+- **Añadir con clic derecho** — Selecciona cualquier texto, haz clic derecho y elige "Añadir a LinkedIn Spam Blocker" para agregarlo al instante como frase de bloqueo
+- **Importar / Exportar** — Copia de seguridad completa: frases, lista de autores permitidos, exclusiones y toggles de idioma viajan con la exportación (las exportaciones antiguas de solo frases siguen importándose)
+- **Pausa (Snooze)** — Pausa temporal del bloqueo durante 30 minutos sin desactivar la extensión
+- **Deshacer y controles de falsos positivos** — Restaura una publicación temporalmente, márcala como "No es spam" o revisa/elimina exclusiones pasadas desde los ajustes
+- **Lista de autores permitidos** — Evita bloquear autores seleccionados de perfiles, empresas, escuelas o showcases
+- **Lista de autores bloqueados** — Haz clic derecho en cualquier enlace de perfil, empresa, escuela o showcase de LinkedIn y elige "Bloquear a este autor" para ocultar siempre sus publicaciones, sin importar el texto
+- **Toggles por frase** — Desactiva frases individuales sin eliminarlas
+- **Toggles por patrón** — Desactiva un único patrón integrado de detección (no solo un idioma completo)
+- **"Mostrar todas"** — Restaura todas las publicaciones ocultas de la sesión desde el popup con un clic
+- **"Reportar spam no detectado"** — Los marcadores copian el texto de la publicación al portapapeles y abren un issue de GitHub prellenado; no se envía nada automáticamente
+- **Atribución de coincidencia** — El popup muestra qué patrón o frase personalizada disparó cada bloqueo
+- **Ocultar promocionadas y destacadas** — Toggles opcionales para ocultar publicaciones "Promocionadas" en el feed y la sección "Destacados" en los perfiles (desactivados por defecto)
+- **Incremental y robusto** — Usa heurísticas de estructura DOM en lugar de selectores CSS frágiles, así los cambios de diseño de LinkedIn no rompen la detección
+- **Bajo consumo** — Solo analiza publicaciones recién cargadas (no toda la página) mediante MutationObserver. El escaneo inicial corre en tiempo de inactividad
+- **Funciona en todo LinkedIn** — Feed, perfiles, publicaciones, páginas de empresa, grupos, búsqueda, Mi red, notificaciones, empleos, newsletters y artículos
+- **Privacidad primero** — Cero recopilación de datos. Sin analíticas, sin seguimiento, sin peticiones externas. Todo funciona localmente en tu navegador
+- **Chrome y Firefox** — Totalmente compatible con ambos navegadores (Manifest V3)
+
+### Cómo usarlo
+
+1. Instala la extensión
+2. Desplázate por tu feed de LinkedIn — el spam se elimina automáticamente
+3. Haz clic en el icono de la extensión para ver el contador de bloqueos, activar/desactivar, pausar o restaurar todas las ocultas
+4. Haz clic en "Gestionar frases de coincidencia" para añadir palabras clave o importar una lista de frases
+5. Usa "Mostrar", "No es spam" o "Reportar spam no detectado" si una publicación se bloqueó incorrectamente o si un spam se coló
+6. Haz clic derecho en cualquier texto sospechoso para añadirlo al instante, o en un enlace de perfil de LinkedIn para bloquear a ese autor
+
+### Lo que no hace
+
+- No reporta publicaciones a LinkedIn
+- No elimina publicaciones para nadie más
+- No bloquea cuentas globalmente
+- No usa IA, APIs externas ni listas remotas
+- No recopila analíticas, telemetría, historial de navegación ni datos de cuenta de LinkedIn
+
+---
+
 ## Screenshots
 
 ### Screenshot 1 — Feed with blocked post (screenshots/screenshot-1-feed.png)
