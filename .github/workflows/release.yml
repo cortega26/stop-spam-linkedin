@@ -39,6 +39,33 @@ jobs:
           path: dist/linkedin-spam-blocker-*.zip
           if-no-files-found: error
 
+  github-release:
+    name: Create GitHub Release
+    runs-on: ubuntu-latest
+    needs: package
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+
+      - name: Download artifact
+        uses: actions/download-artifact@v5
+        with:
+          name: extension-zip
+          path: dist
+
+      - name: Create GitHub Release
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          NOTES="$(awk -v v="## $VERSION" '$0==v{f=1;next} f&&/^## /{exit} f' RELEASE_NOTES.md)"
+          gh release create "$GITHUB_REF_NAME" dist/*.zip \
+            --title "LinkedIn Spam Blocker $VERSION" \
+            --notes "$NOTES"
+        env:
+          GH_TOKEN: ${{ github.token }}
+
   chrome:
     name: Submit to Chrome Web Store
     runs-on: ubuntu-latest
