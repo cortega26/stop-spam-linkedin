@@ -147,10 +147,14 @@
    * @returns {string}
    */
   function hashString(value) {
-    let hash = 0x811c9dc5;
+    /* FNV-1a offset basis and prime. Decimal forms of 0x811c9dc5 and
+       0x01000193. These MUST NEVER change: exclusion signatures are
+       persisted hashes — changing them would invalidate every user's
+       stored "Not spam" exclusions. */
+    let hash = 2166136261;
     for (let i = 0; i < value.length; i++) {
       hash ^= value.charCodeAt(i);
-      hash = Math.imul(hash, 0x01000193);
+      hash = Math.imul(hash, 16777619);
     }
     return (hash >>> 0).toString(36);
   }

@@ -666,9 +666,17 @@ async function main() {
     await linkedInPage.evaluate(() => {
       const section = document.createElement("section");
       section.setAttribute("data-id", "urn:li:activity:es-spam-1");
-      section.innerHTML =
-        '<div class="update-components-actor"><a href="/in/es-spammer/">Autor ES</a></div>' +
-        "<p>Comenta CLAUDE y te envío el PDF completo, la plantilla y el flujo de trabajo gratis hoy mismo.</p>";
+      const actor = document.createElement("div");
+      actor.className = "update-components-actor";
+      const link = document.createElement("a");
+      link.href = "/in/es-spammer/";
+      link.textContent = "Autor ES";
+      actor.appendChild(link);
+      const paragraph = document.createElement("p");
+      paragraph.textContent =
+        "Comenta CLAUDE y te envío el PDF completo, la plantilla y el flujo de trabajo gratis hoy mismo.";
+      section.appendChild(actor);
+      section.appendChild(paragraph);
       document.querySelector("main").appendChild(section);
     });
 
@@ -706,9 +714,16 @@ async function main() {
       const append = (id, text) => {
         const section = document.createElement("section");
         section.setAttribute("data-id", id);
-        section.innerHTML =
-          '<div class="update-components-actor"><a href="/in/es-spammer/">Autor ES</a></div>' +
-          "<p>" + text + "</p>";
+        const actor = document.createElement("div");
+        actor.className = "update-components-actor";
+        const link = document.createElement("a");
+        link.href = "/in/es-spammer/";
+        link.textContent = "Autor ES";
+        actor.appendChild(link);
+        const paragraph = document.createElement("p");
+        paragraph.textContent = text;
+        section.appendChild(actor);
+        section.appendChild(paragraph);
         document.querySelector("main").appendChild(section);
       };
       append(

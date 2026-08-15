@@ -572,8 +572,7 @@
       NodeFilter.SHOW_TEXT,
       filter
     );
-    let node;
-    while ((node = walker.nextNode())) callback(node);
+    for (let node = walker.nextNode(); node; node = walker.nextNode()) callback(node);
 
     /* Shadow DOM */
     const elWalker = document.createTreeWalker(
@@ -581,7 +580,7 @@
       NodeFilter.SHOW_ELEMENT,
       null
     );
-    while ((node = elWalker.nextNode())) {
+    for (let node = elWalker.nextNode(); node; node = elWalker.nextNode()) {
       if (node instanceof Element && node.shadowRoot) forEachTextNode(node.shadowRoot, callback);
     }
   }
@@ -1267,7 +1266,9 @@
       let victimSig = null;
       let victimScore = Infinity;
       for (const [sig, meta] of map) {
-        const score = (meta.preview ? 1_000_000_000_000 : 0) + (meta.created || 0);
+        /* 1e12 — sort-priority constant, exact and well below 2^53: makes
+           preview-less entries evict first regardless of created time. */
+        const score = (meta.preview ? 1e12 : 0) + (meta.created || 0);
         if (score < victimScore) {
           victimScore = score;
           victimSig = sig;
