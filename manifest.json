@@ -43,7 +43,7 @@
         "https://www.linkedin.com/newsletters/*",
         "https://www.linkedin.com/pulse/*"
       ],
-      "js": ["shared/constants.js", "shared/pattern-data.js", "content.js"],
+      "js": ["shared/constants.js", "shared/pattern-data.js", "shared/post-container.js", "content.js"],
       "run_at": "document_idle"
     }
   ],

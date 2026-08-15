@@ -17,6 +17,7 @@ const files = [
   "background.js",
   "shared/constants.js",
   "shared/pattern-data.js",
+  "shared/post-container.js",
   "content.js",
   "i18n.js",
   "LICENSE",

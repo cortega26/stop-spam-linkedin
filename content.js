@@ -614,93 +614,9 @@
    *  POST-CONTAINER DETECTION — STRATEGY CHAIN
    * ================================================================== */
 
-  const CONTAINER_STRATEGIES = [
-    findBySiblingHeuristic,
-    findByKnownSelectors,
-  ];
-
-  function findPostContainer(textNode) {
-    for (const strategy of CONTAINER_STRATEGIES) {
-      try {
-        const result = strategy(textNode);
-        if (result instanceof Element) return result;
-      } catch (_) {
-        /* skip failed strategy */
-      }
-    }
-    return null;
-  }
-
-  /* ── Strategy 1: sibling-content heuristic (zero selectors) ──── */
-
-  function findBySiblingHeuristic(textNode) {
-    let el = textNode.parentElement;
-    let depth = 0;
-
-    while (el && el !== document.body && depth < CONFIG.DEPTH_LIMIT) {
-      depth++;
-      const parent = el.parentElement;
-      if (!parent || parent === document.body) break;
-
-      const siblings = parent.children;
-      let heavySiblings = 0;
-      for (let i = 0; i < siblings.length; i++) {
-        if (siblings[i] === el) continue;
-        if (
-          siblings[i].textContent.trim().length >
-          CONFIG.SIBLING_CONTENT_THRESHOLD
-        )
-          heavySiblings++;
-      }
-
-      if (heavySiblings >= CONFIG.SIBLING_COUNT_THRESHOLD) {
-        const gp = parent.parentElement;
-        if (gp && gp !== document.body) {
-          let gpHeavy = 0;
-          for (const child of gp.children) {
-            if (child === parent) continue;
-            if (
-              child.textContent.trim().length >
-              CONFIG.SIBLING_CONTENT_THRESHOLD
-            )
-              gpHeavy++;
-          }
-          if (gpHeavy >= CONFIG.SIBLING_COUNT_THRESHOLD) {
-            el = parent;
-            continue;
-          }
-        }
-        return el;
-      }
-
-      if (siblings.length >= CONFIG.FEED_SIBLING_FALLBACK) {
-        if (el.textContent.trim().length > CONFIG.MIN_TEXT_LENGTH) return el;
-      }
-
-      if (
-        depth >= 4 &&
-        el.textContent.trim().length > CONFIG.CONTENT_LENGTH_THRESHOLD
-      )
-        return el;
-
-      el = parent;
-    }
-
-    return null;
-  }
-
-  /* ── Strategy 2: known attribute / tag selectors ──────────────── */
-
-  function findByKnownSelectors(textNode) {
-    let el = textNode.parentElement;
-    while (el && el !== document.body) {
-      for (const sel of POST_SELECTORS) {
-        if (el.matches?.(sel)) return el;
-      }
-      el = el.parentElement;
-    }
-    return null;
-  }
+  /* Implemented in shared/post-container.js — see that file for the
+     actual heuristics. content.js only wires them up with the live
+     CONFIG and POST_SELECTORS so they stay unit-testable. */
 
   /* ==================================================================
    *  SCANNING
@@ -712,7 +628,7 @@
 
     const matches = findSpamTextNodes(root);
     for (const { node: textNode, match } of matches) {
-      const container = findPostContainer(textNode);
+      const container = SS_findPostContainer(textNode, CONFIG, POST_SELECTORS);
       if (
         container &&
         !processed.has(container) &&

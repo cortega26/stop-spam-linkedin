@@ -37,6 +37,9 @@ const browserExtensionGlobals = {
   SS_FEATURED_LABELS: "readonly",
   SS_matchesLabel: "readonly",
   SS_CONSTANTS: "readonly",
+  SS_findBySiblingHeuristic: "readonly",
+  SS_findByKnownSelectors: "readonly",
+  SS_findPostContainer: "readonly",
 };
 
 const nodeGlobals = {
