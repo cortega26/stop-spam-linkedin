@@ -134,7 +134,11 @@
     for (const pattern of patterns) {
       const match = url.pathname.match(pattern.re);
       if (match) {
-        return pattern.prefix + decodeURIComponent(match[1].toLowerCase());
+        try {
+          return pattern.prefix + decodeURIComponent(match[1].toLowerCase());
+        } catch (_) {
+          return null;
+        }
       }
     }
 
