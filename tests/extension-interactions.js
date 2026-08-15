@@ -207,6 +207,71 @@ async function main() {
     assert.equal(spam1Display, "none", "unrelated post must stay hidden");
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
 
+    /* ── Same-tab whitelist restore: "Never block this author"
+       un-hides ALL of that author's posts in the writing tab (023) ─ */
+
+    /* Reload for a deterministic state; the injected spam-author-1
+       node above was part of the previous document. */
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* Two posts by the SAME author, each blocked on text. With the
+       bug, the onChanged diff compared against the live whitelist set
+       (already mutated by the button handler), so the writing tab
+       restored only the clicked post — the other stayed hidden. */
+    await linkedInPage.evaluate(() => {
+      for (const id of ["same-author-1", "same-author-2"]) {
+        const section = document.createElement("section");
+        section.dataset.id = `urn:li:activity:${id}`;
+        section.innerHTML =
+          '<div class="update-components-actor">' +
+          '<a href="/in/same-author/">Same Author</a>' +
+          "</div>" +
+          '<p>Comment "CLAUDE" and I\'ll send you the checklist for free today.</p>';
+        document.querySelector("main").appendChild(section);
+      }
+    });
+    await linkedInPage.waitForFunction(
+      () => document.querySelectorAll("[data-ss-ph]").length === 3,
+      { timeout: 10000 }
+    );
+
+    /* Click "Never block this author" on the FIRST injected post's
+       placeholder; only same-author posts carry that button here. */
+    await linkedInPage
+      .locator("[data-ss-ph] button", {
+        hasText: /Never block|No bloquear/,
+      })
+      .first()
+      .click();
+
+    /* Both of the author's posts must un-hide in THIS tab — the
+       regression this fix enables. spam-1 stays hidden. */
+    await linkedInPage.waitForFunction(
+      () =>
+        getComputedStyle(
+          document.querySelector('[data-id="urn:li:activity:same-author-1"]')
+        ).display !== "none" &&
+        getComputedStyle(
+          document.querySelector('[data-id="urn:li:activity:same-author-2"]')
+        ).display !== "none",
+      { timeout: 4000 }
+    );
+    const spam1DisplaySameTab = await linkedInPage
+      .locator('[data-id="urn:li:activity:spam-1"]')
+      .evaluate((el) => getComputedStyle(el).display);
+    assert.equal(spam1DisplaySameTab, "none", "unrelated post must stay hidden");
+    await linkedInPage.waitForFunction(
+      () => document.querySelectorAll("[data-ss-ph]").length === 1,
+      { timeout: 4000 }
+    );
+    const sameTabWhitelist = await getSyncStorage(context, "ss_whitelist");
+    assert.ok(
+      Array.isArray(sameTabWhitelist) && sameTabWhitelist.includes("same-author"),
+      "expected same-author to be written to the whitelist"
+    );
+
     /* ── Popup: toggle off/on (plan 014 step 3.1-3.2) ───────────── */
 
     /* The undo above put spam-1 on the 15-minute re-block cooldown
