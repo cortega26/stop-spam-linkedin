@@ -1013,6 +1013,11 @@
     }
     blockedPosts.clear();
     processed = new WeakSet();
+    /* Bulk restore invalidates the popup's undo window: the same posts
+       will be re-blocked by the next scan and re-added, so dropping the
+       stale rows here prevents duplicate undo entries after snooze,
+       disable, or "Show all". */
+    lastBlocked.length = 0;
     setBadge("");
   }
 
