@@ -161,6 +161,52 @@ async function main() {
     assert.equal(spam3Display, "none", "spam-3 must stay hidden");
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
 
+    /* ── Whitelist add un-hides that author's blocked posts (021) ── */
+
+    /* Reload for a deterministic state; the injected spam-2/spam-3
+       nodes above were part of the previous document. */
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* A spam post whose author is NOT yet whitelisted. */
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:spam-author-1";
+      section.innerHTML =
+        '<div class="update-components-actor">' +
+        '<a href="/in/spam-author/">Spam Author</a>' +
+        "</div>" +
+        '<p>Comment "CLAUDE" and I\'ll send you the checklist for free today.</p>';
+      document.querySelector("main").appendChild(section);
+    });
+    await linkedInPage.waitForFunction(
+      () => document.querySelectorAll("[data-ss-ph]").length === 2,
+      { timeout: 10000 }
+    );
+    const hiddenBefore = await linkedInPage
+      .locator('[data-id="urn:li:activity:spam-author-1"]')
+      .evaluate((el) => getComputedStyle(el).display);
+    assert.equal(hiddenBefore, "none", "spam-author-1 must be blocked before whitelisting");
+
+    /* Whitelisting the author in options/storage must un-hide their
+       posts, exactly like the in-flow "Never block this author" button. */
+    await setSyncStorage(context, { ss_whitelist: ["trusted", "spam-author"] });
+
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display !== "none";
+      },
+      '[data-id="urn:li:activity:spam-author-1"]',
+      { timeout: 4000 }
+    );
+    const spam1Display = await linkedInPage
+      .locator('[data-id="urn:li:activity:spam-1"]')
+      .evaluate((el) => getComputedStyle(el).display);
+    assert.equal(spam1Display, "none", "unrelated post must stay hidden");
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
     /* ── Popup: toggle off/on (plan 014 step 3.1-3.2) ───────────── */
 
     /* The undo above put spam-1 on the 15-minute re-block cooldown

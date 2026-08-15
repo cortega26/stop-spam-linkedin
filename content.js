@@ -96,6 +96,10 @@
 
   /* Strong set of blocked elements so we can restore them on disable. */
   const blockedPosts = new Set();
+  /* Posts hidden by the opt-in label filters (Promoted/Featured). A
+     whitelist change must never un-hide these: they're hidden by class,
+     not by author. */
+  const labelBlockedPosts = new Set();
 
   /* Cooldown after user presses "Show" — keyed by post identity
      (data-id) so it survives virtual-scroll node re-creation.
@@ -302,7 +306,15 @@
         spamPatterns = buildPatterns(userPhrases, enabledLangs);
       }
       if (changes[STORAGE_KEYS.WHITELIST]) {
+        const previous = whitelistedAuthors;
         whitelistedAuthors = new Set(changes[STORAGE_KEYS.WHITELIST].newValue || []);
+        /* An author added here (options page / import) should un-hide
+           their already-blocked posts, matching the in-flow "Never block
+           this author" button. Only newly-added ids act; onChanged fires
+           per change, so this is a genuine add. */
+        for (const id of whitelistedAuthors) {
+          if (!previous.has(id)) restoreAuthorPosts(id);
+        }
       }
       if (changes[STORAGE_KEYS.BLOCKED_AUTHORS]) {
         blockedAuthors = new Set(changes[STORAGE_KEYS.BLOCKED_AUTHORS].newValue || []);
@@ -771,6 +783,7 @@
     processed.add(post);
     post.style.display = "none";
     blockedPosts.add(post);
+    if (isLabelBlock) labelBlockedPosts.add(post);
     /* Label hides are opt-in cosmetic filters: they must not touch the
        stats, the badge, or the popup's undo list. Everything else below
        (cooldown/forceShow/restore) still applies so Show/disable work. */
@@ -999,6 +1012,17 @@
     blockedPosts.clear();
     processed = new WeakSet();
     setBadge("");
+  }
+
+  /* Restore every blocked post authored by `authorId` (whitelist
+     additions from the options page / import). Label-driven hides are
+     excluded: they're a whole-class filter, not per-author. restorePost
+     also prunes the popup's undo list. */
+  function restoreAuthorPosts(authorId) {
+    for (const post of blockedPosts) {
+      if (labelBlockedPosts.has(post)) continue;
+      if (getAuthorId(post) === authorId) restorePost(post);
+    }
   }
 
   /* ==================================================================
