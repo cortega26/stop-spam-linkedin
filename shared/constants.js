@@ -1,8 +1,14 @@
 (function (global) {
   "use strict";
 
+  /** Custom-phrases storage key (kept in sync with its consumers). @type {string} */
   const PHRASES_STORAGE_KEY = "ss_phrases";
 
+  /**
+   * Every storage key used by the extension, frozen. All keys are
+   * ss_-prefixed.
+   * @type {Record<string, string>}
+   */
   const STORAGE_KEYS = Object.freeze({
     ENABLED: "ss_enabled",
     COUNT: "ss_blocked_count",
@@ -18,6 +24,18 @@
     HIDE_FEATURED: "ss_hide_featured",
   });
 
+  /**
+   * Hard caps for user data and runtime limits.
+   * @typedef {Object} SSLimits
+   * @property {number} MAX_CUSTOM_PHRASES
+   * @property {number} MAX_PHRASE_LENGTH
+   * @property {number} MAX_WHITELIST
+   * @property {number} MAX_BLOCKED_AUTHORS
+   * @property {number} MAX_IMPORT_BYTES
+   * @property {number} SNOOZE_DURATION_MS
+   * @property {number} MAX_EXCLUDED_ITEMS
+   */
+  /** @type {SSLimits} */
   const LIMITS = Object.freeze({
     MAX_CUSTOM_PHRASES: 200,
     MAX_PHRASE_LENGTH: 120,
@@ -32,6 +50,7 @@
     MAX_EXCLUDED_ITEMS: 512,
   });
 
+  /** Languages enabled by default (built-in pattern coverage). @type {readonly string[]} */
   const DEFAULT_ENABLED_LANGS = Object.freeze(["EN", "ES", "FR", "PT", "DE"]);
 
   global.SS_CONSTANTS = Object.freeze({

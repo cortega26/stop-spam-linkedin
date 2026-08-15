@@ -23,7 +23,7 @@
   let hideFeatured = false;
 
   /* ── DOM refs ───────────────────────────────────────────────── */
-  const input = document.getElementById("phraseInput");
+  const input = /** @type {HTMLInputElement} */ (document.getElementById("phraseInput"));
   const addBtn = document.getElementById("addBtn");
   const list = document.getElementById("phraseList");
   const empty = document.getElementById("emptyState");
@@ -31,7 +31,7 @@
   const importBtn = document.getElementById("importBtn");
   const exportBtn = document.getElementById("exportBtn");
   const starterPackBtn = document.getElementById("starterPackBtn");
-  const importFile = document.getElementById("importFile");
+  const importFile = /** @type {HTMLInputElement} */ (document.getElementById("importFile"));
   const toast = document.getElementById("toast");
   const langToggles = document.getElementById("langToggles");
   const whitelistSection = document.getElementById("whitelistSection");
@@ -41,9 +41,9 @@
   const excludedSection = document.getElementById("excludedSection");
   const excludedList = document.getElementById("excludedList");
   const clearExcludedBtn = document.getElementById("clearExcludedBtn");
-  const hidePromotedCheckbox = document.getElementById("hidePromotedCheckbox");
-  const hideFeaturedCheckbox = document.getElementById("hideFeaturedCheckbox");
-  const searchInput = document.getElementById("searchInput");
+  const hidePromotedCheckbox = /** @type {HTMLInputElement} */ (document.getElementById("hidePromotedCheckbox"));
+  const hideFeaturedCheckbox = /** @type {HTMLInputElement} */ (document.getElementById("hideFeaturedCheckbox"));
+  const searchInput = /** @type {HTMLInputElement} */ (document.getElementById("searchInput"));
 
   /* ── Bootstrap ──────────────────────────────────────────────── */
   load();
@@ -97,7 +97,9 @@
   /* ── Storage ────────────────────────────────────────────────── */
 
   function load() {
-    chrome.storage.sync.get([PHRASES_STORAGE_KEY, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.DISABLED_PATTERNS, STORAGE_KEYS.HIDE_PROMOTED, STORAGE_KEYS.HIDE_FEATURED], (result) => {
+    chrome.storage.sync.get([PHRASES_STORAGE_KEY, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.DISABLED_PATTERNS, STORAGE_KEYS.HIDE_PROMOTED, STORAGE_KEYS.HIDE_FEATURED],
+      /** @param {{ [key: string]: any }} result */
+      (result) => {
       phrases = result[PHRASES_STORAGE_KEY] || [];
       enabledLangs = result[STORAGE_KEYS.LANGS] || [...DEFAULT_ENABLED_LANGS];
       disabledPatterns = result[STORAGE_KEYS.DISABLED_PATTERNS] || [];
@@ -114,7 +116,9 @@
   }
 
   /* React to storage changes from other contexts (content script, popup). */
-  chrome.storage.onChanged.addListener((changes, area) => {
+  chrome.storage.onChanged.addListener(
+    /** @param {{ [key: string]: { newValue?: any; oldValue?: any } }} changes */
+    (changes, area) => {
     if (area !== "sync") return;
     if (changes[STORAGE_KEYS.WHITELIST]) {
       whitelist = changes[STORAGE_KEYS.WHITELIST].newValue || [];
@@ -308,6 +312,7 @@
   function handleEdit(id) {
     editId = id;
     render();
+    /** @type {HTMLInputElement} */
     const editInput = document.querySelector(".edit-row input");
     if (editInput) {
       editInput.focus();
@@ -316,6 +321,7 @@
   }
 
   function handleSaveEdit(id) {
+    /** @type {HTMLInputElement} */
     const editInput = document.querySelector(".edit-row input");
     if (!editInput) return;
     const text = editInput.value.trim();
@@ -598,7 +604,7 @@
     reader.onload = (e) => {
       let imported;
       try {
-        imported = JSON.parse(e.target.result);
+        imported = JSON.parse(/** @type {string} */ (e.target.result));
       } catch (_) {
         showToast(t("invalidJsonFile"), true);
         return;

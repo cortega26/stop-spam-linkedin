@@ -15,6 +15,25 @@
 
   /* ── Strategy 1: sibling-content heuristic (zero selectors) ──── */
 
+  /**
+   * Thresholds controlling the sibling-content heuristic.
+   * @typedef {Object} PostContainerConfig
+   * @property {number} DEPTH_LIMIT Max ancestors walked.
+   * @property {number} SIBLING_CONTENT_THRESHOLD Chars a sibling needs to count as heavy.
+   * @property {number} SIBLING_COUNT_THRESHOLD Heavy siblings needed to accept a level.
+   * @property {number} FEED_SIBLING_FALLBACK Sibling count triggering the fallback accept.
+   * @property {number} MIN_TEXT_LENGTH Chars needed for the fallback accept.
+   * @property {number} CONTENT_LENGTH_THRESHOLD Chars at depth >= 4 that accept a container.
+   */
+
+  /**
+   * Walks up from the text node looking for a container whose siblings are
+   * individually heavy — the shape of a LinkedIn feed post.
+   * @param {Node} textNode Text node inside the candidate post.
+   * @param {PostContainerConfig} config Threshold values.
+   * @param {Document} [doc] Document the textNode lives in.
+   * @returns {Element | null}
+   */
   function findBySiblingHeuristic(textNode, config, doc) {
     doc = doc || globalThis.document;
     let el = textNode.parentElement;
@@ -74,6 +93,14 @@
 
   /* ── Strategy 2: known attribute / tag selectors ──────────────── */
 
+  /**
+   * Walks up from the text node, returning the first ancestor matching any
+   * of the known post selectors.
+   * @param {Node} textNode Text node inside the candidate post.
+   * @param {readonly string[]} postSelectors CSS selectors to test.
+   * @param {Document} [doc] Document the textNode lives in.
+   * @returns {Element | null}
+   */
   function findByKnownSelectors(textNode, postSelectors, doc) {
     doc = doc || globalThis.document;
     let el = textNode.parentElement;
@@ -88,6 +115,15 @@
 
   /* ── Strategy chain ───────────────────────────────────────────── */
 
+  /**
+   * Runs each detection strategy in order, returning the first Element
+   * result (strategies that throw are skipped).
+   * @param {Node} textNode Text node inside the candidate post.
+   * @param {PostContainerConfig} config Threshold values.
+   * @param {readonly string[]} postSelectors CSS selectors to test.
+   * @param {Document} [doc] Document the textNode lives in.
+   * @returns {Element | null}
+   */
   function findPostContainer(textNode, config, postSelectors, doc) {
     doc = doc || globalThis.document;
     const strategies = [

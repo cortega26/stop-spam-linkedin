@@ -7,7 +7,7 @@
     return chrome.i18n.getMessage(key, subs) || key;
   }
 
-  const toggleEl = document.getElementById("toggleEnabled");
+  const toggleEl = /** @type {HTMLInputElement} */ (document.getElementById("toggleEnabled"));
   const countEl = document.getElementById("blockedCount");
   const resetBtn = document.getElementById("resetBtn");
   const snoozeBtn = document.getElementById("snoozeBtn");
@@ -188,7 +188,7 @@
         d.setDate(d.getDate() - 1);
       }
       todayCountEl.textContent = todayVal;
-      weekCountEl.textContent = weekVal;
+      weekCountEl.textContent = String(weekVal);
       lifetimeCountEl.textContent = response.blockedCount;
     }
 

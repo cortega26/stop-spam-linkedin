@@ -189,6 +189,7 @@
 
   chrome.storage.sync.get(
     [STORAGE_KEYS.ENABLED, STORAGE_KEYS.COUNT, STORAGE_KEYS.ONBOARDED, STORAGE_KEYS.DAILY_COUNTS, STORAGE_KEYS.SNOOZE_UNTIL, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.DISABLED_PATTERNS, STORAGE_KEYS.HIDE_PROMOTED, STORAGE_KEYS.HIDE_FEATURED, PHRASES_STORAGE_KEY],
+    /** @param {{ [key: string]: any }} syncResult */
     (syncResult) => {
       chrome.storage.local.get(
         [
@@ -197,6 +198,7 @@
           STORAGE_KEYS.DAILY_COUNTS,
           STORAGE_KEYS.SNOOZE_UNTIL,
         ],
+        /** @param {{ [key: string]: any }} localResult */
         (localResult) => {
           migrateRuntimeStorage(syncResult, localResult);
 
@@ -247,7 +249,9 @@
   );
 
   /* React to changes from options page or other tabs. */
-  chrome.storage.onChanged.addListener((changes, area) => {
+  chrome.storage.onChanged.addListener(
+    /** @param {{ [key: string]: { newValue?: any; oldValue?: any } }} changes */
+    (changes, area) => {
     if (area === "local") {
       if (changes[STORAGE_KEYS.COUNT]) {
         blockedCount = changes[STORAGE_KEYS.COUNT].newValue || 0;
@@ -566,8 +570,7 @@
     const walker = document.createTreeWalker(
       root,
       NodeFilter.SHOW_TEXT,
-      filter,
-      false
+      filter
     );
     let node;
     while ((node = walker.nextNode())) callback(node);
@@ -576,11 +579,10 @@
     const elWalker = document.createTreeWalker(
       root,
       NodeFilter.SHOW_ELEMENT,
-      null,
-      false
+      null
     );
     while ((node = elWalker.nextNode())) {
-      if (node.shadowRoot) forEachTextNode(node.shadowRoot, callback);
+      if (node instanceof Element && node.shadowRoot) forEachTextNode(node.shadowRoot, callback);
     }
   }
 

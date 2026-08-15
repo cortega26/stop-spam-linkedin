@@ -13,6 +13,11 @@
      without relying on fragile array-index identity. ANY future pattern
      added here MUST get a new id following this scheme (e.g. "EN-3"); ids
      must never be reused or renumbered while a pattern keeps its language. */
+  /**
+   * Built-in spam-detection patterns keyed by language code. Each entry
+   * carries a stable, language-prefixed id.
+   * @type {Record<string, ReadonlyArray<{ id: string; regex: RegExp; label: string }>>}
+   */
   const PATTERN_DATA = Object.freeze({
     EN: Object.freeze([
       Object.freeze({
@@ -76,10 +81,21 @@
     ]),
   });
 
+  /**
+   * Escapes regex metacharacters so a string can be used literally inside
+   * a RegExp.
+   * @param {string} str Input string.
+   * @returns {string} String with regex metacharacters escaped.
+   */
   function escapeRegex(str) {
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
+  /**
+   * True when hostname is linkedin.com or a subdomain of it.
+   * @param {string} hostname Hostname without protocol.
+   * @returns {boolean}
+   */
   function isLinkedInHost(hostname) {
     return hostname === "linkedin.com" || hostname.endsWith(".linkedin.com");
   }
@@ -89,6 +105,14 @@
      available (e.g. under Node in a unit test). Callers running inside the
      actual content script should pass window.location.origin explicitly to
      preserve the original behavior exactly. */
+  /**
+   * Parses a LinkedIn identity URL (profile, company, school, showcase)
+   * into a stable author id — lowercased, prefixed for non-profile types —
+   * or null when the href isn't a LinkedIn identity URL.
+   * @param {string} href Absolute or relative href from an author anchor.
+   * @param {string} [baseOrigin] Origin used to resolve relative hrefs.
+   * @returns {string | null}
+   */
   function parseAuthorId(href, baseOrigin) {
     if (!href) return null;
 
@@ -117,6 +141,11 @@
     return null;
   }
 
+  /**
+   * FNV-1a hash of a string, rendered as base-36.
+   * @param {string} value Input string.
+   * @returns {string}
+   */
   function hashString(value) {
     let hash = 0x811c9dc5;
     for (let i = 0; i < value.length; i++) {
@@ -126,6 +155,12 @@
     return (hash >>> 0).toString(36);
   }
 
+  /**
+   * Normalized signature for the excluded-item list: lowercased,
+   * whitespace-collapsed, then hashed with a "sig:" prefix.
+   * @param {string} text
+   * @returns {string}
+   */
   function getExcludedSignature(text) {
     const normalized = text.toLowerCase().replace(/\s+/g, " ").trim();
     return "sig:" + hashString(normalized);
@@ -135,11 +170,20 @@
      section, in the extension's 5 supported UI languages. Exact-match
      checking keeps false positives near zero (a post DISCUSSING promotion
      won't match). */
+  /** @type {readonly string[]} */
   const PROMOTED_LABELS = Object.freeze(["Promoted", "Patrocinado", "Promu", "Promovido", "Beworben"]);
+  /** @type {readonly string[]} */
   const FEATURED_LABELS = Object.freeze(["Featured", "Destacados", "En vedette", "Em destaque", "Ausgewählt"]);
 
   /* True when text is one of the labels, possibly followed by a " · "
      separator (LinkedIn renders "Promoted · Sponsor Name" as one element). */
+  /**
+   * Exact-match check of text against a list of labels, tolerating a
+   * " · " separator and trailing sponsor text.
+   * @param {string} text Text to check.
+   * @param {readonly string[]} labels Label list to match against.
+   * @returns {boolean}
+   */
   function matchesLabel(text, labels) {
     const trimmed = String(text || "").trim();
     if (!trimmed) return false;
@@ -155,6 +199,12 @@
   /* Map-based cooldown store keyed by string identity (e.g. a post's
      data-id). Entries expire after expiryMs; `has` is false for expired
      keys. Evicts oldest entries past maxEntries to bound memory. */
+  /**
+   * Creates a bounded, expiring key store.
+   * @param {number} expiryMs Entry lifetime in milliseconds.
+   * @param {number} maxEntries Upper bound on the number of stored keys.
+   * @returns {{ has(key: string): boolean; set(key: string): void }}
+   */
   function createCooldownStore(expiryMs, maxEntries) {
     const map = new Map();
     return {

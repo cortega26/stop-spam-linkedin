@@ -57,7 +57,9 @@
       const authorId = SS_parseAuthorId(info.linkUrl, "https://www.linkedin.com");
       if (!authorId) return;
 
-      chrome.storage.sync.get([STORAGE_KEYS.BLOCKED_AUTHORS], (result) => {
+      chrome.storage.sync.get([STORAGE_KEYS.BLOCKED_AUTHORS],
+        /** @param {{ [key: string]: any }} result */
+        (result) => {
         const blocked = result[STORAGE_KEYS.BLOCKED_AUTHORS] || [];
         if (blocked.includes(authorId)) return;
         if (blocked.length >= LIMITS.MAX_BLOCKED_AUTHORS) return;
@@ -77,7 +79,9 @@
     if (!text) return;
     if (text.length > LIMITS.MAX_PHRASE_LENGTH) return;
 
-    chrome.storage.sync.get([PHRASES_STORAGE_KEY], (result) => {
+    chrome.storage.sync.get([PHRASES_STORAGE_KEY],
+      /** @param {{ [key: string]: any }} result */
+      (result) => {
       const phrases = result[PHRASES_STORAGE_KEY] || [];
       if (phrases.length >= LIMITS.MAX_CUSTOM_PHRASES) return;
 
