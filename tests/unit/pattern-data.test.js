@@ -62,6 +62,16 @@ test("parseAuthorId returns null for unrecognized paths or missing href", () => 
   assert.equal(parseAuthorId("/feed/"), null);
 });
 
+test("parseAuthorId returns null for malformed percent-encoding", () => {
+  assert.equal(parseAuthorId("/in/100%"), null);
+  assert.equal(parseAuthorId("/in/%E0%A4%A"), null);
+  assert.equal(parseAuthorId("https://www.linkedin.com/in/bad%"), null);
+});
+
+test("parseAuthorId still parses valid percent-encoded slugs", () => {
+  assert.equal(parseAuthorId("/in/John%20Doe/"), "john doe");
+});
+
 test("hashString is deterministic for the same input", () => {
   assert.equal(hashString("hello world"), hashString("hello world"));
 });
