@@ -334,6 +334,32 @@ async function main() {
     await popup.locator("#snoozeBtn").click();
     await waitForLocalValue(context, "ss_snooze_until", (v) => v === 0);
 
+    /* ── Snooze→resume leaves a single undo row (028) ───────────── */
+
+    /* The cancel wrote ss_snooze_until: 0, which makes the content
+       script re-scan immediately and re-block the post. */
+    await linkedInPage.waitForFunction(
+      () => document.querySelectorAll("[data-ss-ph]").length === 1,
+      { timeout: 4000 }
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* The undo window must hold exactly ONE row for the post. With the
+       bug, restoreBlocked leaves lastBlocked untouched, so every bulk
+       restore → re-scan cycle (snooze, disable) pushes a fresh row for
+       the same post and the popup renders duplicates. */
+    await linkedInPage.bringToFront();
+    await popup.reload({ waitUntil: "domcontentloaded" });
+    await popup.waitForFunction(
+      () => document.querySelectorAll(".last-blocked-item").length === 1,
+      { timeout: 10000 }
+    );
+    assert.equal(
+      await popup.locator(".last-blocked-item").count(),
+      1,
+      "expected exactly one undo row after snooze→resume"
+    );
+
     /* ── Popup: reset count (plan 014 step 3.5) ─────────────────── */
 
     await linkedInPage.bringToFront();
