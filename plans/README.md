@@ -101,7 +101,7 @@ implementation-ready plans:
 | 025 | [FR/PT/DE detection coverage + fixes](archive/025-fr-pt-de-detection.md) | P1 | M | — | DONE (2026-08-15, branch advisor/025-fr-pt-de-detection @ b174852 in /tmp/opencode/wt-025, reviewed + verified; FR-2/FR-1/PT-1 fixed, 54 unit tests incl. 12 new FR/PT/DE, e2e per-language green) |
 | 026 | [Import byte quota](archive/026-import-quota.md) | P2 | S | — (soft: 022) | DONE (2026-08-15, branch advisor/026-import-quota @ e3c5451 in /tmp/opencode/wt-026, reviewed + verified; shared pruner on import, toast truthfulness, oversized-import e2e; write-failure revert mirrors phrase-save, not e2e-forced) |
 | 027 | [Backup completeness](archive/027-backup-completeness.md) | P2 | S | — (soft: 026) | DONE (2026-08-15, branch advisor/027-backup-completeness @ 3437d64 in /tmp/opencode/wt-027, reviewed + verified; blockedAuthors/disabledPatterns/hide toggles round-trip e2e + legacy compat; 2 new locale keys) |
-| 028 | [restoreBlocked lastBlocked](028-restoreblocked-lastblocked.md) | P2 | S | — | TODO |
+| 028 | [restoreBlocked lastBlocked](archive/028-restoreblocked-lastblocked.md) | P2 | S | — | DONE (2026-08-15, branch advisor/028-restoreblocked-lastblocked @ b6336d3 in /tmp/opencode/wt-028, reviewed + verified; regression proven — reverted-fix run fails at new assertion; 54 unit tests; e2e green) |
 | 029 | [UTF-8 byte quota](029-utf8-byte-quota.md) | P2 | S | — (soft: 031) | TODO |
 | 030 | [Options edit preservation](030-options-edit-preservation.md) | P2 | M | — | TODO |
 | 031 | [Storage error checks](031-storage-error-checks.md) | P2 | S–M | — (soft: 029) | TODO |
