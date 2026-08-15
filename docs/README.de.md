@@ -51,7 +51,10 @@ Die Erkennung ist heuristisch, nicht magisch. Sie kann neue Spam-Formate verpass
 
 **Steuerung**
 - Jeden blockierten Beitrag im Popup oder ueber den Platzhalter im Feed rueckgaengig machen
+- "Alle anzeigen" im Popup, um alle ausgeblendeten Beitraege der Sitzung wiederherzustellen
 - "Not spam"-Ausschluss, damit derselbe Text nie wieder blockiert wird
+- "Spam nicht erkannt melden" auf jedem Platzhalter: kopiert den Beitragstext in die Zwischenablage und oeffnet ein vorausgefuelltes GitHub-Issue (es wird nichts automatisch gesendet)
+- Optionale Schalter zum Ausblenden von "Beworben"-Beitraegen im Feed und des Abschnitts "Ausgewaehlt" auf Profilen (standardmaessig deaktiviert; in den Einstellungen aktivieren)
 - Autoren-Whitelist fuer Profile, Unternehmen, Schulen und Showcase-Seiten
 - 30-Minuten-Pause mit automatischer Wiederaufnahme
 - Rechtsklick auf markierten Text, um eine Phrase sofort hinzuzufuegen

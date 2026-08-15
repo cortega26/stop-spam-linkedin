@@ -51,7 +51,10 @@ La deteccion es heuristica, no magia. Puede pasar por alto nuevos formatos de sp
 
 **Controles**
 - Deshacer cualquier publicacion bloqueada desde el popup o el marcador en el feed
+- "Mostrar todas" desde el popup para restaurar todas las publicaciones ocultas de la sesion
 - Exclusion "No es spam" para que ese mismo texto nunca vuelva a bloquearse
+- "Reportar spam no detectado" en cualquier marcador: copia el texto de la publicacion al portapapeles y abre un issue de GitHub prellenado (no se envia nada automaticamente)
+- Toggles opcionales para ocultar publicaciones "Promocionadas" en el feed y la seccion "Destacados" en los perfiles (desactivados por defecto; activalos en ajustes)
 - Lista de autores permitidos para perfiles, empresas, escuelas y showcases
 - Pausa temporal de 30 minutos con reactivacion automatica
 - Clic derecho sobre texto seleccionado para agregar una frase al instante

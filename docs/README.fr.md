@@ -51,7 +51,10 @@ La detection est heuristique, pas magique. Elle peut manquer de nouveaux formats
 
 **Controles**
 - Annuler n'importe quelle publication bloquee depuis le popup ou l'emplacement dans le fil
+- "Tout afficher" depuis le popup pour restaurer toutes les publications masquees de la session
 - Exclusion "Not spam" pour que le meme texte ne soit jamais rebloque
+- "Signaler un spam manque" sur n'importe quel emplacement : copie le texte de la publication dans le presse-papiers et ouvre un ticket GitHub pre-rempli (rien n'est envoye automatiquement)
+- Toggles optionnels pour masquer les publications "Sponsorisees" dans le fil et la section "En vedette" sur les profils (desactives par defaut ; activez-les dans les parametres)
 - Liste blanche d'auteurs pour les profils, entreprises, ecoles et pages showcase
 - Pause de 30 minutes avec reprise automatique
 - Clic droit sur le texte selectionne pour ajouter une phrase instantanement

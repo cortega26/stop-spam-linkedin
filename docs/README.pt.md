@@ -51,7 +51,10 @@ A deteccao e heuristica, nao magia. Ela pode perder novos formatos de spam e, oc
 
 **Controles**
 - Desfazer qualquer publicacao bloqueada pelo popup ou pelo marcador no feed
+- "Mostrar tudo" pelo popup para restaurar todas as publicacoes ocultas da sessao
 - Exclusao "Not spam" para que o mesmo texto nunca seja bloqueado de novo
+- "Reportar spam nao detectado" em qualquer marcador: copia o texto da publicacao para a area de transferencia e abre um issue do GitHub pre-preenchido (nada e enviado automaticamente)
+- Opcoes para ocultar publicacoes "Promovidas" no feed e a secao "Em destaque" nos perfis (desativadas por padrao; ative nas configuracoes)
 - Lista de autores permitidos para perfis, empresas, escolas e showcases
 - Pausa de 30 minutos com retorno automatico
 - Clique direito no texto selecionado para adicionar uma frase instantaneamente

@@ -25,11 +25,17 @@ Everything happens locally in your browser. The extension does not report posts,
 - **Automatic detection** — 10 built-in patterns covering the most common spam structures across 5 languages
 - **Custom phrases** — Add your own trigger words or phrases via the settings page. Choose between "Exact" (whole word) or "Contains" (substring) matching
 - **Right-click to add** — Select any text on any page, right-click, and choose "Add to LinkedIn Spam Blocker" to instantly add it as a blocking phrase
-- **Import / Export** — Back up your phrase list or share it with others via JSON export and import
+- **Import / Export** — Full settings backup: phrases, author whitelist, exclusions, and language toggles travel with the export (old phrase-only exports still import)
 - **Snooze** — Temporarily pause blocking for 30 minutes without disabling the extension
-- **Undo and false-positive controls** — Restore a post temporarily or mark it as not spam
+- **Undo and false-positive controls** — Restore a post temporarily, mark it as not spam, or review/remove past "Not spam" exclusions from the settings page
 - **Author whitelist** — Avoid blocking selected profile, company, school, or showcase authors
+- **Author blocklist** — Right-click any LinkedIn profile, company, school, or showcase link and choose "Block this author" to always hide their posts, regardless of text
 - **Per-phrase toggles** — Disable individual phrases without deleting them
+- **Per-pattern toggles** — Disable a single built-in detection pattern (not just a whole language)
+- **"Show all"** — Restore every hidden post for the session from the popup with one click
+- **"Report missed spam"** — Placeholders copy the post text to your clipboard and open a pre-filled GitHub issue; nothing is sent automatically
+- **Match attribution** — The popup shows which pattern or custom phrase triggered each block
+- **Hide promoted & featured** — Optional toggles to hide "Promoted" posts in the feed and the "Featured" section on profiles (off by default)
 - **Incremental & robust** — Uses DOM-structure heuristics instead of fragile CSS selectors, so LinkedIn layout changes won't break detection
 - **Low overhead** — Only scans newly loaded posts (not the entire page) via MutationObserver. Initial scan runs during idle time
 - **Works across LinkedIn** — Feed, profiles, posts, company pages, groups, search, My Network, notifications, jobs, newsletters, and articles
@@ -40,10 +46,10 @@ Everything happens locally in your browser. The extension does not report posts,
 
 1. Install the extension
 2. Scroll your LinkedIn feed — spam posts are automatically removed
-3. Click the extension icon to view your blocked count, toggle blocking, or snooze
+3. Click the extension icon to view your blocked count, toggle blocking, snooze, or restore all hidden posts
 4. Click "Manage matching phrases" to add custom keywords or import a phrase list
-5. Use "Show" or "Not spam" if a post is incorrectly blocked
-6. Right-click any suspicious text you see anywhere on the web and add it instantly
+5. Use "Show", "Not spam", or "Report missed spam" if a post is incorrectly blocked or a spam post slipped through
+6. Right-click any suspicious text you see anywhere on the web and add it instantly, or right-click a LinkedIn profile link to block that author
 
 ### What it does not do
 
