@@ -647,6 +647,7 @@
 
         let whitelistAdded = 0,
           whitelistSkipped = 0;
+        const whitelistBefore = whitelist.slice();
         if (Array.isArray(imported.whitelist)) {
           for (const entry of imported.whitelist) {
             if (whitelist.length >= LIMITS.MAX_WHITELIST) {
@@ -664,11 +665,39 @@
             whitelist.push(entry);
             whitelistAdded++;
           }
-          chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: whitelist });
+          /* Same byte discipline as the excluded list: an import file can
+             carry long strings, and a set() over the per-item sync quota
+             fails silently. Evict from the tail (most recently imported)
+             so local entries survive a poisoned file. */
+          const whitelistSafeLimit = Math.floor(
+            chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.9
+          );
+          while (
+            whitelist.length > 0 &&
+            STORAGE_KEYS.WHITELIST.length + JSON.stringify(whitelist).length >
+              whitelistSafeLimit
+          ) {
+            whitelist.pop();
+            whitelistSkipped++;
+          }
+          chrome.storage.sync.set(
+            { [STORAGE_KEYS.WHITELIST]: whitelist },
+            () => {
+              if (chrome.runtime.lastError) {
+                whitelist = whitelistBefore;
+                render();
+                showToast(
+                  "Storage write failed: " + chrome.runtime.lastError.message,
+                  true
+                );
+              }
+            }
+          );
         }
 
         let excludedAdded = 0,
           excludedSkipped = 0;
+        const excludedBefore = excluded.slice();
         if (Array.isArray(imported.excluded)) {
           const identities = new Set(
             excluded.map((entry) => excludedIdentity(entry))
@@ -695,9 +724,41 @@
              for ss_excluded; normalization is identity-preserving and
              leaves bare-string entries untouched in meaning. */
           excluded = normalizeExcludedEntries(excluded);
-          chrome.storage.sync.set({
-            [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded),
-          });
+          /* Enforce the per-item sync byte quota with the shared pruner
+             (plan 022): MAX_IMPORT_BYTES is far above the 8 KB sync item
+             quota, and a silent set() failure would leave the page
+             claiming a merge that never persisted. Count evicted entries
+             into excludedSkipped so the summary toast is truthful. */
+          const byteBudget = Math.floor(
+            chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.9
+          );
+          const excludedBeforePrune = excluded.length;
+          const excludedMap = new Map(
+            excluded.map((entry) => [
+              entry.sig,
+              { preview: entry.preview, created: entry.created },
+            ])
+          );
+          SS_pruneExcludedByBytes(excludedMap, STORAGE_KEYS.EXCLUDED, byteBudget);
+          excluded = Array.from(excludedMap, ([sig, meta]) => ({
+            sig,
+            preview: meta.preview,
+            created: meta.created,
+          }));
+          excludedSkipped += excludedBeforePrune - excluded.length;
+          chrome.storage.sync.set(
+            { [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) },
+            () => {
+              if (chrome.runtime.lastError) {
+                excluded = excludedBefore;
+                render();
+                showToast(
+                  "Storage write failed: " + chrome.runtime.lastError.message,
+                  true
+                );
+              }
+            }
+          );
         }
 
         let langsAdded = 0;

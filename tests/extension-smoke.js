@@ -449,6 +449,75 @@ async function main() {
       "expected no state change from an unrecognized import shape"
     );
 
+    /* Scenario 6: an oversized import is byte-pruned before the write,
+       and the toast does not claim a full merge (plan 026). ~90 entries
+       with 60-char previews serialize past the 8 KB per-item sync quota,
+       so the shared pruner must evict until the stored value fits and
+       the summary must report the evictions as skipped. */
+    await setSyncStorage(context, {
+      ss_whitelist: [],
+      ss_excluded: [],
+      ss_phrases: [],
+    });
+    await optionsPage.reload({ waitUntil: "domcontentloaded" });
+    const oversizeExcluded = Array.from({ length: 90 }, (_, i) => ({
+      sig: `sig:oversize-${String(i).padStart(3, "0")}`,
+      preview: `preview-${String(i).padStart(3, "0")}`.padEnd(60, "x"),
+      created: 1770000000000 + i,
+    }));
+    const prevToast6 = await optionsPage.locator("#toast").textContent();
+    await importFileOn(optionsPage, {
+      version: 1,
+      exportedAt: Date.now(),
+      phrases: [],
+      whitelist: ["oversize-whitelist-author"],
+      excluded: oversizeExcluded,
+    });
+    const oversizeToast = await waitForToastChange(optionsPage, prevToast6);
+    assert.match(
+      oversizeToast,
+      /skipped|se omitieron/,
+      "expected the import summary to report skipped entries after byte pruning"
+    );
+    assert.match(
+      oversizeToast,
+      /1 whitelisted author|1 autor en lista blanca/,
+      "expected the toast to report the whitelist entry as imported"
+    );
+    const storedOversize = await waitForSyncValue(context, "ss_excluded", (v) =>
+      Array.isArray(v) &&
+      v.length > 0 &&
+      v.every((e) => e.sig.startsWith("sig:oversize-"))
+    );
+    assert.ok(
+      storedOversize.length < 90,
+      "expected byte pruning to drop oversized import entries"
+    );
+    const storedFitsQuota = await context
+      .serviceWorkers()[0]
+      .evaluate((value) => {
+        const safeLimit = Math.floor(
+          chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.9
+        );
+        return "ss_excluded".length + JSON.stringify(value).length <= safeLimit;
+      }, storedOversize);
+    assert.ok(
+      storedFitsQuota,
+      "expected stored ss_excluded to fit the sync byte quota"
+    );
+    const storedWhitelist = await waitForSyncValue(context, "ss_whitelist", (v) =>
+      Array.isArray(v) && v.includes("oversize-whitelist-author")
+    );
+    assert.equal(
+      storedWhitelist.length,
+      1,
+      "expected the single whitelist entry to persist through the import"
+    );
+    await assertCount(
+      optionsPage.locator("#excludedList .whitelist-row"),
+      storedOversize.length
+    );
+
     await optionsPage.close();
 
     /* ── "Show all" restore (plan 018) ── */
