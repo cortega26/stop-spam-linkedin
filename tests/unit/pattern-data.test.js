@@ -13,6 +13,8 @@ const {
   hashString,
   getExcludedSignature,
   getLocalDayKey,
+  estimateEntriesBytes,
+  pruneExcludedByBytes,
   PATTERN_DATA,
   matchesLabel,
   PROMOTED_LABELS,
@@ -165,4 +167,47 @@ test("getLocalDayKey defaults to now and produces a parseable key", () => {
   const key = getLocalDayKey();
   assert.match(key, /^\d{4}-\d{2}-\d{2}$/);
   assert.ok(!Number.isNaN(Date.parse(`${key}T00:00:00`)));
+});
+
+/* Exclusion eviction policy (plan 022): pruneExcludedByBytes picks its
+   victim by tier first — preview-less entries (already-unrecoverable
+   legacy hashes) evict before preview-ful ones, regardless of created —
+   then by oldest `created` (nulls sort as 0). A prior packed score of
+   `(preview ? 1e12 : 0) + created` inverted once Date.now() passed 1e12
+   (year ~2001), dropping recoverable preview entries ahead of cryptic
+   hash-only ones; the budget below (full size minus one byte) evicts
+   exactly one entry so the victim choice is observable. */
+test("preview-less entries evict before preview-ful entries, even with recent created timestamps", () => {
+  const now = Date.now();
+  const map = new Map([
+    ["sig:with-preview", { preview: "Comment CLAUDE and I'll send it", created: null }],
+    ["sig:cryptic-hash", { preview: null, created: now }],
+  ]);
+  pruneExcludedByBytes(map, "ss_excluded", estimateEntriesBytes(map, "ss_excluded") - 1);
+  assert.deepEqual([...map.keys()], ["sig:with-preview"]);
+});
+
+test("preview-less ties break by oldest created first", () => {
+  const now = Date.now();
+  const map = new Map([
+    ["sig:older", { preview: null, created: now - 10_000 }],
+    ["sig:newer", { preview: null, created: now }],
+  ]);
+  pruneExcludedByBytes(map, "ss_excluded", estimateEntriesBytes(map, "ss_excluded") - 1);
+  assert.deepEqual([...map.keys()], ["sig:newer"]);
+});
+
+test("the loop stops exactly at the byte budget", () => {
+  const entries = [0, 1, 2, 3, 4].map((i) => [`sig:${i}`, { preview: null, created: i }]);
+  const map = new Map(entries);
+  const survivors = new Map(entries.slice(2));
+  const budget = estimateEntriesBytes(survivors, "ss_excluded");
+  pruneExcludedByBytes(map, "ss_excluded", budget);
+  assert.deepEqual([...map.keys()], ["sig:2", "sig:3", "sig:4"]);
+  assert.ok(estimateEntriesBytes(map, "ss_excluded") <= budget);
+});
+
+test("estimateEntriesBytes counts key length plus serialized entries", () => {
+  const map = new Map([["sig:abc", { preview: "hello", created: 123 }]]);
+  assert.equal(estimateEntriesBytes(map, "ss_excluded"), 62);
 });

@@ -246,6 +246,63 @@
     };
   }
 
+  /* Exclusion-map byte accounting and eviction (plan 022). Entries are
+     { sig, preview, created } objects keyed by signature; the entry shape
+     MUST stay in sync with content.js's normalizeExcludedEntries, which
+     lives in a different file since this logic was extracted. */
+  /**
+   * Serialized byte size of an exclusion map plus its storage key, using
+   * the same serialization shape as content.js's write path.
+   * @param {Map<string, {preview: (string|null), created: (number|null)}>} map
+   * @param {string} storageKey
+   * @returns {number}
+   */
+  function estimateEntriesBytes(map, storageKey) {
+    return storageKey.length + JSON.stringify(Array.from(map, ([sig, meta]) => ({
+      sig,
+      preview: meta.preview,
+      created: meta.created,
+    }))).length;
+  }
+
+  /**
+   * Evicts entries from an exclusion map until its estimated bytes fit
+   * under safeByteLimit. Mutates the map in place. The victim policy is
+   * documented in content.js's "Not spam" flow: preview-less entries
+   * (already-unrecoverable legacy hashes) evict before preview-ful ones,
+   * ties broken by oldest `created` (nulls sort first — treat as
+   * "oldest").
+   * @param {Map<string, {preview: (string|null), created: (number|null)}>} map
+   * @param {string} storageKey
+   * @param {number} safeByteLimit
+   */
+  function pruneExcludedByBytes(map, storageKey, safeByteLimit) {
+    while (map.size > 0 && estimateEntriesBytes(map, storageKey) > safeByteLimit) {
+      /* Victim selection is a two-key comparison that the current epoch
+         cannot defeat: preview-less entries always sort before
+         preview-ful ones (tier 0 < tier 1), and ties break by oldest
+         `created` (nulls sort as 0 — treat as "oldest"). The previous
+         packed score (a constant of order 1 trillion plus created)
+         inverted once Date.now() passed that constant (~2001), silently
+         evicting recoverable preview entries ahead of cryptic hash-only
+         ones. */
+      let victimSig = null;
+      let victimTier = Infinity;
+      let victimCreated = Infinity;
+      for (const [sig, meta] of map) {
+        const tier = meta.preview ? 1 : 0;
+        const created = meta.created || 0;
+        if (tier < victimTier || (tier === victimTier && created < victimCreated)) {
+          victimTier = tier;
+          victimCreated = created;
+          victimSig = sig;
+        }
+      }
+      if (victimSig === null) break;
+      map.delete(victimSig);
+    }
+  }
+
   root.SS_PATTERN_DATA = PATTERN_DATA;
   root.SS_PROMOTED_LABELS = PROMOTED_LABELS;
   root.SS_FEATURED_LABELS = FEATURED_LABELS;
@@ -257,6 +314,8 @@
   root.SS_getExcludedSignature = getExcludedSignature;
   root.SS_getLocalDayKey = getLocalDayKey;
   root.SS_createCooldownStore = createCooldownStore;
+  root.SS_estimateEntriesBytes = estimateEntriesBytes;
+  root.SS_pruneExcludedByBytes = pruneExcludedByBytes;
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = {
@@ -271,6 +330,8 @@
       getExcludedSignature,
       getLocalDayKey,
       createCooldownStore,
+      estimateEntriesBytes,
+      pruneExcludedByBytes,
     };
   }
 })(typeof self !== "undefined" ? self : globalThis);

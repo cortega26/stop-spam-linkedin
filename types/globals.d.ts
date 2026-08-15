@@ -46,6 +46,16 @@ declare function SS_createCooldownStore(
   maxEntries: number,
 ): { has(key: string): boolean; set(key: string): void };
 
+declare function SS_estimateEntriesBytes(
+  map: Map<string, { preview: string | null; created: number | null }>,
+  storageKey: string,
+): number;
+declare function SS_pruneExcludedByBytes(
+  map: Map<string, { preview: string | null; created: number | null }>,
+  storageKey: string,
+  safeByteLimit: number,
+): void;
+
 declare function SS_findBySiblingHeuristic(
   textNode: Node,
   ...args: any[]
