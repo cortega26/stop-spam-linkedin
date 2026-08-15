@@ -178,12 +178,12 @@
 
     /* Stats */
     if (response.dailyCounts) {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = SS_getLocalDayKey();
       const todayVal = response.dailyCounts[today] || 0;
       let weekVal = 0;
       const d = new Date();
       for (let i = 0; i < 7; i++) {
-        const key = d.toISOString().slice(0, 10);
+        const key = SS_getLocalDayKey(d);
         weekVal += response.dailyCounts[key] || 0;
         d.setDate(d.getDate() - 1);
       }
@@ -196,7 +196,7 @@
     if (hasLiveState && response.lastBlocked && response.lastBlocked.length > 0) {
       lastBlockedSection.style.display = "block";
       lastBlockedList.innerHTML = "";
-      response.lastBlocked.forEach((item, index) => {
+      response.lastBlocked.forEach((item) => {
         const row = document.createElement("div");
         row.className = "last-blocked-item";
 
@@ -226,7 +226,7 @@
         undoBtn.className = "lb-undo";
         undoBtn.textContent = t("undo");
         undoBtn.addEventListener("click", () => {
-          send({ action: "undoBlock", index }, (resp) => {
+          send({ action: "undoBlock", id: item.id }, (resp) => {
             if (resp && resp.ok) refreshState();
           });
         });

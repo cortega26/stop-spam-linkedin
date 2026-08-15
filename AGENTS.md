@@ -49,10 +49,11 @@ the test suite that covers the change.
   `SS_createCooldownStore`) and `module.exports` for Node unit tests. It
   holds the built-in pattern regexes (5 languages) and those pure helpers.
 - **Load surfaces for shared files**: the `content_scripts[].js` array in
-  `manifest.json` (`["shared/pattern-data.js", "content.js"]` — shared
-  must come first), and `<script>` tags in `popup.html`/`options.html`
-  (options.html loads `shared/pattern-data.js`; popup.html does not need
-  it). `background.js` loads nothing extra.
+  `manifest.json` (`["shared/constants.js", "shared/pattern-data.js",
+  "shared/post-container.js", "content.js"]` — shared must come first),
+  and `<script>` tags in `popup.html`/`options.html` (both load
+  `shared/constants.js` + `shared/pattern-data.js`). `background.js` loads
+  nothing extra.
 - **Storage**: all keys are `ss_`-prefixed. Runtime counters/state live in
   `chrome.storage.local`, preferences in `chrome.storage.sync`, with a
   sync→local migration helper duplicated as `migrateRuntimeStorage`

@@ -54,3 +54,6 @@ jobs:
 
       - name: Test packaged extension
         run: npm run test:package
+
+      - name: Test extension in Firefox (geckodriver)
+        run: npm run test:firefox

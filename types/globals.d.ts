@@ -40,6 +40,7 @@ declare function SS_parseAuthorId(
 ): string | null;
 declare function SS_hashString(value: string): string;
 declare function SS_getExcludedSignature(text: string): string;
+declare function SS_getLocalDayKey(date?: Date): string;
 declare function SS_createCooldownStore(
   expiryMs: number,
   maxEntries: number,

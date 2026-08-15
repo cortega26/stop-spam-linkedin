@@ -200,6 +200,21 @@
     return false;
   }
 
+  /**
+   * Calendar date key (YYYY-MM-DD) for a date in the *local* timezone.
+   * The popup's "today"/7-day stats and content.js's daily counters must
+   * agree on the day boundary; using toISOString() (UTC) made "today"
+   * reset at UTC midnight for everyone else.
+   * @param {Date} [date] Date to key; defaults to now.
+   * @returns {string}
+   */
+  function getLocalDayKey(date) {
+    const d = date || new Date();
+    const month = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${d.getFullYear()}-${month}-${day}`;
+  }
+
   /* Map-based cooldown store keyed by string identity (e.g. a post's
      data-id). Entries expire after expiryMs; `has` is false for expired
      keys. Evicts oldest entries past maxEntries to bound memory. */
@@ -240,6 +255,7 @@
   root.SS_parseAuthorId = parseAuthorId;
   root.SS_hashString = hashString;
   root.SS_getExcludedSignature = getExcludedSignature;
+  root.SS_getLocalDayKey = getLocalDayKey;
   root.SS_createCooldownStore = createCooldownStore;
 
   if (typeof module !== "undefined" && module.exports) {
@@ -253,6 +269,7 @@
       parseAuthorId,
       hashString,
       getExcludedSignature,
+      getLocalDayKey,
       createCooldownStore,
     };
   }
