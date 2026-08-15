@@ -97,7 +97,7 @@ implementation-ready plans:
 | 020 | [blockPost idempotent](archive/020-blockpost-idempotent.md) | P1 | S | — | DONE (2026-08-14, branch advisor/020-blockpost-idempotent @ eca005b, reviewed + verified; toggle-on duplicate-placeholder bug fixed, strict assertion proven live) |
 | 022 | [Exclusion eviction scoring](archive/022-exclusion-eviction-scoring.md) | P1 | S–M | — | DONE (2026-08-15, branch advisor/022-exclusion-eviction-scoring @ 3fc5dcc in /tmp/opencode/wt-022, reviewed + verified; 40 unit tests; e2e green) |
 | 023 | [Whitelist same-tab restore](archive/023-whitelist-same-tab-restore.md) | P1 | S | — | DONE (2026-08-15, branch advisor/023-whitelist-same-tab-restore @ ffee372 in /tmp/opencode/wt-023, reviewed + verified; regression proven — test fails on unfixed code via stash round-trip; 40 unit tests; e2e green) |
-| 024 | [parseAuthorId URIError](024-parse-author-id-uri.md) | P1 | S | — | TODO |
+| 024 | [parseAuthorId URIError](archive/024-parse-author-id-uri.md) | P1 | S | — | DONE (2026-08-15, branch advisor/024-parse-author-id-uri @ c54b97b in /tmp/opencode/wt-024, reviewed + verified; malformed → null no-throw, valid slugs unchanged; 42 unit tests) |
 | 025 | [FR/PT/DE detection coverage + fixes](025-fr-pt-de-detection.md) | P1 | M | — | TODO |
 | 026 | [Import byte quota](026-import-quota.md) | P2 | S | — (soft: 022) | TODO |
 | 027 | [Backup completeness](027-backup-completeness.md) | P2 | S | — (soft: 026) | TODO |
