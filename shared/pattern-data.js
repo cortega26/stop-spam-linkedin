@@ -46,19 +46,19 @@
     FR: Object.freeze([
       Object.freeze({
         id: "FR-1",
-        regex: /(?:commentez|commente|ecrivez|ecris|reponds|tape|tapez)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:et\s+(?:je\s+|j'|je\s+vais\s+))?(?:enverrai|envoie|partage|donne|donnerai|envoie le|partage le)\b/i,
+        regex: /(?:commentez|commente|ecrivez|ecris|reponds|tape|tapez)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:et\s+(?:je\s+(?:te\s+|vous\s+|le\s+|la\s+|les\s+|nous\s+|vais\s+)?|j'\s?))?(?:enverrai|envoie|partage|donne|donnerai|envoie le|partage le)\b/i,
         label: 'commentez "WORD" et j\'enverrai / je partage ...',
       }),
       Object.freeze({
         id: "FR-2",
-        regex: /(?:commentez|commente|ecrivez|ecris|reponds|tape|tapez)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:pour|afin\s+d')(?:recevoir|obtenir|acceder|avoir|telecharger)\b/i,
+        regex: /(?:commentez|commente|ecrivez|ecris|reponds|tape|tapez)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:pour\s+|afin\s+d')(?:recevoir|obtenir|acceder|avoir|telecharger)\b/i,
         label: 'commentez "WORD" pour recevoir / télécharger ...',
       }),
     ]),
     PT: Object.freeze([
       Object.freeze({
         id: "PT-1",
-        regex: /(?:comente|escreva|responda|digite|coloca)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:e\s+(?:eu\s+|vou\s+)?)(?:enviarei|envio|compartilho|mando|mandei|dou|darei|envio o|compartilho o)\b/i,
+        regex: /(?:comente|escreva|responda|digite|coloca)\s*[`'""«»\u201c\u201d\u201e]?\w+(?:\s+\w+)?[`'""\u00bb\u201d\u201e]?\s+(?:e\s+(?:eu\s+|vou\s+)?)(?:enviarei|envio|compartilho|mando|mandei|dou|darei|envio o|compartilho o|vou\s+enviar|vou\s+te\s+mandar|vou\s+mandar)\b/i,
         label: 'comente "WORD" e enviarei / compartilho ...',
       }),
       Object.freeze({
