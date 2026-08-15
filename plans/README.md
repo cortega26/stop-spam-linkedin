@@ -6,6 +6,13 @@ drift) reconciled the queue and added plans 013–019. Execute in the order
 below unless dependencies say otherwise. Each executor: read the plan fully
 before starting, honor its STOP conditions, and update your row when done.
 
+**Archival rule (standing)**: the moment a plan's status row is set to
+DONE **or** REJECTED, its file MUST be moved to `plans/archive/` (e.g.
+`git mv plans/005-unit-test-coverage.md plans/archive/`) and the index
+link updated to `archive/<file>`. DONE/REJECTED = done, archived, out of
+the active queue. BLOCKED and TODO plans stay in `plans/`. Never delete
+a plan file — the archive is the record.
+
 This audit read every source file directly (content.js, background.js,
 popup/, options/, i18n.js, manifest.json, the test suite, and the packaging
 scripts — roughly 2,800 lines total) rather than fanning out subagents,
@@ -68,28 +75,50 @@ implementation-ready plans:
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 001 | [Phrase storage quota](001-phrase-storage-quota.md) | P1 | M | — | DONE (2026-08-14, branch advisor/001-phrase-storage-quota @ 575eb6b, reviewed + verified) |
-| 002 | [Snooze resume bug](002-snooze-resume-bug.md) | P1 | S | — | DONE (2026-08-14, branch advisor/002-snooze-resume-bug @ ffa2eff, reviewed + verified; regression test added to tests/extension-smoke.js) |
-| 003 | [Toggle double-count](003-toggle-double-count.md) | P2 | S | — (soft: touches code near 002) | DONE (2026-08-14, branch advisor/003-toggle-double-count @ 5f4fb21, reviewed + verified; regression test in tests/extension-smoke.js) |
-| 004 | [Shared pattern data](004-shared-pattern-data.md) | P2 | M | — | DONE (2026-08-14, branch advisor/004-shared-pattern-data @ 68f18d2, reviewed + verified; 10 regexes/10 labels byte-identical) |
-| 005 | [Unit test coverage](005-unit-test-coverage.md) | P2 | M | 004 | DONE (2026-08-14, branch advisor/005-unit-test-coverage @ 48e882e, reviewed + verified; 11/11 unit tests; test:unit script uses glob form for Node 24) |
-| 006 | [ESLint setup](006-eslint-setup.md) | P3 | S | — | DONE (2026-08-14, branch advisor/006-eslint-setup @ 3a02af3, reviewed + verified; 72 findings resolved via config, zero source edits) |
-| 007 | [Exclusion management UI](007-exclusion-management-ui.md) | P2 | M | — (soft: 001) | DONE (2026-08-14, branch advisor/007-exclusion-management-ui @ 6eb4024, reviewed + verified; migration e2e: 100 legacy entries preserved) |
-| 008 | [Author blocklist (design)](008-author-blocklist.md) | P3 | M | — (soft: 005) | DONE (2026-08-14, branch advisor/008-author-blocklist @ 0928f28, reviewed + verified; blockPost info-param merged with 010; 2 real e2e bugs caught+fixed during execution) |
-| 009 | [Full settings backup/restore](009-full-settings-backup.md) | P2 | M | — (soft: 007) | DONE (2026-08-14, branch advisor/009-full-settings-backup @ 3aba455, reviewed + verified; 5 import/export e2e scenarios) |
-| 010 | [Match attribution (design)](010-blocked-by-attribution.md) | P3 | M | 004 | DONE (2026-08-14, branch advisor/010-blocked-by-attribution @ f65f5b6, reviewed + verified; overlap-case e2e green) |
-| 011 | [Per-pattern toggle (design)](011-per-pattern-toggle.md) | P3 | M | 004 | DONE (2026-08-14, branch advisor/011-per-pattern-toggle @ 447c6ee, reviewed + verified; 10 stable pattern ids, per-pattern-disable e2e green) |
-| 012 | [New-language process](012-additional-languages-process.md) | P3 | S–unbounded | — | BLOCKED (2026-08-14 — Phase 2 validation gate: no fluent Italian reviewer and no real-example corpus exist; integration points verified ready; needs a native speaker or 10-15 observed positive + 10-15 negative LinkedIn examples) |
-| 013 | [Show cooldown is real](013-show-cooldown.md) | P2 | S | 004, 005 | DONE (2026-08-14, branch advisor/013-show-cooldown @ 550e7df, reviewed + verified; 5 unit tests + e2e scenario; Step 4 reworked via reload for determinism) |
-| 014 | [e2e interactive flows](014-e2e-interactive-flows.md) | P2 | M | — | DONE (2026-08-14, branch advisor/014-e2e-interactions @ 912826d, reviewed + verified; 14 interaction scenarios; unblocked by 020) |
-| 015 | [Shared constants](015-shared-constants.md) | P3 | M | — (soft: 001) | DONE (2026-08-14, branch advisor/015-shared-constants @ 22e6dc7, reviewed + verified) |
-| 016 | [Repo AGENTS.md](016-agents-md.md) | P2 | S | — | DONE (2026-08-14, branch advisor/016-agents-md @ e4a4c73, reviewed + verified) |
-| 017 | [CI Playwright cache](017-ci-playwright-cache.md) | P3 | S | — | DONE (2026-08-14, branch advisor/017-ci-playwright-cache @ cd5ebe9, reviewed + verified; plan revised to ci.yml-only — release job never ran Playwright) |
-| 018 | [Show-all restore](018-show-all-restore.md) | P2 | S | — | DONE (2026-08-14, branch advisor/018-show-all-restore @ f4fc7de, reviewed + verified) |
-| 019 | [Report missed spam](019-report-missed-spam.md) | P2 | S | — | DONE (2026-08-14, branch advisor/019-report-missed-spam @ bd93853, reviewed + verified) |
-| 020 | [blockPost idempotent](020-blockpost-idempotent.md) | P1 | S | — | DONE (2026-08-14, branch advisor/020-blockpost-idempotent @ eca005b, reviewed + verified; toggle-on duplicate-placeholder bug fixed, strict assertion proven live) |
+| 001 | [Phrase storage quota](archive/001-phrase-storage-quota.md) | P1 | M | — | DONE (2026-08-14, branch advisor/001-phrase-storage-quota @ 575eb6b, reviewed + verified) |
+| 002 | [Snooze resume bug](archive/002-snooze-resume-bug.md) | P1 | S | — | DONE (2026-08-14, branch advisor/002-snooze-resume-bug @ ffa2eff, reviewed + verified; regression test added to tests/extension-smoke.js) |
+| 003 | [Toggle double-count](archive/003-toggle-double-count.md) | P2 | S | — (soft: touches code near 002) | DONE (2026-08-14, branch advisor/003-toggle-double-count @ 5f4fb21, reviewed + verified; regression test in tests/extension-smoke.js) |
+| 004 | [Shared pattern data](archive/004-shared-pattern-data.md) | P2 | M | — | DONE (2026-08-14, branch advisor/004-shared-pattern-data @ 68f18d2, reviewed + verified; 10 regexes/10 labels byte-identical) |
+| 005 | [Unit test coverage](archive/005-unit-test-coverage.md) | P2 | M | 004 | DONE (2026-08-14, branch advisor/005-unit-test-coverage @ 48e882e, reviewed + verified; 11/11 unit tests; test:unit script uses glob form for Node 24) |
+| 006 | [ESLint setup](archive/006-eslint-setup.md) | P3 | S | — | DONE (2026-08-14, branch advisor/006-eslint-setup @ 3a02af3, reviewed + verified; 72 findings resolved via config, zero source edits) |
+| 007 | [Exclusion management UI](archive/007-exclusion-management-ui.md) | P2 | M | — (soft: 001) | DONE (2026-08-14, branch advisor/007-exclusion-management-ui @ 6eb4024, reviewed + verified; migration e2e: 100 legacy entries preserved) |
+| 008 | [Author blocklist (design)](archive/008-author-blocklist.md) | P3 | M | — (soft: 005) | DONE (2026-08-14, branch advisor/008-author-blocklist @ 0928f28, reviewed + verified; blockPost info-param merged with 010; 2 real e2e bugs caught+fixed during execution) |
+| 009 | [Full settings backup/restore](archive/009-full-settings-backup.md) | P2 | M | — (soft: 007) | DONE (2026-08-14, branch advisor/009-full-settings-backup @ 3aba455, reviewed + verified; 5 import/export e2e scenarios) |
+| 010 | [Match attribution (design)](archive/010-blocked-by-attribution.md) | P3 | M | 004 | DONE (2026-08-14, branch advisor/010-blocked-by-attribution @ f65f5b6, reviewed + verified; overlap-case e2e green) |
+| 011 | [Per-pattern toggle (design)](archive/011-per-pattern-toggle.md) | P3 | M | 004 | DONE (2026-08-14, branch advisor/011-per-pattern-toggle @ 447c6ee, reviewed + verified; 10 stable pattern ids, per-pattern-disable e2e green) |
+| 012 | [New-language process](archive/012-additional-languages-process.md) | P3 | S–unbounded | — | REJECTED (2026-08-15 — maintainer decision: the Phase 2 validation gate (fluent native speaker or a 10–15×2 real-example corpus) can't be sourced, so no new language can pass it; the process doc stays as the reference for any future language request) |
+| 013 | [Show cooldown is real](archive/013-show-cooldown.md) | P2 | S | 004, 005 | DONE (2026-08-14, branch advisor/013-show-cooldown @ 550e7df, reviewed + verified; 5 unit tests + e2e scenario; Step 4 reworked via reload for determinism) |
+| 014 | [e2e interactive flows](archive/014-e2e-interactive-flows.md) | P2 | M | — | DONE (2026-08-14, branch advisor/014-e2e-interactions @ 912826d, reviewed + verified; 14 interaction scenarios; unblocked by 020) |
+| 015 | [Shared constants](archive/015-shared-constants.md) | P3 | M | — (soft: 001) | DONE (2026-08-14, branch advisor/015-shared-constants @ 22e6dc7, reviewed + verified) |
+| 016 | [Repo AGENTS.md](archive/016-agents-md.md) | P2 | S | — | DONE (2026-08-14, branch advisor/016-agents-md @ e4a4c73, reviewed + verified) |
+| 017 | [CI Playwright cache](archive/017-ci-playwright-cache.md) | P3 | S | — | DONE (2026-08-14, branch advisor/017-ci-playwright-cache @ cd5ebe9, reviewed + verified; plan revised to ci.yml-only — release job never ran Playwright) |
+| 018 | [Show-all restore](archive/018-show-all-restore.md) | P2 | S | — | DONE (2026-08-14, branch advisor/018-show-all-restore @ f4fc7de, reviewed + verified) |
+| 019 | [Report missed spam](archive/019-report-missed-spam.md) | P2 | S | — | DONE (2026-08-14, branch advisor/019-report-missed-spam @ bd93853, reviewed + verified) |
+| 020 | [blockPost idempotent](archive/020-blockpost-idempotent.md) | P1 | S | — | DONE (2026-08-14, branch advisor/020-blockpost-idempotent @ eca005b, reviewed + verified; toggle-on duplicate-placeholder bug fixed, strict assertion proven live) |
+| 022 | [Exclusion eviction scoring](archive/022-exclusion-eviction-scoring.md) | P1 | S–M | — | DONE (2026-08-15, branch advisor/022-exclusion-eviction-scoring @ 3fc5dcc in /tmp/opencode/wt-022, reviewed + verified; 40 unit tests; e2e green) |
+| 023 | [Whitelist same-tab restore](023-whitelist-same-tab-restore.md) | P1 | S | — | TODO |
+| 024 | [parseAuthorId URIError](024-parse-author-id-uri.md) | P1 | S | — | TODO |
+| 025 | [FR/PT/DE detection coverage + fixes](025-fr-pt-de-detection.md) | P1 | M | — | TODO |
+| 026 | [Import byte quota](026-import-quota.md) | P2 | S | — (soft: 022) | TODO |
+| 027 | [Backup completeness](027-backup-completeness.md) | P2 | S | — (soft: 026) | TODO |
+| 028 | [restoreBlocked lastBlocked](028-restoreblocked-lastblocked.md) | P2 | S | — | TODO |
+| 029 | [UTF-8 byte quota](029-utf8-byte-quota.md) | P2 | S | — (soft: 031) | TODO |
+| 030 | [Options edit preservation](030-options-edit-preservation.md) | P2 | M | — | TODO |
+| 031 | [Storage error checks](031-storage-error-checks.md) | P2 | S–M | — (soft: 029) | TODO |
+| 032 | [restorePost pruning](032-restorepost-pruning.md) | P2 | S | — (soft: 023) | TODO |
+| 033 | [Cooldown eviction order](033-cooldown-eviction.md) | P3 | S | — | TODO |
+| 034 | [buildPatterns extraction](034-buildpatterns-extraction.md) | P2 | M | 025 | TODO |
+| 035 | [Stats pipeline e2e](035-stats-e2e.md) | P2 | S–M | — | TODO |
+| 036 | [Firefox smoke negatives](036-firefox-negatives.md) | P3 | S | — | TODO |
+| 037 | [AGENTS.md refresh](037-agents-md-refresh.md) | P3 | S | — | TODO |
+| 038 | [Smoke coverage](038-smoke-coverage.md) | P3 | S | — | TODO |
+| 039 | [Context menus cleanup](039-contextmenus-cleanup.md) | P3 | S | — | TODO |
+| 040 | [Block-author button](040-block-author-button.md) | P2 | S–M | — | TODO |
+| 041 | [Per-pattern stats (design)](041-per-pattern-stats-design.md) | P3 | M | — (soft: 022) | TODO |
+| 042 | [Missed-spam language](042-missed-spam-language.md) | P2 | S | — (soft: 034) | TODO |
+| 043 | [Suggestion loop (design)](043-suggestion-loop-design.md) | P3 | M | — | TODO |
 
-Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJECTED (with one-line rationale — finding fixed independently or approach abandoned)
+Status values: TODO | IN PROGRESS | DONE (→ move the file to `plans/archive/` and relink the index row) | BLOCKED (with one-line reason) | REJECTED (with one-line rationale — finding fixed independently or approach abandoned)
 
 ## Dependency notes
 
@@ -179,6 +208,38 @@ Status values: TODO | IN PROGRESS | DONE | BLOCKED (with one-line reason) | REJE
 - **019's "Report" button adds a button to the placeholder** that 014's
   scenario file counts or queries — 014 asserts on `[data-ss-ph]` counts
   and button labels, so a new button is additive and safe either order.
+
+### Batch 022 (2026-08-15, deep audit at `ca9905f`) — dependency notes
+
+- **034 requires 025**: plan 034 extracts `buildPatterns` to the shared
+  module; plan 025's corpus tests (landing first) pin the pattern
+  behavior the extraction must preserve byte-for-byte. Do not run 034
+  before 025.
+- **026 soft-depends on 022**: 026 reuses `SS_pruneExcludedByBytes`
+  (created by 022) for the import path; if 022 hasn't landed, 026
+  inlines the same byte math (its plan documents both branches).
+- **027 soft-depends on 026**: both touch the import merge loop in
+  `options/options.js`; run 026 first so the error discipline exists
+  before adding more merge fields.
+- **029 and 031 are soft-coupled**: 029 changes the byte measurement at
+  the same call sites 031 hardens; run 029 first (measurement), then
+  031 (error reporting).
+- **032 soft-depends on 023**: 023 fixes the whitelist-restore behavior
+  (also in `content.js` near `restorePost`); run 023 first, then 032's
+  cleanup.
+- **042 soft-depends on 034**: 042 threads the pattern id into the
+  report payload; 034 changes where pattern ids come from — either
+  order works, but 034 first keeps the id vocabulary stable.
+- **037 is deliberately LAST**: it documents facts other plans change
+  (smoke coverage per 038, storage architecture which stays stable
+  through 022-036). Write it after the batch, not before.
+- **041 soft-depends on 022**: the stats shape change touches the same
+  storage area as the pruner extraction; sequencing avoids churn, not
+  a hard conflict.
+- **040 and 023 are adjacent**: 040 adds a block-author button that
+  writes `ss_blocked_authors`; 023's onChanged diff only reads
+  whitelist — no conflict, but both touch the placeholder/restore
+  neighborhood of `content.js`.
 
 ## Recommended execution order rationale
 
@@ -311,7 +372,8 @@ git worktree, reviewed by the advisor (re-run done criteria, scope audit,
 full diff read), and verified against the full test suite (smoke + unit +
 e2e unpacked + e2e packaged). All `advisor/*` branches were subsequently
 merged to `main` (see `git log` merge commits; status rows above carry the
-branch + commit). Plan 012 stays BLOCKED on native-speaker validation.
+branch + commit). Plan 012 was REJECTED on 2026-08-15 (maintainer
+decision — validation gate not sourceable); see its status row.
 
 New findings surfaced during execution (not previously planned):
 
@@ -380,3 +442,64 @@ landed, no open issues) picked six items. All shipped on
 6. **docs(plans)**: this record — execution state corrected (branches ARE
    merged), batch recorded, load-surface facts in AGENTS.md fixed
    (popup.html loads pattern-data.js; content_scripts array shape).
+
+## Execution record (2026-08-15, batch 022) — deep audit, plans 022–043
+
+Third audit pass (deep, 6 parallel subagents + full manual vetting of
+every finding's evidence) against commit `ca9905f` on
+`advisor/021-batch-quickwins-firefox-e2e` (batch 021 unmerged at audit
+time). All 22 plans were authored by the advisor; **none executed yet** —
+status rows above are TODO.
+
+Vetting corrections applied after subagent reports (evidence personally
+re-opened and verified):
+
+- **Eviction-scoring inversion (022) is real**: `Date.now()` ≈ 1.78e12 in
+  2026 > the `1e12` tier constant, inverting the documented
+  preview-less-first policy. Verified by reading `content.js:1306-1313`
+  and both entry shapes in `normalizeExcludedEntries`.
+- **Whitelist same-tab restore (023) is real and ships in batch 021**:
+  self-writers mutate `whitelistedAuthors` in place before
+  `storage.sync.set`, so the onChanged diff against the live set skips
+  `restoreAuthorPosts` in the writing tab. Introduced by `a73deac`;
+  the batch-021 e2e drives whitelist changes cross-context and misses it.
+- **NEW detection bugs discovered during vetting (025)**: running real
+  FR/PT/DE bait sentences against the patterns exposed that FR-2 is
+  broken (missing `\s+` between the preposition group and verb group —
+  "commentez MOT pour recevoir le guide" never matches), FR-1 misses
+  object pronouns ("je vous enverrai"), and PT-1 misses the near-future
+  ("vou enviar"). EN spot-checked solid. These elevate plan 025 from
+  test-coverage to detection-bug fix; the audit subagents had flagged
+  only the coverage gap.
+- **Rejected at vetting**: SEC-01 `.env` plaintext (gitignored +
+  untracked + never committed; standard local convention — recorded in
+  the rejected list so it isn't re-audited); PERF-01 shadow-DOM
+  TreeWalker (deferred in the 2026-08-14 record pending profiling
+  evidence; no profiling done since); multi-tab counter race (accepted
+  by design).
+
+Direction findings delivered as plans: 040 (block-author button, build),
+042 (missed-spam language, build), 041 and 043 (per-pattern stats and
+suggestion loop, **design/spike** plans per the playbook — they deliver
+a design document + throwaway prototype branch, not shipped code).
+
+## Findings considered and rejected (batch 022)
+
+- **SEC-01 — store-publish credentials in `.env`**: `.env` is gitignored
+  and untracked (`.gitignore:14`), never committed (`git log --all --
+  .env` empty), and no committed file embeds values — only env-var names
+  in `RELEASE_CHECKLIST.md` / `release.yml` / `submit-stores.js`. The
+  residual risk is local-disk access, which is the standard convention
+  for local credential stores; the only improvement (mode-600 + a
+  `.env.example`) is DX, not security. Not planned.
+- **PERF-01 — unconditional second TreeWalker for shadow-DOM discovery**:
+  real constant-factor cost, but the 2026-08-14 record deferred it
+  pending profiling evidence that scan latency is user-visible, and no
+  profiling was done. Still deferred, not rejected outright — re-audit
+  if profiling ever shows scan latency as a problem.
+- **Multi-tab counter race** (`content.js:980-983` comment): accepted by
+  design (incidence low, impact cosmetic). Not re-planned.
+- **Per-pattern stats** is a direction finding (041), not a table
+  finding — the popup already shows attribution in the undo window; the
+  gap is persistence + a UI, which is a product decision, so it ships as
+  a design plan.
