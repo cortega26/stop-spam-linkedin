@@ -942,6 +942,47 @@ async function main() {
        (es-spam-2 stays visible, so it has none). */
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 3);
 
+    /* ── FR/PT/DE detection end-to-end (025) ────────────────────── */
+
+    /* Deterministic start: reload resets the DOM to the shared
+       3-section fixture; only spam-1 (EN match) is blocked. */
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* One bait post per newly-covered language. Each text exercises a
+       pattern that plan 025 either fixed (FR-1 object pronouns, PT-1
+       near-future vou) or newly covered (DE-1). */
+    await linkedInPage.evaluate(() => {
+      const posts = [
+        ["urn:li:activity:fr-spam-1", "Commentez COURAGE et je vous enverrai le PDF complet."],
+        ["urn:li:activity:pt-spam-1", "Comente PDF e eu vou enviar o link completo."],
+        ["urn:li:activity:de-spam-1", "Kommentiere PACK und ich schicke dir die Vorlage."],
+      ];
+      for (const [id, text] of posts) {
+        const section = document.createElement("section");
+        section.dataset.id = id;
+        const p = document.createElement("p");
+        p.textContent = text;
+        section.appendChild(p);
+        document.querySelector("main").appendChild(section);
+      }
+    });
+    /* The three appended posts join spam-1's placeholder: 1 -> 4. */
+    await linkedInPage.waitForFunction(
+      () => document.querySelectorAll("[data-ss-ph]").length === 4,
+      { timeout: 10000 }
+    );
+    for (const id of ["fr-spam-1", "pt-spam-1", "de-spam-1"]) {
+      assert.equal(
+        await linkedInPage
+          .locator(`[data-id="urn:li:activity:${id}"]`)
+          .evaluate((el) => getComputedStyle(el).display),
+        "none",
+        `expected the ${id} post to be hidden by its language's pattern`
+      );
+    }
+
     /* ── Opt-in hide: "Promoted" feed posts (label-hide) ────────── */
 
     /* Deterministic start: reload resets the DOM to the shared fixture
