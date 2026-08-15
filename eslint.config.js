@@ -16,6 +16,7 @@ const browserExtensionGlobals = {
   NodeFilter: "readonly",
   MutationObserver: "readonly",
   Text: "readonly",
+  TextEncoder: "readonly",
   Blob: "readonly",
   FileReader: "readonly",
   URL: "readonly",

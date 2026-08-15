@@ -647,6 +647,50 @@ async function main() {
       ss_hide_featured: false,
     });
 
+    /* ── Accented-phrase byte quota (plan 029) ── */
+
+    /* The add-phrase pre-check counts UTF-8 bytes (plan 029). Seed 30
+       phrases of 90 accented chars (~7,861 bytes serialized) and add one
+       more accented phrase (~8,005-byte candidate). The old UTF-16 unit
+       count reported ~5,300 units — under the 95% pre-check limit — so the
+       write went through; the UTF-8 byte count trips the pre-check and the
+       options page must reject the add with the storage-full toast and
+       leave storage untouched. */
+    const accentedSeed = Array.from({ length: 30 }, (_, i) => ({
+      id: `seed-${String(i).padStart(3, "0")}`,
+      text: "é".repeat(90),
+      enabled: true,
+      created: 1770000000000 + i,
+      mode: "exact",
+    }));
+    await setSyncStorage(context, { ss_phrases: accentedSeed });
+    await optionsPage.reload({ waitUntil: "domcontentloaded" });
+    await optionsPage.locator(".phrase-row.custom").first().waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    await assertCount(optionsPage.locator(".phrase-row.custom"), 30);
+
+    const boundaryPhrase = "café à la ñ boundary probe üü";
+    await optionsPage.locator("#phraseInput").fill(boundaryPhrase);
+    await optionsPage.locator("#addBtn").click();
+    await assertCount(optionsPage.locator(".phrase-row.custom"), 30);
+    assert.match(
+      await optionsPage.locator("#toast").textContent(),
+      /No more room for phrases|No hay más espacio para frases/,
+      "expected the storage-full toast when the accented candidate exceeds the byte budget"
+    );
+    const storedPhrases = await getSyncStorage(context, "ss_phrases");
+    assert.equal(
+      storedPhrases.length,
+      30,
+      "expected the rejected phrase to leave storage untouched"
+    );
+    assert.ok(
+      !storedPhrases.some((p) => p.text === boundaryPhrase),
+      "expected the over-budget phrase to be rejected, not persisted"
+    );
+
     await optionsPage.close();
 
     /* ── "Show all" restore (plan 018) ── */

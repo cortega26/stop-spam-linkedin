@@ -21,7 +21,8 @@
   });
 
   function estimatePhraseBytes(phrases, storageKey) {
-    return storageKey.length + JSON.stringify(phrases).length;
+    const bytes = new TextEncoder().encode(JSON.stringify(phrases)).length;
+    return storageKey.length + bytes;
   }
 
   /* Derived from shared/pattern-data.js — see that file for the actual
