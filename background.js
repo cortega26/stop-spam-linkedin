@@ -14,7 +14,8 @@
   const MENU_ID_BLOCK_AUTHOR = "ss-block-author";
 
   function estimatePhraseBytes(phrases, storageKey) {
-    return storageKey.length + JSON.stringify(phrases).length;
+    const bytes = new TextEncoder().encode(JSON.stringify(phrases)).length;
+    return storageKey.length + bytes;
   }
 
   /* ── Init ───────────────────────────────────────────────────── */

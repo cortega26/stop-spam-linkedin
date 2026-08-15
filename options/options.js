@@ -4,7 +4,8 @@
   const { PHRASES_STORAGE_KEY, STORAGE_KEYS, LIMITS, DEFAULT_ENABLED_LANGS } = globalThis.SS_CONSTANTS;
 
   function estimatePhraseBytes(phrases, storageKey) {
-    return storageKey.length + JSON.stringify(phrases).length;
+    const bytes = new TextEncoder().encode(JSON.stringify(phrases)).length;
+    return storageKey.length + bytes;
   }
 
   /* ── State ──────────────────────────────────────────────────── */
