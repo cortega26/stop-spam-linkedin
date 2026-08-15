@@ -1100,7 +1100,7 @@
    * ================================================================== */
 
   function getTodayKey() {
-    return new Date().toISOString().slice(0, 10);
+    return SS_getLocalDayKey();
   }
 
   function showFirstRunToast() {

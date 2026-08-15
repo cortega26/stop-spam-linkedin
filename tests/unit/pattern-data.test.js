@@ -12,6 +12,7 @@ const {
   parseAuthorId,
   hashString,
   getExcludedSignature,
+  getLocalDayKey,
   PATTERN_DATA,
   matchesLabel,
   PROMOTED_LABELS,
@@ -144,4 +145,24 @@ test("matchesLabel rejects text that merely discusses labels", () => {
   assert.equal(matchesLabel("", PROMOTED_LABELS), false);
   assert.equal(matchesLabel("promoted posts are annoying", PROMOTED_LABELS), false);
   assert.equal(matchesLabel("Featured by the CEO", FEATURED_LABELS), false);
+});
+
+/* getLocalDayKey must return the LOCAL calendar date, not the UTC one:
+   the popup's "today" and 7-day stats and content.js's daily counters
+   agree on the day boundary via this shared helper. Constructing dates
+   with local-time components keeps the assertions timezone-independent. */
+test("getLocalDayKey returns the local calendar date", () => {
+  assert.equal(getLocalDayKey(new Date(2026, 0, 15, 23, 30)), "2026-01-15");
+  assert.equal(getLocalDayKey(new Date(2026, 0, 16, 0, 30)), "2026-01-16");
+});
+
+test("getLocalDayKey zero-pads month and day", () => {
+  assert.equal(getLocalDayKey(new Date(2026, 2, 5, 12, 0)), "2026-03-05");
+  assert.equal(getLocalDayKey(new Date(2026, 10, 25, 12, 0)), "2026-11-25");
+});
+
+test("getLocalDayKey defaults to now and produces a parseable key", () => {
+  const key = getLocalDayKey();
+  assert.match(key, /^\d{4}-\d{2}-\d{2}$/);
+  assert.ok(!Number.isNaN(Date.parse(`${key}T00:00:00`)));
 });

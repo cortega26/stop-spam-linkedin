@@ -178,12 +178,12 @@
 
     /* Stats */
     if (response.dailyCounts) {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = SS_getLocalDayKey();
       const todayVal = response.dailyCounts[today] || 0;
       let weekVal = 0;
       const d = new Date();
       for (let i = 0; i < 7; i++) {
-        const key = d.toISOString().slice(0, 10);
+        const key = SS_getLocalDayKey(d);
         weekVal += response.dailyCounts[key] || 0;
         d.setDate(d.getDate() - 1);
       }

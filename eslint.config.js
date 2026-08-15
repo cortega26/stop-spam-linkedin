@@ -32,6 +32,7 @@ const browserExtensionGlobals = {
   SS_parseAuthorId: "readonly",
   SS_hashString: "readonly",
   SS_getExcludedSignature: "readonly",
+  SS_getLocalDayKey: "readonly",
   SS_createCooldownStore: "readonly",
   SS_PROMOTED_LABELS: "readonly",
   SS_FEATURED_LABELS: "readonly",
