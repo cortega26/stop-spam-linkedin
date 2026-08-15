@@ -278,14 +278,23 @@
    */
   function pruneExcludedByBytes(map, storageKey, safeByteLimit) {
     while (map.size > 0 && estimateEntriesBytes(map, storageKey) > safeByteLimit) {
+      /* Victim selection is a two-key comparison that the current epoch
+         cannot defeat: preview-less entries always sort before
+         preview-ful ones (tier 0 < tier 1), and ties break by oldest
+         `created` (nulls sort as 0 — treat as "oldest"). The previous
+         packed score (a constant of order 1 trillion plus created)
+         inverted once Date.now() passed that constant (~2001), silently
+         evicting recoverable preview entries ahead of cryptic hash-only
+         ones. */
       let victimSig = null;
-      let victimScore = Infinity;
+      let victimTier = Infinity;
+      let victimCreated = Infinity;
       for (const [sig, meta] of map) {
-        /* 1e12 — sort-priority constant, exact and well below 2^53: makes
-           preview-less entries evict first regardless of created time. */
-        const score = (meta.preview ? 1e12 : 0) + (meta.created || 0);
-        if (score < victimScore) {
-          victimScore = score;
+        const tier = meta.preview ? 1 : 0;
+        const created = meta.created || 0;
+        if (tier < victimTier || (tier === victimTier && created < victimCreated)) {
+          victimTier = tier;
+          victimCreated = created;
           victimSig = sig;
         }
       }
