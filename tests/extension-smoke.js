@@ -518,6 +518,135 @@ async function main() {
       storedOversize.length
     );
 
+    /* Scenario 7: the backup round-trip covers blocked authors, disabled
+       patterns, and the feed hide toggles (plan 027). A user whose only
+       customization is any of these categories must still export, the
+       payload must carry them, and restore must bring them back. */
+    await setSyncStorage(context, {
+      ss_blocked_authors: ["spam-author-1", "spam-author-2"],
+      ss_disabled_patterns: ["ES-1"],
+      ss_hide_promoted: true,
+      ss_hide_featured: true,
+    });
+    await optionsPage.reload({ waitUntil: "domcontentloaded" });
+    await optionsPage.locator("#blockedAuthorSection").waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    await assertCount(optionsPage.locator("#blockedAuthorList .whitelist-row"), 2);
+
+    /* Capture the export payload again (the reload cleared the stub). */
+    await optionsPage.evaluate(() => {
+      navigator.clipboard.writeText = (text) => {
+        window.__capturedExport = text;
+        return Promise.resolve();
+      };
+    });
+    const prevToastExport = await optionsPage.locator("#toast").textContent();
+    await optionsPage.locator("#exportBtn").click();
+    const exportedFull = JSON.parse(
+      await optionsPage.waitForFunction(() => window.__capturedExport).then((h) => h.jsonValue())
+    );
+    assert.deepEqual(exportedFull.blockedAuthors, ["spam-author-1", "spam-author-2"]);
+    assert.deepEqual(exportedFull.disabledPatterns, ["ES-1"]);
+    assert.equal(exportedFull.hidePromoted, true);
+    assert.equal(exportedFull.hideFeatured, true);
+    const exportFullToast = await waitForToastChange(optionsPage, prevToastExport);
+    assert.match(
+      exportFullToast,
+      /2 blocked authors|2 autores bloqueados/,
+      "expected the export summary to report blocked authors"
+    );
+    assert.match(
+      exportFullToast,
+      /1 pattern|1 patr[oó]n/,
+      "expected the export summary to report the disabled pattern"
+    );
+
+    /* Wipe the new keys, then restore everything from the exported file. */
+    await setSyncStorage(context, {
+      ss_blocked_authors: [],
+      ss_disabled_patterns: [],
+      ss_hide_promoted: false,
+      ss_hide_featured: false,
+    });
+    await optionsPage.reload({ waitUntil: "domcontentloaded" });
+    await importFileOn(optionsPage, exportedFull);
+    const restoredBlocked = await waitForSyncValue(context, "ss_blocked_authors", (v) =>
+      Array.isArray(v) &&
+      v.includes("spam-author-1") &&
+      v.includes("spam-author-2")
+    );
+    assert.equal(restoredBlocked.length, 2, "expected both blocked authors after restore");
+    await waitForSyncValue(context, "ss_disabled_patterns", (v) =>
+      Array.isArray(v) && v.includes("ES-1")
+    );
+    await waitForSyncValue(context, "ss_hide_promoted", (v) => v === true);
+    await waitForSyncValue(context, "ss_hide_featured", (v) => v === true);
+    await optionsPage.locator("#blockedAuthorSection").waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    await assertCount(optionsPage.locator("#blockedAuthorList .whitelist-row"), 2);
+    const roundTripToast = await waitForToastChange(
+      optionsPage,
+      exportFullToast
+    );
+    assert.match(
+      roundTripToast,
+      /2 blocked authors|2 autores bloqueados/,
+      "expected the import summary to report blocked authors"
+    );
+    assert.match(
+      roundTripToast,
+      /1 pattern|1 patr[oó]n/,
+      "expected the import summary to report the disabled pattern"
+    );
+
+    /* Legacy version: 1 file WITHOUT the new fields must still import
+       cleanly and leave the new keys untouched (additive semantics). */
+    const prevToastLegacy = await optionsPage.locator("#toast").textContent();
+    await importFileOn(optionsPage, {
+      version: 1,
+      exportedAt: Date.now(),
+      phrases: [{ text: "LEGACY SHAPE PHRASE", enabled: true }],
+    });
+    const legacyToast = await waitForToastChange(optionsPage, prevToastLegacy);
+    assert.match(
+      legacyToast,
+      /Imported 1 phrase|Se import[óo] 1 frase|Se importaron: 1 frase/,
+      "expected a legacy file without the new fields to import cleanly"
+    );
+    assert.deepEqual(
+      await getSyncStorage(context, "ss_blocked_authors"),
+      ["spam-author-1", "spam-author-2"],
+      "expected blocked authors untouched by a legacy file"
+    );
+    assert.deepEqual(
+      await getSyncStorage(context, "ss_disabled_patterns"),
+      ["ES-1"],
+      "expected disabled patterns untouched by a legacy file"
+    );
+    assert.equal(
+      await getSyncStorage(context, "ss_hide_promoted"),
+      true,
+      "expected hide-promoted untouched by a legacy file"
+    );
+    assert.equal(
+      await getSyncStorage(context, "ss_hide_featured"),
+      true,
+      "expected hide-featured untouched by a legacy file"
+    );
+
+    /* Reset the plan-027 keys so the following sections start from the
+       same deterministic feed state as before this scenario. */
+    await setSyncStorage(context, {
+      ss_blocked_authors: [],
+      ss_disabled_patterns: [],
+      ss_hide_promoted: false,
+      ss_hide_featured: false,
+    });
+
     await optionsPage.close();
 
     /* ── "Show all" restore (plan 018) ── */

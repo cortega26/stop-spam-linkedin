@@ -423,6 +423,10 @@
       phrases.length > 0 ||
       whitelist.length > 0 ||
       excluded.length > 0 ||
+      blockedAuthors.length > 0 ||
+      disabledPatterns.length > 0 ||
+      hidePromoted ||
+      hideFeatured ||
       !isDefaultLangs()
     );
   }
@@ -468,6 +472,10 @@
       whitelist: whitelist,
       excluded: excluded,
       langs: enabledLangs,
+      blockedAuthors: blockedAuthors,
+      disabledPatterns: disabledPatterns,
+      hidePromoted: hidePromoted,
+      hideFeatured: hideFeatured,
     };
     const json = JSON.stringify(payload, null, 2);
 
@@ -503,6 +511,24 @@
           enabledLangs.length,
           "settingsPartLangsOne",
           "settingsPartLangsMany"
+        )
+      );
+    }
+    if (blockedAuthors.length > 0) {
+      extras.push(
+        settingsPart(
+          blockedAuthors.length,
+          "settingsPartBlockedAuthorsOne",
+          "settingsPartBlockedAuthorsMany"
+        )
+      );
+    }
+    if (disabledPatterns.length > 0) {
+      extras.push(
+        settingsPart(
+          disabledPatterns.length,
+          "patternCountOne",
+          "patternCountMany"
         )
       );
     }
@@ -779,6 +805,135 @@
           }
         }
 
+        /* Blocked authors (plan 027): additive merge mirroring the
+           whitelist block — dedupe, skip non-strings/empty, cap at
+           LIMITS.MAX_BLOCKED_AUTHORS, then enforce the per-item sync byte
+           quota the same way (evict from the tail, count as skipped). */
+        let blockedAuthorsAdded = 0,
+          blockedAuthorsSkipped = 0;
+        const blockedAuthorsBefore = blockedAuthors.slice();
+        if (Array.isArray(imported.blockedAuthors)) {
+          for (const entry of imported.blockedAuthors) {
+            if (blockedAuthors.length >= LIMITS.MAX_BLOCKED_AUTHORS) {
+              blockedAuthorsSkipped++;
+              continue;
+            }
+            if (
+              typeof entry !== "string" ||
+              !entry.trim() ||
+              blockedAuthors.includes(entry)
+            ) {
+              blockedAuthorsSkipped++;
+              continue;
+            }
+            blockedAuthors.push(entry);
+            blockedAuthorsAdded++;
+          }
+          const blockedAuthorsSafeLimit = Math.floor(
+            chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.9
+          );
+          while (
+            blockedAuthors.length > 0 &&
+            STORAGE_KEYS.BLOCKED_AUTHORS.length +
+              JSON.stringify(blockedAuthors).length >
+              blockedAuthorsSafeLimit
+          ) {
+            blockedAuthors.pop();
+            blockedAuthorsSkipped++;
+          }
+          chrome.storage.sync.set(
+            { [STORAGE_KEYS.BLOCKED_AUTHORS]: blockedAuthors },
+            () => {
+              if (chrome.runtime.lastError) {
+                blockedAuthors = blockedAuthorsBefore;
+                render();
+                showToast(
+                  "Storage write failed: " + chrome.runtime.lastError.message,
+                  true
+                );
+              }
+            }
+          );
+        }
+
+        /* Disabled patterns (plan 027): additive union of string ids that
+           match a known built-in pattern id. BUILTIN enumerates every
+           stable id from shared/pattern-data.js, so the known-id filter is
+           the cap (at most the pattern count) plus validation. */
+        let patternsAdded = 0,
+          patternsSkipped = 0;
+        const patternsBefore = disabledPatterns.slice();
+        if (Array.isArray(imported.disabledPatterns)) {
+          const knownPatternIds = new Set(BUILTIN.map((p) => p.id));
+          for (const id of imported.disabledPatterns) {
+            if (
+              typeof id !== "string" ||
+              !knownPatternIds.has(id) ||
+              disabledPatterns.includes(id)
+            ) {
+              patternsSkipped++;
+              continue;
+            }
+            disabledPatterns.push(id);
+            patternsAdded++;
+          }
+          chrome.storage.sync.set(
+            { [STORAGE_KEYS.DISABLED_PATTERNS]: disabledPatterns },
+            () => {
+              if (chrome.runtime.lastError) {
+                disabledPatterns = patternsBefore;
+                render();
+                showToast(
+                  "Storage write failed: " + chrome.runtime.lastError.message,
+                  true
+                );
+              }
+            }
+          );
+        }
+
+        /* Feed hide toggles (plan 027): single booleans, last import wins.
+           Silent in the summary toast (no count to report); still written
+           to storage so a restored backup re-applies the hides. */
+        if (typeof imported.hidePromoted === "boolean") {
+          const hidePromotedBefore = hidePromoted;
+          if (imported.hidePromoted !== hidePromoted) {
+            hidePromoted = imported.hidePromoted;
+            chrome.storage.sync.set(
+              { [STORAGE_KEYS.HIDE_PROMOTED]: hidePromoted },
+              () => {
+                if (chrome.runtime.lastError) {
+                  hidePromoted = hidePromotedBefore;
+                  render();
+                  showToast(
+                    "Storage write failed: " + chrome.runtime.lastError.message,
+                    true
+                  );
+                }
+              }
+            );
+          }
+        }
+        if (typeof imported.hideFeatured === "boolean") {
+          const hideFeaturedBefore = hideFeatured;
+          if (imported.hideFeatured !== hideFeatured) {
+            hideFeatured = imported.hideFeatured;
+            chrome.storage.sync.set(
+              { [STORAGE_KEYS.HIDE_FEATURED]: hideFeatured },
+              () => {
+                if (chrome.runtime.lastError) {
+                  hideFeatured = hideFeaturedBefore;
+                  render();
+                  showToast(
+                    "Storage write failed: " + chrome.runtime.lastError.message,
+                    true
+                  );
+                }
+              }
+            );
+          }
+        }
+
         save();
         render();
         importFile.value = "";
@@ -820,7 +975,30 @@
             )
           );
         }
-        const skipped = phraseCounts.skipped + whitelistSkipped + excludedSkipped;
+        if (blockedAuthorsAdded > 0) {
+          parts.push(
+            settingsPart(
+              blockedAuthorsAdded,
+              "settingsPartBlockedAuthorsOne",
+              "settingsPartBlockedAuthorsMany"
+            )
+          );
+        }
+        if (patternsAdded > 0) {
+          parts.push(
+            settingsPart(
+              patternsAdded,
+              "patternCountOne",
+              "patternCountMany"
+            )
+          );
+        }
+        const skipped =
+          phraseCounts.skipped +
+          whitelistSkipped +
+          excludedSkipped +
+          blockedAuthorsSkipped +
+          patternsSkipped;
         if (parts.length === 0) {
           showToast(
             skipped > 0

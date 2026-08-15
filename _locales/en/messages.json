@@ -121,6 +121,8 @@
   "settingsPartExcludedMany": { "message": "$1 exclusions" },
   "settingsPartLangsOne": { "message": "1 language" },
   "settingsPartLangsMany": { "message": "$1 languages" },
+  "settingsPartBlockedAuthorsOne": { "message": "1 blocked author" },
+  "settingsPartBlockedAuthorsMany": { "message": "$1 blocked authors" },
   "patternCountOne": { "message": "1 pattern" },
   "patternCountMany": { "message": "$1 patterns" },
   "customPhraseStatusOne": { "message": "$1 of $2 custom phrase active" },

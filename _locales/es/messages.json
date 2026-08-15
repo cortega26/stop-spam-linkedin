@@ -121,6 +121,8 @@
   "settingsPartExcludedMany": { "message": "$1 exclusiones" },
   "settingsPartLangsOne": { "message": "1 idioma" },
   "settingsPartLangsMany": { "message": "$1 idiomas" },
+  "settingsPartBlockedAuthorsOne": { "message": "1 autor bloqueado" },
+  "settingsPartBlockedAuthorsMany": { "message": "$1 autores bloqueados" },
   "patternCountOne": { "message": "1 patrón" },
   "patternCountMany": { "message": "$1 patrones" },
   "customPhraseStatusOne": { "message": "$1 de $2 frase personalizada activa" },
