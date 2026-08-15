@@ -396,6 +396,8 @@
       color: var(--confirm-text);
     }
     .whitelist-empty { font-size: 12px; color: var(--text-tertiary); padding: 4px 0; }
+    .excluded-count { font-size: 12px; color: var(--text-tertiary); padding: 4px 0; }
+    .excluded-count .near-cap-warning { color: var(--danger); margin-left: 6px; }
 
     /* ── Import hint ── */
     .import-hint { font-size: 11px; color: var(--text-tertiary); margin-bottom: 8px; }
@@ -550,6 +552,7 @@
   <!-- Excluded posts ("Not spam") -->
   <div class="lang-section" id="excludedSection" style="display:none">
     <div class="lang-section-title">__MSG_excludedTitle__</div>
+    <div class="excluded-count" id="excludedCountLabel"></div>
     <div class="whitelist-list" id="excludedList"></div>
     <button class="action-bar-button" id="clearExcludedBtn" style="display:none">__MSG_excludedClearAll__</button>
   </div>

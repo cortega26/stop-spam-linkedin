@@ -40,6 +40,7 @@
   const blockedAuthorList = document.getElementById("blockedAuthorList");
   const excludedSection = document.getElementById("excludedSection");
   const excludedList = document.getElementById("excludedList");
+  const excludedCountLabel = document.getElementById("excludedCountLabel");
   const clearExcludedBtn = document.getElementById("clearExcludedBtn");
   const hidePromotedCheckbox = /** @type {HTMLInputElement} */ (document.getElementById("hidePromotedCheckbox"));
   const hideFeaturedCheckbox = /** @type {HTMLInputElement} */ (document.getElementById("hideFeaturedCheckbox"));
@@ -1017,6 +1018,26 @@
     excludedSection.style.display = "block";
     clearExcludedBtn.style.display = "block";
     excludedList.innerHTML = "";
+    /* Same serialized-size math as content.js's pruneExcludedByBytes:
+       storage.sync keeps one key, so the byte budget caps the list, and
+       eviction is silent FIFO-by-utility. Show the count and warn as the
+       list approaches the prune threshold. */
+    const safeByteLimit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.9);
+    const bytes = STORAGE_KEYS.EXCLUDED.length +
+      JSON.stringify(serializeExcluded(excluded)).length;
+    excludedCountLabel.textContent = countMessage(
+      "excludedCountOne",
+      "excludedCountMany",
+      excluded.length,
+      excluded.length
+    );
+    excludedCountLabel.classList.toggle("near-cap", bytes >= safeByteLimit);
+    if (bytes >= safeByteLimit) {
+      const warning = document.createElement("span");
+      warning.className = "near-cap-warning";
+      warning.textContent = t("excludedNearCap");
+      excludedCountLabel.appendChild(warning);
+    }
     for (const entry of excluded) {
       const row = document.createElement("div");
       row.className = "whitelist-row";

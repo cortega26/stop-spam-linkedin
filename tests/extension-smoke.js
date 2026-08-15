@@ -226,6 +226,19 @@ async function main() {
       ),
       "expected options page to show the exclusion preview"
     );
+    /* Count label (021): shows the entry count and no near-cap warning
+       for a single short entry. */
+    assert.match(
+      await optionsPage.locator("#excludedCountLabel").textContent(),
+      /1 excluded post|1 publicación excluida/,
+      "expected the excluded count label to show one entry"
+    );
+    assert.ok(
+      !(await optionsPage.locator("#excludedCountLabel").textContent()).includes(
+        "Near the storage limit"
+      ),
+      "expected no near-cap warning for a single entry"
+    );
 
     await optionsPage
       .locator("#excludedList .whitelist-row button", { hasText: /Remove|Eliminar/ })
