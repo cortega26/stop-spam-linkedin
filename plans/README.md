@@ -309,10 +309,9 @@ from 005 landing first.
 Every plan except 012 was executed by a dispatched executor in an isolated
 git worktree, reviewed by the advisor (re-run done criteria, scope audit,
 full diff read), and verified against the full test suite (smoke + unit +
-e2e unpacked + e2e packaged). All work sits on `advisor/*` branches in
-`/tmp/opencode/wt-*` worktrees; **nothing was merged, pushed, or committed
-to `main`** — merging is the maintainer's call. Merge order = plan number
-order (the branches are stacked).
+e2e unpacked + e2e packaged). All `advisor/*` branches were subsequently
+merged to `main` (see `git log` merge commits; status rows above carry the
+branch + commit). Plan 012 stays BLOCKED on native-speaker validation.
 
 New findings surfaced during execution (not previously planned):
 
@@ -338,3 +337,46 @@ New findings surfaced during execution (not previously planned):
 - **`node --test tests/unit/` directory form is broken on Node 24** (plan
   005): the `test:unit` script uses the glob form `node --test
   "tests/unit/*.test.js"` — documented in plan 005's command table.
+
+## Execution record (2026-08-15, batch 021) — quick wins + Firefox e2e
+
+A prioritization pass on the post-audit state (all plans merged, ES-1 fix
+landed, no open issues) picked six items. All shipped on
+`advisor/021-batch-quickwins-firefox-e2e`:
+
+1. **fix(stats)**: `SS_getLocalDayKey` in shared/pattern-data.js is now the
+   single day-boundary source; content.js + popup.js stats use local
+   midnight instead of UTC (`toISOString`). popup.html now loads
+   shared/pattern-data.js; 3 new unit tests. (Previously "not planned —
+   cosmetic" in the 2026-08-14 pass; reconsidered as a user-visible
+   correctness fix for non-UTC users.)
+2. **fix(undo)**: `lastBlocked` entries carry a stable id (post data-id,
+   else session uid) and `undoBlock` resolves by id, not array index —
+   a new block between popup render and click can no longer restore the
+   wrong post. e2e regression injects a third block after render and
+   asserts the clicked row restores its own post. (Was "narrow, not
+   planned"; 5-line fix, deterministic e2e.)
+3. **fix(whitelist)**: whitelist additions via options/import un-hide that
+   author's already-blocked posts (`restoreAuthorPosts`, driven from the
+   onChanged diff); new `labelBlockedPosts` set keeps Promoted/Featured
+   class-hides untouched. e2e: block authored spam → whitelist → restored,
+   unrelated post stays hidden.
+4. **feat(options)**: exclusions section shows entry count and a red
+   near-cap warning computed with the same byte math as content.js's
+   `pruneExcludedByBytes` (90% of QUOTA_BYTES_PER_ITEM). New i18n keys
+   `excludedCountOne/Many`, `excludedNearCap` (en + es); e2e asserts the
+   label. Silencing the silent FIFO-by-utility eviction from the audit.
+5. **test(firefox)**: `tests/firefox-smoke.js` — geckodriver WebDriver
+   harness. Installs the packaged zip as a temporary addon, serves the
+   mock feed over HTTPS with a CONNECT proxy mapping www.linkedin.com:443
+   to a local self-signed server (content scripts only match real LinkedIn
+   origins), asserts spam is blocked and the addon registered with the
+   addon manager (UUID in profile prefs — geckodriver hard-blocks
+   navigation to moz-extension://). geckodriver added as devDependency;
+   `npm run test:firefox`; CI step after test:package. This closes the
+   "Firefox e2e BLOCKED (toolchain)" finding from the 2026-08-15 record:
+   the Playwright/Juggler path remains unsupported, but the geckodriver
+   route documented as an alternative is now implemented and green.
+6. **docs(plans)**: this record — execution state corrected (branches ARE
+   merged), batch recorded, load-surface facts in AGENTS.md fixed
+   (popup.html loads pattern-data.js; content_scripts array shape).
