@@ -306,12 +306,14 @@
         spamPatterns = buildPatterns(userPhrases, enabledLangs);
       }
       if (changes[STORAGE_KEYS.WHITELIST]) {
-        const previous = whitelistedAuthors;
+        /* Diff against oldValue, not the live set: the in-flow writers
+           (addToWhitelist message, "Never block this author" button)
+           mutate whitelistedAuthors before storage.sync.set, so onChanged
+           in the writing tab would see the new id already present. Using
+           the event payload keeps same-tab and cross-tab writes on the
+           same path — newly-added ids un-hide their blocked posts. */
+        const previous = new Set(changes[STORAGE_KEYS.WHITELIST].oldValue || []);
         whitelistedAuthors = new Set(changes[STORAGE_KEYS.WHITELIST].newValue || []);
-        /* An author added here (options page / import) should un-hide
-           their already-blocked posts, matching the in-flow "Never block
-           this author" button. Only newly-added ids act; onChanged fires
-           per change, so this is a genuine add. */
         for (const id of whitelistedAuthors) {
           if (!previous.has(id)) restoreAuthorPosts(id);
         }
