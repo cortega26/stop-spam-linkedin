@@ -130,6 +130,67 @@ test("ES-2 is bound like ES-1", () => {
   assert.equal(PATTERN_DATA.ES[1].regex.test("comentaba CLAUDE para recibir el PDF"), false);
 });
 
+test("FR-1 matches natural French bait with and without object pronouns", () => {
+  assert.equal(PATTERN_DATA.FR[0].regex.test("commentez COURAGE et j'enverrai le PDF complet"), true);
+  assert.equal(PATTERN_DATA.FR[0].regex.test("commentez COURAGE et je partage le guide gratuit"), true);
+  assert.equal(PATTERN_DATA.FR[0].regex.test("commentez COURAGE et je vous enverrai le PDF"), true);
+  assert.equal(PATTERN_DATA.FR[0].regex.test("commentez COURAGE et je te partage le guide"), true);
+});
+
+test("FR-1 still rejects non-bait French sentences", () => {
+  assert.equal(PATTERN_DATA.FR[0].regex.test("je commente un article hier"), false);
+  assert.equal(PATTERN_DATA.FR[0].regex.test("nous commentons votre post"), false);
+});
+
+test("FR-2 matches pour / afin d' + infinitive separated by a space", () => {
+  assert.equal(PATTERN_DATA.FR[1].regex.test("commentez MOT pour recevoir le guide gratuit"), true);
+  assert.equal(PATTERN_DATA.FR[1].regex.test("ecrivez MOT pour obtenir le pack complet"), true);
+  assert.equal(PATTERN_DATA.FR[1].regex.test("reponds MOT afin d'obtenir le pack complet"), true);
+});
+
+test("FR-2 still rejects non-bait French sentences mentioning pour", () => {
+  assert.equal(PATTERN_DATA.FR[1].regex.test("je commente ton post pour dire que je suis d'accord"), false);
+  assert.equal(PATTERN_DATA.FR[1].regex.test("commentez MOT pour notre communauté"), false);
+});
+
+test("PT-1 matches enviarei and near-future vou forms", () => {
+  assert.equal(PATTERN_DATA.PT[0].regex.test("comente PDF e eu enviarei o link completo"), true);
+  assert.equal(PATTERN_DATA.PT[0].regex.test("comente PDF e eu vou enviar o link completo"), true);
+  assert.equal(PATTERN_DATA.PT[0].regex.test("comente PDF e eu vou te mandar o link"), true);
+});
+
+test("PT-1 still rejects non-bait Portuguese sentences", () => {
+  assert.equal(PATTERN_DATA.PT[0].regex.test("eu comentei no post ontem"), false);
+  assert.equal(PATTERN_DATA.PT[0].regex.test("comentamos seu artigo ontem"), false);
+});
+
+test("PT-2 matches para receber / e receber bait", () => {
+  assert.equal(PATTERN_DATA.PT[1].regex.test("comente MOT para receber o e-book"), true);
+  assert.equal(PATTERN_DATA.PT[1].regex.test("comente MOT e receber o link"), true);
+});
+
+test("PT-2 still rejects non-bait Portuguese sentences", () => {
+  assert.equal(PATTERN_DATA.PT[1].regex.test("comentamos para receber respostas"), false);
+});
+
+test("DE-1 matches und ich schicke / teile bait", () => {
+  assert.equal(PATTERN_DATA.DE[0].regex.test("kommentiere PACK und ich schicke dir die Vorlage"), true);
+  assert.equal(PATTERN_DATA.DE[0].regex.test("schreib MOT und ich teile die Datei"), true);
+});
+
+test("DE-1 still rejects non-bait German sentences", () => {
+  assert.equal(PATTERN_DATA.DE[0].regex.test("ich kommentierte den Beitrag gestern"), false);
+});
+
+test("DE-2 matches um / damit bait", () => {
+  assert.equal(PATTERN_DATA.DE[1].regex.test("kommentiere MOT um Zugriff zu bekommen"), true);
+  assert.equal(PATTERN_DATA.DE[1].regex.test("antworte MOT damit kostenlos schicke ich dir die Vorlage"), true);
+});
+
+test("DE-2 still rejects non-bait German sentences", () => {
+  assert.equal(PATTERN_DATA.DE[1].regex.test("der Kommentar war zu lang"), false);
+});
+
 test("matchesLabel matches each promoted label exactly, one per language", () => {
   for (const label of ["Promoted", "Patrocinado", "Promu", "Promovido", "Beworben"]) {
     assert.equal(matchesLabel(label, PROMOTED_LABELS), true, `expected "${label}" to match`);
