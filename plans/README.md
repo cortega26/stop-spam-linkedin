@@ -297,6 +297,15 @@ from 005 landing first.
 
 ## Execution record (2026-08-14) — all plans implemented except 012
 
+### Follow-up work items (2026-08-15)
+
+- **DONE — jsdom heuristic tests**: extracted `findPostContainer`/`findBySiblingHeuristic`/`findByKnownSelectors` to `shared/post-container.js` (UMD, byte-identical logic, verified programmatically) and added 8 unit tests with jsdom (dev-only dep). Merged to main as `bf19ad1`.
+- **DONE — checkJs type checking**: `tsconfig.json` (`checkJs`/`allowJs`/`noEmit`), `@types/chrome`, `types/globals.d.ts`, JSDoc on the shared modules, `npm run typecheck` + CI step. tsc caught 3 real findings (removed DOM arg `expandEntityReferences` in `createTreeWalker`, a `shadowRoot` access on a `Node`, a number→string coercion). TypeScript pinned to 5.9.3 — TS7 (tsgo) removed `moduleResolution: node` which the config requires. Merged as `4ccdc75`. No build step introduced; shipped code unchanged.
+- **DONE — Node 24.19.0 (latest LTS "Krypton")** installed via nvm as the default alias; project verified green on it (CI auto-uses latest 24.x — no workflow change needed).
+- **BLOCKED (toolchain) — Firefox e2e via Playwright**: the profile `extensions/<gecko-id>/` staging mechanism does NOT load the unpacked extension in Playwright's bundled Firefox (Juggler build): the add-on manager initializes (11 Mozilla system add-ons register) but the staged extension never registers, even with `xpinstall.signatures.required=false` and `extensions.enabledScopes=15`, across two boots. `playwright-core` (1.60.0) contains no Firefox extension-loading code path. Root cause: Playwright's Firefox build does not support unpacked extension loading — a toolchain limitation, not an extension bug. Viable alternatives (not attempted — different toolchain): geckodriver's WebDriver API `POST /session/{id}/moz/addon/install` (base64 ZIP, temporary install) or `web-ext` for manual verification. If Firefox e2e is wanted later, scope it as its own effort with geckodriver.
+
+## Execution record (2026-08-14) — all plans implemented except 012
+
 Every plan except 012 was executed by a dispatched executor in an isolated
 git worktree, reviewed by the advisor (re-run done criteria, scope audit,
 full diff read), and verified against the full test suite (smoke + unit +
