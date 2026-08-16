@@ -80,11 +80,11 @@ spam disappears while real professional content stays.
 
 ## Español — Texto para la ficha de la tienda
 
-### Short Description (≤132 chars)
+### Español — Short Description (≤132 chars)
 
 Detén el spam de engagement de LinkedIn y limpia tu feed — automáticamente, en privado, en tu navegador.
 
-### Detailed Description
+### Español — Detailed Description
 
 ### Tu feed, recuperado.
 

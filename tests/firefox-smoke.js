@@ -118,7 +118,7 @@ function startMockServer() {
         key: fs.readFileSync(cert.keyPath),
         cert: fs.readFileSync(cert.certPath),
       },
-      (req, res) => {
+      (_req, res) => {
         res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
         res.end(mockLinkedInFeed);
       }
