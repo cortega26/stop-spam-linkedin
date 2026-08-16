@@ -93,6 +93,9 @@
   /* Onboarding & daily stats. */
   let onboarded = false;
   let dailyCounts = {};
+  /* Spike 041 prototype: per-pattern lifetime block counts
+     (bucket: pattern id | "custom" | "author"). */
+  let patternCounts = {};
 
   /* User-excluded text signatures (false-positive feedback). */
   let excludedSignatures = new Map();
@@ -182,6 +185,7 @@
           STORAGE_KEYS.ONBOARDED,
           STORAGE_KEYS.DAILY_COUNTS,
           STORAGE_KEYS.SNOOZE_UNTIL,
+          STORAGE_KEYS.PATTERN_COUNTS,
         ],
         /** @param {{ [key: string]: any }} localResult */
         (localResult) => {
@@ -206,6 +210,9 @@
             STORAGE_KEYS.DAILY_COUNTS,
             {}
           );
+          /* Local-only key (spike 041): never lived in sync, so no
+             migration path — defaults to an empty map. */
+          patternCounts = localResult[STORAGE_KEYS.PATTERN_COUNTS] || {};
           snoozeUntil = readRuntimeValue(
             localResult,
             syncResult,
@@ -247,6 +254,9 @@
       }
       if (changes[STORAGE_KEYS.DAILY_COUNTS]) {
         dailyCounts = changes[STORAGE_KEYS.DAILY_COUNTS].newValue || {};
+      }
+      if (changes[STORAGE_KEYS.PATTERN_COUNTS]) {
+        patternCounts = changes[STORAGE_KEYS.PATTERN_COUNTS].newValue || {};
       }
       if (changes[STORAGE_KEYS.SNOOZE_UNTIL]) {
         syncSnoozeState(changes[STORAGE_KEYS.SNOOZE_UNTIL].newValue || 0);
@@ -320,6 +330,7 @@
           snoozed: Date.now() < snoozeUntil,
           snoozeUntil,
           dailyCounts,
+          patternCounts,
           onboarded,
           lastBlocked: lastBlocked.map(item => ({
             id: item.id,
@@ -358,9 +369,11 @@
       case "resetCount":
         blockedCount = 0;
         dailyCounts = {};
+        patternCounts = {};
         chrome.storage.local.set({
           [STORAGE_KEYS.COUNT]: 0,
           [STORAGE_KEYS.DAILY_COUNTS]: {},
+          [STORAGE_KEYS.PATTERN_COUNTS]: {},
         }, () => {
           if (chrome.runtime.lastError) {
             console.warn("Failed to save reset counters (local.set):", chrome.runtime.lastError.message);
@@ -759,6 +772,17 @@
       blockedCount++;
       const key = getTodayKey();
       dailyCounts[key] = (dailyCounts[key] || 0) + 1;
+      /* Spike 041 prototype: per-pattern lifetime count. Bucket is the
+         stable pattern id for built-ins, "custom" for custom phrases,
+         "author" for author-blocklist blocks; label-hides are excluded
+         by the isLabelBlock guard above. */
+      let patternKey = "builtin";
+      if (info) {
+        if (info.id) patternKey = info.id;
+        else if (info.reason === "author-blocklist") patternKey = "author";
+        else if (info.source === "custom") patternKey = "custom";
+      }
+      patternCounts[patternKey] = (patternCounts[patternKey] || 0) + 1;
     }
     if (!isLabelBlock) setBadge(String(blockedCount));
 
@@ -1002,6 +1026,7 @@
     chrome.storage.local.set({
       [STORAGE_KEYS.COUNT]: blockedCount,
       [STORAGE_KEYS.DAILY_COUNTS]: dailyCounts,
+      [STORAGE_KEYS.PATTERN_COUNTS]: patternCounts,
     }, () => {
       if (chrome.runtime.lastError) {
         console.warn("Failed to save block counters (local.set):", chrome.runtime.lastError.message);

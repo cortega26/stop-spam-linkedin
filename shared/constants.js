@@ -14,6 +14,8 @@
     COUNT: "ss_blocked_count",
     ONBOARDED: "ss_onboarded",
     DAILY_COUNTS: "ss_daily_counts",
+    /* Spike 041 prototype: per-pattern lifetime block counts (local only). */
+    PATTERN_COUNTS: "ss_pattern_counts",
     SNOOZE_UNTIL: "ss_snooze_until",
     EXCLUDED: "ss_excluded",
     LANGS: "ss_enabled_langs",
