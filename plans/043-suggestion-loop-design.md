@@ -357,3 +357,86 @@ storage shape without migration; the timestamp field is already there.
   section of this design must be revisited before shipping — fragments
   are larger feed excerpts and the "no page text in storage" line would
   be crossed.
+
+### 8. Verdict (finalized after the prototype ran)
+
+**Storage shape — PROCEED with the two-key `storage.local` design** (§2).
+The prototype proved the full loop on the spike branch:
+`push → persist` (verified `ss_pending_suggestions` after a built-in
+match), `restore on boot` (verified `getState` returns the persisted
+suggestion after a page reload), options-page read/write (add-exact,
+add-contains, dismiss, duplicate guard — all verified with the three
+rows seeded), popup fallback read/add/dismiss with no live tab
+(verified), and cross-surface dismissal (a dismissal written by the
+popup is respected by the content script after its next boot,
+verified via the `onChanged` mirror). All prototype checks passed
+(throwaway script, `verify-043-spike.js`); unit (63), smoke, lint,
+typecheck pass on the prototype.
+
+**Surface placement — PROCEED with options section + popup live
+surface.** The options section mirrors the excluded-list structure and
+was verified with the same storage-direct write pattern options already
+uses. The popup keeps its fast live path; the fallback read is cheap and
+verified. The fallback Add duplicates the content script's validation
+(`content.js:415-452`) in `popup.js` — acceptable for the spike; a
+product build could instead make fallback read-only with a "manage in
+options" affordance to avoid the duplication.
+
+**Derivation — A + C (quoted word stays; contains-mode surfaces at add
+time)** per §6. The word is the right unit; the false-positive risk is a
+mode problem, solved at the decision point in options without relitigating
+the starter-pack acceptance (`plans/README.md:331-335`). Fragment-based
+derivation (B) is feasible but should not ship before its privacy
+implications are resolved (§7).
+
+**Prototype finding (e2e):** the repo suite's
+`tests/extension-interactions.js:741` asserts zero suggestion rows after
+a page reload in the overlap scenario — it encodes wipe-on-reload
+semantics. With restore-on-boot (the spike's point), suggestions
+legitimately survive that reload, so the assertion fails (`2 !== 0`).
+This is a **test-expectation change, not a prototype bug**: the spike's
+own verification (A2) confirmed the restored suggestions are exactly the
+ones pushed earlier in the run. When the feature ships, the e2e must
+reset `ss_pending_suggestions`/`ss_dismissed_suggestions` in its clean-up
+steps (it already resets `ss_phrases` at line 748) and assert
+persistence explicitly. `extension-smoke.js` passes unchanged; the
+interactions suite aborts at 741, so downstream assertions were not
+exercised in this run.
+
+**Open questions for the feature build (not resolved by the spike):**
+
+1. **Backup inclusion**: §7 decides suggestions/dismissals stay out of
+   export/backup (ephemeral feed residue, not intent). A reviewer should
+   ratify this; plan 027's export currently serializes `sync`-area state
+   only, so excluding them requires no code change.
+2. **Cap semantics**: pending queue stays at 3 (unchanged). Dismissed
+   set is intentionally uncapped (words are tiny in a 10 MB local quota).
+   If the word list ever grows into the thousands, re-visit with a
+   byte-budget prune mirroring plan 007's exclusion pruning — not before.
+3. **"Contains vs exact" default**: options offers both; the popup
+   remains exact-only. Decide whether the options default should be
+   contains (safer) or exact (consistent with popup/starter pack).
+4. **Fallback Add duplication**: product build either accepts the
+   duplicated validation in `popup.js` or makes fallback read-only.
+5. **Stale-suggestion expiry**: timestamps are stored; a TTL eviction is
+   deferred (cap of 3 already bounds the queue) but costs nothing to add
+   later — the storage shape won't need migration.
+
+**Recommendation: PROCEED with the feature build** (direction D4) on
+this shape: two local keys, options section with three actions,
+popup fallback read, derivation A + C. The spike proved every storage
+and surface mechanism; the remaining items are product decisions (1, 3)
+and a test update (prototype finding) — none is a blocker.
+
+**Spike bookkeeping**: prototype commits are on branch
+`advisor/043-suggestion-loop-spike` (prefix `spike(043):`); the working
+tree was reset to the base commit `9523ba6` after the verdict; the
+design doc lives in this file's history on the spike branch. The
+prototype touched `shared/constants.js` (two new `STORAGE_KEYS` — the
+plan's file list didn't include it, but AGENTS.md requires every key to
+be defined once in `SS_CONSTANTS`), `content.js`, `popup/popup.js`,
+`options/options.js`, `options/options.html`. `shared/pattern-data.js`
+was NOT changed: the fragment-derivation helper was evaluated (§6) but
+not prototyped (scope condition — it was only allowed "if prototyped",
+and the persistence/surface spike did not need it). `background.js` and
+starter-pack semantics untouched.
