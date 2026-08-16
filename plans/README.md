@@ -110,7 +110,7 @@ implementation-ready plans:
 | 034 | [buildPatterns extraction](archive/034-buildpatterns-extraction.md) | P2 | M | 025 | DONE (2026-08-15, branch advisor/034-buildpatterns-extraction @ 1cfa927 in /tmp/opencode/wt-034, reviewed + verified; BASE_PATTERNS transform replicated byte-equivalent, 8 assembly tests; 63 unit tests; e2e green) |
 | 035 | [Stats pipeline e2e](archive/035-stats-e2e.md) | P2 | S–M | — | DONE (2026-08-15, branch advisor/035-stats-e2e @ 41e2193 in /tmp/opencode/wt-035, reviewed + verified; ss_daily_counts shape + reset + popup counters; 63 unit tests; e2e green) |
 | 036 | [Firefox smoke negatives](archive/036-firefox-negatives.md) | P3 | S | — | DONE (2026-08-15, branch advisor/036-firefox-negatives @ efd89af in /tmp/opencode/wt-036, reviewed + verified; clean-1 negative control + harness-coverage comment; 63 unit tests; firefox + e2e green) |
-| 037 | [AGENTS.md refresh](037-agents-md-refresh.md) | P3 | S | — | TODO |
+| 037 | [AGENTS.md refresh](archive/037-agents-md-refresh.md) | P3 | S | — | DONE (2026-08-15, branch advisor/037-agents-md-refresh @ 821d214 in /tmp/opencode/wt-037, reviewed + verified; SS_CONSTANTS storage facts, smoke coverage note, fresh line counts) |
 | 038 | [Smoke coverage](038-smoke-coverage.md) | P3 | S | — | TODO |
 | 039 | [Context menus cleanup](039-contextmenus-cleanup.md) | P3 | S | — | TODO |
 | 040 | [Block-author button](040-block-author-button.md) | P2 | S–M | — | TODO |
