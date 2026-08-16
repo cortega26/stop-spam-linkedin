@@ -27,6 +27,9 @@
   let pendingBlockedAuthorRemove = null;
   let excluded = [];
   let pendingExclusionRemove = null;
+  /* Spike 043: suggestion loop state mirrored from storage.local. */
+  let pendingSuggestions = [];
+  let dismissedSuggestions = new Set();
   let hidePromoted = false;
   let hideFeatured = false;
 
@@ -50,6 +53,8 @@
   const excludedList = document.getElementById("excludedList");
   const excludedCountLabel = document.getElementById("excludedCountLabel");
   const clearExcludedBtn = document.getElementById("clearExcludedBtn");
+  const suggestionsSection = document.getElementById("suggestionsSection");
+  const suggestionsList = document.getElementById("suggestionsList");
   const hidePromotedCheckbox = /** @type {HTMLInputElement} */ (document.getElementById("hidePromotedCheckbox"));
   const hideFeaturedCheckbox = /** @type {HTMLInputElement} */ (document.getElementById("hideFeaturedCheckbox"));
   const searchInput = /** @type {HTMLInputElement} */ (document.getElementById("searchInput"));
@@ -136,7 +141,17 @@
           }
         });
       }
-      render();
+      /* Spike 043: the suggestion queue/dismissals live in storage.local;
+         fetch them before the first render. */
+      chrome.storage.local.get(
+        [STORAGE_KEYS.PENDING_SUGGESTIONS, STORAGE_KEYS.DISMISSED_SUGGESTIONS],
+        /** @param {{ [key: string]: any }} localResult */
+        (localResult) => {
+          pendingSuggestions = normalizePendingSuggestions(localResult[STORAGE_KEYS.PENDING_SUGGESTIONS] || []);
+          dismissedSuggestions = new Set(localResult[STORAGE_KEYS.DISMISSED_SUGGESTIONS] || []);
+          render();
+        }
+      );
     });
   }
 
@@ -144,6 +159,17 @@
   chrome.storage.onChanged.addListener(
     /** @param {{ [key: string]: { newValue?: any; oldValue?: any } }} changes */
     (changes, area) => {
+    /* Spike 043: suggestion loop state lives in storage.local. */
+    if (area === "local") {
+      if (changes[STORAGE_KEYS.PENDING_SUGGESTIONS]) {
+        pendingSuggestions = normalizePendingSuggestions(changes[STORAGE_KEYS.PENDING_SUGGESTIONS].newValue || []);
+        renderSuggestions();
+      }
+      if (changes[STORAGE_KEYS.DISMISSED_SUGGESTIONS]) {
+        dismissedSuggestions = new Set(changes[STORAGE_KEYS.DISMISSED_SUGGESTIONS].newValue || []);
+      }
+      return;
+    }
     if (area !== "sync") return;
     if (changes[STORAGE_KEYS.WHITELIST]) {
       whitelist = changes[STORAGE_KEYS.WHITELIST].newValue || [];
@@ -1377,6 +1403,113 @@
     }
   }
 
+  /* ── Pending suggestions (spike 043) ─────────────────────────── */
+
+  function normalizePendingSuggestions(list) {
+    if (!Array.isArray(list)) return [];
+    return list
+      .filter((s) => (
+        s &&
+        typeof s.word === "string" &&
+        s.word.length > 0 &&
+        s.word.length <= LIMITS.MAX_PHRASE_LENGTH
+      ))
+      .slice(0, 3)
+      .map((s) => ({
+        word: s.word,
+        timestamp: typeof s.timestamp === "number" ? s.timestamp : Date.now(),
+      }));
+  }
+
+  function persistSuggestions() {
+    chrome.storage.local.set({
+      [STORAGE_KEYS.PENDING_SUGGESTIONS]: pendingSuggestions,
+      [STORAGE_KEYS.DISMISSED_SUGGESTIONS]: [...dismissedSuggestions],
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Failed to persist suggestions (local.set):", chrome.runtime.lastError.message);
+      }
+    });
+  }
+
+  function addSuggestionFromList(word, mode) {
+    if (
+      word.length > LIMITS.MAX_PHRASE_LENGTH ||
+      phrases.some((p) => p.text.toLowerCase() === word.toLowerCase())
+    ) {
+      showToast(t("duplicatePhraseToast", word), true);
+      return;
+    }
+    if (phrases.length >= LIMITS.MAX_CUSTOM_PHRASES) {
+      showToast(t("phraseLimitToast", LIMITS.MAX_CUSTOM_PHRASES), true);
+      return;
+    }
+    const candidate = phrases.concat([{
+      id: uid(),
+      text: word,
+      enabled: true,
+      created: Date.now(),
+      mode,
+    }]);
+    const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
+    if (estimatePhraseBytes(candidate, PHRASES_STORAGE_KEY) > limit) {
+      showToast(t("phraseStorageFullToast"), true);
+      return;
+    }
+    phrases = candidate;
+    pendingSuggestions = pendingSuggestions.filter((s) => s.word !== word);
+    persistSuggestions();
+    save();
+  }
+
+  function dismissSuggestionFromList(word) {
+    pendingSuggestions = pendingSuggestions.filter((s) => s.word !== word);
+    dismissedSuggestions.add(word);
+    persistSuggestions();
+    renderSuggestions();
+  }
+
+  function renderSuggestions() {
+    if (pendingSuggestions.length === 0) {
+      suggestionsSection.style.display = "none";
+      suggestionsList.innerHTML = "";
+      return;
+    }
+    suggestionsSection.style.display = "block";
+    suggestionsList.innerHTML = "";
+    for (const s of pendingSuggestions) {
+      const row = document.createElement("div");
+      row.className = "whitelist-row";
+
+      const label = document.createElement("span");
+      label.className = "wl-id";
+      label.textContent = s.word;
+      row.appendChild(label);
+
+      const addExact = document.createElement("button");
+      addExact.textContent = t("add") + " " + t("exact");
+      addExact.title = t("exactTooltip");
+      addExact.setAttribute("aria-label", t("add") + " " + t("exact") + " — " + s.word);
+      addExact.addEventListener("click", () => addSuggestionFromList(s.word, "exact"));
+      row.appendChild(addExact);
+
+      const addContains = document.createElement("button");
+      addContains.textContent = t("add") + " " + t("contains");
+      addContains.title = t("containsTooltip");
+      addContains.setAttribute("aria-label", t("add") + " " + t("contains") + " — " + s.word);
+      addContains.addEventListener("click", () => addSuggestionFromList(s.word, "contains"));
+      row.appendChild(addContains);
+
+      const dismissBtn = document.createElement("button");
+      dismissBtn.textContent = t("suggestionDismiss");
+      dismissBtn.setAttribute("aria-label", t("suggestionDismiss") + " — " + s.word);
+      dismissBtn.addEventListener("click", () => dismissSuggestionFromList(s.word));
+      row.appendChild(dismissBtn);
+
+      suggestionsList.appendChild(row);
+    }
+  }
+
   /* ── Render ─────────────────────────────────────────────────── */
 
   function render() {
@@ -1387,6 +1520,7 @@
     renderWhitelist();
     renderBlockedAuthors();
     renderExcluded();
+    renderSuggestions();
 
     const query = searchInput.value.trim().toLowerCase();
 
