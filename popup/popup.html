@@ -120,6 +120,15 @@
     }
     .stats-row .sep { color: var(--border); }
     .stats-row strong { color: var(--text); }
+    /* Spike 041 prototype: per-pattern breakdown row. */
+    .stats-row.pattern-stats {
+      flex-wrap: wrap;
+      justify-content: flex-start;
+      gap: 4px 10px;
+      padding-top: 2px;
+      font-size: 12px;
+    }
+    .stats-row.pattern-stats .sep { margin: 0 2px; }
     .last-blocked-item {
       display: flex;
       align-items: center;
@@ -318,6 +327,12 @@
     <span>__MSG_weekLabel__: <strong id="weekCount">0</strong></span>
     <span class="sep">|</span>
     <span>__MSG_totalLabel__: <strong id="lifetimeCount">0</strong></span>
+  </div>
+
+  <!-- Spike 041 prototype: per-pattern breakdown (lifetime). -->
+  <div class="stats-row pattern-stats" id="patternStatsSection" style="display:none">
+    <span>By pattern:</span>
+    <span id="patternStatsList"></span>
   </div>
 
   <div id="lastBlockedSection" style="display:none">

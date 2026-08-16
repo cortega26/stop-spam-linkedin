@@ -17,6 +17,9 @@
   const todayCountEl = document.getElementById("todayCount");
   const weekCountEl = document.getElementById("weekCount");
   const lifetimeCountEl = document.getElementById("lifetimeCount");
+  /* Spike 041 prototype: per-pattern breakdown row. */
+  const patternStatsSection = document.getElementById("patternStatsSection");
+  const patternStatsList = document.getElementById("patternStatsList");
   const lastBlockedSection = document.getElementById("lastBlockedSection");
   const lastBlockedList = document.getElementById("lastBlockedList");
   const suggestionSection = document.getElementById("suggestionSection");
@@ -97,6 +100,7 @@
             STORAGE_KEYS.COUNT,
             STORAGE_KEYS.DAILY_COUNTS,
             STORAGE_KEYS.SNOOZE_UNTIL,
+            STORAGE_KEYS.PATTERN_COUNTS,
           ],
           (localResult) => {
             migrateRuntimeState(syncResult, localResult);
@@ -122,6 +126,8 @@
                 STORAGE_KEYS.DAILY_COUNTS,
                 {}
               ),
+              /* Local-only key (spike 041): no sync fallback. */
+              patternCounts: localResult[STORAGE_KEYS.PATTERN_COUNTS] || {},
               snoozeUntil,
               snoozed: Date.now() < snoozeUntil,
               lastBlocked: [],
@@ -200,6 +206,29 @@
       todayCountEl.textContent = todayVal;
       weekCountEl.textContent = String(weekVal);
       lifetimeCountEl.textContent = response.blockedCount;
+    }
+
+    /* Spike 041 prototype: per-pattern breakdown (lifetime, top 5). */
+    if (response.patternCounts) {
+      const entries = Object.entries(response.patternCounts)
+        .filter(([, c]) => c > 0)
+        .sort((a, b) => b[1] - a[1]);
+      if (entries.length > 0) {
+        patternStatsSection.style.display = "flex";
+        patternStatsList.innerHTML = "";
+        const idToLabel = new Map();
+        for (const pats of Object.values(SS_PATTERN_DATA)) {
+          for (const p of pats) idToLabel.set(p.id, p.label);
+        }
+        entries.slice(0, 5).forEach(([bucket, count], i) => {
+          const item = document.createElement("span");
+          item.textContent = (i > 0 ? " · " : "") +
+            (idToLabel.get(bucket) || bucket) + ": " + count;
+          patternStatsList.appendChild(item);
+        });
+      } else {
+        patternStatsSection.style.display = "none";
+      }
     }
 
     /* Last blocked */
@@ -347,6 +376,7 @@
           {
             [STORAGE_KEYS.COUNT]: 0,
             [STORAGE_KEYS.DAILY_COUNTS]: {},
+            [STORAGE_KEYS.PATTERN_COUNTS]: {},
           },
           refreshState
         );

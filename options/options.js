@@ -20,6 +20,8 @@
   const locallyWrittenKeys = new Set();
   let enabledLangs = [...DEFAULT_ENABLED_LANGS];
   let disabledPatterns = [];
+  /* Spike 041 prototype: per-pattern lifetime hit counts (local-only). */
+  let patternCounts = {};
   let whitelist = [];
   let blockedAuthors = [];
   let pendingDeleteId = null;
@@ -136,7 +138,13 @@
           }
         });
       }
-      render();
+      /* Spike 041 prototype: per-pattern hit counts live in
+         chrome.storage.local; read them before the first render so the
+         builtin rows can be annotated. */
+      chrome.storage.local.get([STORAGE_KEYS.PATTERN_COUNTS], (localResult) => {
+        patternCounts = localResult[STORAGE_KEYS.PATTERN_COUNTS] || {};
+        render();
+      });
     });
   }
 
@@ -1464,6 +1472,16 @@
     bl.className = "builtin-label";
     bl.textContent = t("builtinLabel");
     text.appendChild(bl);
+    /* Spike 041 prototype: annotate the row with its lifetime hit count
+       (bucket = stable pattern id). Rendered only when > 0. */
+    const hitCount = patternCounts[bp.id] || 0;
+    if (hitCount > 0) {
+      const count = document.createElement("span");
+      count.className = "builtin-label spike-count";
+      count.textContent = "· " + hitCount;
+      count.title = "Spike 041: lifetime blocks matched by this pattern";
+      text.appendChild(count);
+    }
     div.appendChild(text);
     div.appendChild(document.createElement("div")).className = "actions";
     return div;
