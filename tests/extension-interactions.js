@@ -82,6 +82,36 @@ async function main() {
       "expected popup to show one blocked post"
     );
 
+    /* Stats (plan 035): the single block must land in today's local-day
+       bucket in storage, and the popup must sum it into the today, 7-day,
+       and lifetime counters. */
+    await waitForLocalValue(context, "ss_daily_counts", (v) =>
+      v !== undefined && typeof v === "object" && Object.keys(v).length === 1
+    );
+    const dailyCounts = await getLocalStorage(context, "ss_daily_counts");
+    const expectedDayKey = getLocalDayKey();
+    assert.deepEqual(
+      Object.keys(dailyCounts),
+      [expectedDayKey],
+      "expected ss_daily_counts to hold exactly one key for today's local day"
+    );
+    assert.equal(dailyCounts[expectedDayKey], 1, "expected one block counted for today");
+    assert.equal(
+      await popup.locator("#todayCount").textContent(),
+      "1",
+      "expected today counter to show one block"
+    );
+    assert.equal(
+      await popup.locator("#weekCount").textContent(),
+      "1",
+      "expected 7-day counter to show one block"
+    );
+    assert.equal(
+      await popup.locator("#lifetimeCount").textContent(),
+      "1",
+      "expected lifetime counter to show one block"
+    );
+
     await linkedInPage.bringToFront();
     await popup.locator(".lb-undo").first().click();
 
@@ -366,6 +396,39 @@ async function main() {
     await popup.locator("#resetBtn").click();
     await popup.locator("#resetBtn").click();
     await waitForLocalValue(context, "ss_blocked_count", (v) => v === 0);
+
+    /* Stats reset (plan 035): the daily buckets must empty to exactly {}
+       and the popup counters must re-render to 0. */
+    assert.deepEqual(
+      await waitForLocalValue(context, "ss_daily_counts", (v) =>
+        v !== undefined && typeof v === "object" && Object.keys(v).length === 0
+      ),
+      {},
+      "expected ss_daily_counts to be exactly {} after reset"
+    );
+    await linkedInPage.bringToFront();
+    await popup.reload({ waitUntil: "domcontentloaded" });
+    await popup.waitForFunction(
+      () =>
+        getComputedStyle(document.getElementById("noConnection")).display === "none" &&
+        document.getElementById("blockedCount").textContent === "0",
+      { timeout: 10000 }
+    );
+    assert.equal(
+      await popup.locator("#todayCount").textContent(),
+      "0",
+      "expected today counter to show zero after reset"
+    );
+    assert.equal(
+      await popup.locator("#weekCount").textContent(),
+      "0",
+      "expected 7-day counter to show zero after reset"
+    );
+    assert.equal(
+      await popup.locator("#lifetimeCount").textContent(),
+      "0",
+      "expected lifetime counter to show zero after reset"
+    );
 
     /* ── Placeholder: never block this author + author scoping
           (plan 014 step 4.2-4.3) ─────────────────────────────────── */
@@ -1225,6 +1288,16 @@ async function waitForLocalValue(context, key, predicate, timeoutMs = 10000) {
     }
     await new Promise((r) => setTimeout(r, 100));
   }
+}
+
+/* Mirror of SS_getLocalDayKey: the extension's local-time YYYY-MM-DD
+   bucket key. If the two ever disagree, this duplication is doing its
+   job (plan 035). */
+function getLocalDayKey() {
+  const d = new Date();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${month}-${day}`;
 }
 
 main().catch((error) => {
