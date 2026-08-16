@@ -821,6 +821,11 @@ async function main() {
     );
     assert.match(
       copied,
+      /Pattern language: EN/,
+      "expected the matched pattern language in the report payload"
+    );
+    assert.match(
+      copied,
       /LinkedIn page:/,
       "expected the page URL in the report payload"
     );

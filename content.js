@@ -968,8 +968,13 @@
         e.stopPropagation();
         const excerpt = (textNode ? textNode.textContent : "").trim().slice(0, 600);
         const trigger = textNode ? extractTrigger(textNode.textContent) : "";
+        /* Built-in pattern ids carry the language prefix ("EN-1" → "EN");
+           custom phrases have no language. The button is gated on textNode,
+           so author/label blocks (textNode null) never reach here. */
+        const language = info && info.id ? info.id.split("-")[0] : "custom";
         const payload = [
           "Trigger: " + trigger,
+          "Pattern language: " + language,
           "",
           excerpt,
           "",
