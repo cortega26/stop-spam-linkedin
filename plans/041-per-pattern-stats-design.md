@@ -281,3 +281,119 @@ plan; the design records the decision: export carries user intent
 makes no network requests; nothing here changes that. Any future
 temptation to sync or upload these counts is a privacy violation and
 must be rejected (plan Maintenance notes).
+
+### Step 2 + Step 3: What the prototype showed
+
+The prototype branch (`advisor/041-per-pattern-stats-spike`, commits
+`spike(041):`) implements, on top of the design above:
+
+- **Content script** (`content.js` + one key in `shared/constants.js`):
+  `patternCounts` state, loaded from local on init, incremented inside
+  `blockPost`'s counting guard with the bucket derivation
+  (id → `"custom"` → `"author"` → `"builtin"` fallback), persisted in
+  the existing single `local.set`, exposed via `getState`, cleared by
+  `resetCount`, and kept live across tabs via the existing `onChanged`
+  local handler. No new write path; plan-031 error-check callback
+  reused.
+- **Popup** (`popup/popup.js` + `popup/popup.html`): a "By pattern:"
+  row under the today/week/lifetime stats row, reading
+  `response.patternCounts` (live via `getState`, offline via
+  `getStoredState`'s new local read), top-5 buckets sorted desc,
+  pattern ids mapped to labels from `SS_PATTERN_DATA`. Offline reset
+  fallback also clears the key.
+- **Options** (`options/options.js`): `load()` now reads
+  `ss_pattern_counts` from local before the first `render()`; builtin
+  rows with a non-zero count get a `· N` annotation.
+
+**Verification results (all on the spike branch)**:
+
+| Gate | Result |
+|------|--------|
+| `npm run smoke` | exit 0 |
+| `npm run lint` | exit 0 |
+| `npm run typecheck` | exit 0 |
+| `npm run test:unit` | 63/63 pass |
+| `npm run test:extension` | both files pass (run twice — once after Step 2, once after Step 3) |
+
+The e2e suite has no assertions on `ss_pattern_counts` (it asserts
+`dailyCounts` and `blockedCount` only), so the extra write is
+behaviourally neutral to existing tests — the runs prove the write
+path doesn't break the blocking pipeline. No new tests were added (the
+plan's test plan is prototype guards only).
+
+**What the prototype confirmed**:
+
+- The flat map fully supports the planned UI — per-pattern rows with
+  lifetime counts render correctly in both surfaces from the same
+  storage key, with no shape change needed. The STOP condition about
+  the shape not supporting the UI does NOT fire.
+- The bucket derivation handles every real `info` variant: built-ins
+  (id present), custom phrases (`source: "custom"`), author-blocklist
+  (`reason: "author-blocklist"`), and label-hides (never reach the
+  increment, excluded by `isLabelBlock`).
+- The options annotation is trivially readable from local at load;
+  no options-page storage-layer changes were needed.
+- One UX observation: the options page's `onChanged` handler returns
+  early for `area !== "sync"`, so an open options tab does NOT
+  live-update counts when the content script writes them — the counts
+  are read once at load. Acceptable for a spike; the build plan should
+  either accept stale-until-reload or add a local-area listener.
+
+### Step 4: Verdict
+
+**Storage shape decision**: flat lifetime map `{ bucket: count }` under
+`ss_pattern_counts` in `chrome.storage.local`, bucket ids as defined in
+Step 1. Confirmed by the prototype; no shape change required.
+
+**Migration story**: nothing to migrate — the key never lived in sync;
+add it to the `local.get` list only, default `{}`. The
+`migrateRuntimeStorage` pattern is copied in spirit (single key, local
+read with fallback, `local.set` with lastError guard) but the migration
+list itself must NOT gain the key. Multi-tab race accepted (same as
+`blockedCount`, documented at content.js:998-1001).
+
+**UI placement**: popup — one breakdown row directly under the
+today/week/lifetime row (top 5, desc, pattern labels resolved from
+`SS_PATTERN_DATA`; `custom`/`author` buckets render by bucket name).
+Options — lifetime count annotation on each builtin toggle row.
+Both read the same key; the popup also gets an offline fallback read.
+
+**What the prototype showed**: listed above — shape works, all gates
+green, e2e green twice, no new write paths, counts stay local-only.
+
+**Open questions for the build plan**:
+
+1. **Backup inclusion** — decided: NO. Counts are feed-composition
+   telemetry; export carries user intent data (phrases, exclusions)
+   but not this. If the build plan disagrees, it must argue against
+   the privacy statement first.
+2. **Multi-tab semantics** — accepted as-is (last writer wins, same
+   caveat as `blockedCount`). A service-worker serialised counter is
+   the eventual fix for all three counters, not just this one.
+3. **Reset UX** — counts reset with `resetCount` in both the
+   content-script and popup-offline paths. Open: should the options
+   page also get a per-pattern reset (e.g. a per-row "×" to clear one
+   bucket)? Not built; flagging as a product question.
+4. **"This week by pattern"** — the flat shape cannot answer it. If
+   wanted, the day-nested shape (`ss_daily_counts` extended per day) is
+   the migration path; not needed for the P3 ask.
+5. **i18n** — the prototype hardcodes the two spike strings ("By
+   pattern:" in popup.html, the count annotation title in options.js)
+   to avoid touching `_locales/` outside the spike's file list. The
+   build plan MUST add proper keys to both `_locales/en` and
+   `_locales/es` instead.
+6. **Options live updates** — an open options tab shows counts as of
+   load (see prototype observation); decide stale-until-reload vs a
+   local-area listener in the build plan.
+7. **Custom/author buckets on the options page** — the prototype only
+   annotates builtin rows; decide whether the options page should show
+   `custom`/`author` aggregates (e.g. a small totals line).
+
+**Recommendation**: proceed to a build plan. The spike proved the
+storage shape, the increment site, the migration story, and both UI
+surfaces with the full verification suite green. The build plan should
+start from this design document (not the spike branch), implement the
+three counter changes (increment, reset, getState/getStoredState),
+the two UI surfaces, and the i18n keys from open question 5. The
+prototype branch stays throwaway; the working tree has been reset to
+the base commit `804fcb2`.
