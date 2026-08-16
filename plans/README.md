@@ -104,7 +104,7 @@ implementation-ready plans:
 | 028 | [restoreBlocked lastBlocked](archive/028-restoreblocked-lastblocked.md) | P2 | S | — | DONE (2026-08-15, branch advisor/028-restoreblocked-lastblocked @ b6336d3 in /tmp/opencode/wt-028, reviewed + verified; regression proven — reverted-fix run fails at new assertion; 54 unit tests; e2e green) |
 | 029 | [UTF-8 byte quota](archive/029-utf8-byte-quota.md) | P2 | S | — (soft: 031) | DONE (2026-08-15, branch advisor/029-utf8-byte-quota @ 3cf2ccf in /tmp/opencode/wt-029, reviewed + verified; TextEncoder in 3 copies + eslint global; accented boundary e2e proven fails pre-fix; 54 unit tests; e2e green) |
 | 030 | [Options edit preservation](archive/030-options-edit-preservation.md) | P2 | M | — | DONE (2026-08-15, branch advisor/030-options-edit-preservation @ c2756e4 in /tmp/opencode/wt-030, reviewed + verified; editDraft + locallyWrittenKeys, e2e asserts draft/focus/toggle persistence; 54 unit tests; e2e green) |
-| 031 | [Storage error checks](031-storage-error-checks.md) | P2 | S–M | — (soft: 029) | TODO |
+| 031 | [Storage error checks](archive/031-storage-error-checks.md) | P2 | S–M | — (soft: 029) | DONE (2026-08-15, branch advisor/031-storage-error-checks @ 743f38e in /tmp/opencode/wt-031, reviewed + verified; all 40 set() sites guarded — audit re-run by reviewer; 54 unit tests; e2e green) |
 | 032 | [restorePost pruning](032-restorepost-pruning.md) | P2 | S | — (soft: 023) | TODO |
 | 033 | [Cooldown eviction order](033-cooldown-eviction.md) | P3 | S | — | TODO |
 | 034 | [buildPatterns extraction](034-buildpatterns-extraction.md) | P2 | M | 025 | TODO |
