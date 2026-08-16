@@ -1,6 +1,6 @@
 {
   "name": "linkedin-spam-blocker",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "private": true,
   "scripts": {
     "smoke": "jq empty manifest.json _locales/en/messages.json _locales/es/messages.json && for f in content.js background.js popup/popup.js options/options.js i18n.js shared/constants.js shared/pattern-data.js shared/post-container.js tests/extension-smoke.js tests/extension-interactions.js tests/firefox-smoke.js tests/helpers.js tests/unit/pattern-data.test.js tests/unit/post-container.test.js tests/unit/cooldown-store.test.js scripts/package-extension.js scripts/submit-stores.js; do node --check \"$f\" || exit 1; done",
