@@ -22,7 +22,6 @@
   "unblockAuthor": { "message": "Unblock this author" },
   "show": { "message": "Show" },
   "showAll": { "message": "Show all" },
-  "showAllTooltip": { "message": "Restore all hidden posts for this session" },
   "notSpam": { "message": "Not spam" },
   "notSpamTooltip": { "message": "Report as false positive" },
   "neverBlock": { "message": "Never block this author" },

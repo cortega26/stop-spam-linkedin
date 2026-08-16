@@ -22,7 +22,6 @@
   "unblockAuthor": { "message": "Desbloquear a este autor" },
   "show": { "message": "Mostrar" },
   "showAll": { "message": "Mostrar todas" },
-  "showAllTooltip": { "message": "Restaurar todas las publicaciones ocultas de esta sesión" },
   "notSpam": { "message": "No es spam" },
   "notSpamTooltip": { "message": "Reportar como falso positivo" },
   "neverBlock": { "message": "No bloquear a este autor" },
