@@ -1259,6 +1259,162 @@ async function main() {
     );
     await profilePage.close();
 
+    /* ── Placeholder: "Block this author" from a text-blocked post
+          (plan 040 D1) ──────────────────────────────────────────── */
+
+    /* Deterministic start: reload resets the DOM to the shared 3-section
+       fixture. Only spam-1 (EN text match) is blocked. */
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* An authored spam post whose author is NOT yet blocked. */
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:block-me-1";
+      const actor = document.createElement("div");
+      actor.className = "update-components-actor";
+      const link = document.createElement("a");
+      link.href = "/in/block-me/";
+      link.textContent = "Block Me Author";
+      actor.appendChild(link);
+      section.appendChild(actor);
+      const p = document.createElement("p");
+      p.textContent =
+        'Comment "CLAUDE" and I\'ll send you the complete checklist, ' +
+        "template, and workflow for free today.";
+      section.appendChild(p);
+      document.querySelector("main").appendChild(section);
+    });
+
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display === "none";
+      },
+      '[data-id="urn:li:activity:block-me-1"]',
+      { timeout: 5000 }
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+
+    /* The text-blocked post's placeholder carries exactly one of the
+       new buttons (spam-1's placeholder has no author, so none). */
+    const blockAuthorBtn = linkedInPage.locator("[data-ss-ph] button", {
+      hasText: /Block this author|Bloquear a este autor/,
+    });
+    assert.equal(
+      await blockAuthorBtn.count(),
+      1,
+      "expected exactly one 'Block this author' button in the feed"
+    );
+    await blockAuthorBtn.click();
+
+    /* The post STAYS hidden and its placeholder is swapped to the
+       author-block variant (plan 040 choice (a)): author-blocked label
+       + Unblock action, and none of the text-block actions. */
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        if (!el) return false;
+        const ph = el.nextElementSibling;
+        if (!ph || !ph.hasAttribute("data-ss-ph")) return false;
+        const label = ph.querySelector("span");
+        return label !== null && /Blocked — you've blocked this author|Bloqueado/.test(label.textContent);
+      },
+      '[data-id="urn:li:activity:block-me-1"]',
+      { timeout: 4000 }
+    );
+    const swapped = await linkedInPage
+      .locator('[data-id="urn:li:activity:block-me-1"]')
+      .evaluate((el) => {
+        const ph = el.nextElementSibling;
+        const buttons = ph ? [...ph.querySelectorAll("button")].map((b) => b.textContent) : [];
+        return {
+          display: getComputedStyle(el).display,
+          label: ph ? ph.querySelector("span").textContent : "",
+          buttons,
+        };
+      });
+    assert.equal(swapped.display, "none", "post must stay hidden after blocking its author");
+    assert.match(
+      swapped.label,
+      /Blocked — you've blocked this author|Bloqueado/,
+      "expected the placeholder to switch to the author-block variant"
+    );
+    assert.ok(
+      swapped.buttons.some((b) => /Unblock this author|Desbloquear a este autor/.test(b)),
+      "expected an 'Unblock this author' button on the swapped placeholder"
+    );
+    assert.ok(
+      !swapped.buttons.some((b) => /Not spam|No es spam/.test(b)),
+      "expected NO 'Not spam' button on the swapped placeholder"
+    );
+    assert.ok(
+      !swapped.buttons.some((b) => /Block this author|Bloquear a este autor/.test(b)),
+      "expected NO 'Block this author' button on the swapped placeholder"
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+
+    const blockedAfterPlan040 = await getSyncStorage(context, "ss_blocked_authors");
+    assert.ok(
+      Array.isArray(blockedAfterPlan040) && blockedAfterPlan040.includes("block-me"),
+      "expected block-me to be written to the blocked-authors storage"
+    );
+
+    /* A second post by the same author with CLEAN text (no spam match)
+       must be blocked by the author blocklist alone, with the author-
+       block placeholder variant. */
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:block-me-2";
+      const actor = document.createElement("div");
+      actor.className = "update-components-actor";
+      const link = document.createElement("a");
+      link.href = "/in/block-me/";
+      link.textContent = "Block Me Author";
+      actor.appendChild(link);
+      section.appendChild(actor);
+      const p = document.createElement("p");
+      p.textContent =
+        "An ordinary professional update sharing our team's quarterly " +
+        "results and upcoming roadmap highlights.";
+      section.appendChild(p);
+      document.querySelector("main").appendChild(section);
+    });
+
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        if (!el) return false;
+        const ph = el.nextElementSibling;
+        if (!ph || !ph.hasAttribute("data-ss-ph")) return false;
+        const buttons = [...ph.querySelectorAll("button")].map((b) => b.textContent);
+        return getComputedStyle(el).display === "none" &&
+          buttons.some((b) => /Unblock this author|Desbloquear a este autor/.test(b));
+      },
+      '[data-id="urn:li:activity:block-me-2"]',
+      { timeout: 5000 }
+    );
+    const secondPostState = await linkedInPage
+      .locator('[data-id="urn:li:activity:block-me-2"]')
+      .evaluate((el) => {
+        const ph = el.nextElementSibling;
+        const buttons = ph ? [...ph.querySelectorAll("button")].map((b) => b.textContent) : [];
+        return {
+          display: getComputedStyle(el).display,
+          hasUnblock: buttons.some((b) =>
+            /Unblock this author|Desbloquear a este autor/.test(b)
+          ),
+        };
+      });
+    assert.equal(secondPostState.display, "none", "the author's second post must be hidden");
+    assert.equal(
+      secondPostState.hasUnblock,
+      true,
+      "expected the author-block placeholder variant on the second post"
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 3);
+
     console.log("Extension interactions test passed.");
   } finally {
     await context.close();
