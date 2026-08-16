@@ -1292,6 +1292,11 @@
     const ph = post.nextElementSibling;
     if (ph && ph.dataset && ph.dataset.ssPh) ph.remove();
 
+    /* Restored posts are no longer "blocked"; pruning keeps whitelist
+       restores and bulk restore from re-processing them. */
+    blockedPosts.delete(post);
+    labelBlockedPosts.delete(post);
+
     /* Keep lastBlocked in sync so the popup undo list stays accurate. */
     for (let i = lastBlocked.length - 1; i >= 0; i--) {
       if (lastBlocked[i].post === post) lastBlocked.splice(i, 1);
