@@ -21,21 +21,30 @@
   /* ── Init ───────────────────────────────────────────────────── */
   chrome.runtime.onInstalled.addListener((details) => {
     if (details.reason !== "install" && details.reason !== "update") return;
-    chrome.contextMenus.create({
-      id: MENU_ID,
-      title: t("contextMenuTitle"),
-      contexts: ["selection"],
-    });
-    chrome.contextMenus.create({
-      id: MENU_ID_BLOCK_AUTHOR,
-      title: t("blockAuthorMenu"),
-      contexts: ["link"],
-      targetUrlPatterns: [
-        "*://*.linkedin.com/in/*",
-        "*://*.linkedin.com/company/*",
-        "*://*.linkedin.com/school/*",
-        "*://*.linkedin.com/showcase/*",
-      ],
+    chrome.contextMenus.removeAll(() => {
+      const createMenu = (options) => {
+        chrome.contextMenus.create(options, () => {
+          if (chrome.runtime.lastError) {
+            console.warn("contextMenus.create failed:", chrome.runtime.lastError.message);
+          }
+        });
+      };
+      createMenu({
+        id: MENU_ID,
+        title: t("contextMenuTitle"),
+        contexts: ["selection"],
+      });
+      createMenu({
+        id: MENU_ID_BLOCK_AUTHOR,
+        title: t("blockAuthorMenu"),
+        contexts: ["link"],
+        targetUrlPatterns: [
+          "*://*.linkedin.com/in/*",
+          "*://*.linkedin.com/company/*",
+          "*://*.linkedin.com/school/*",
+          "*://*.linkedin.com/showcase/*",
+        ],
+      });
     });
   });
 
