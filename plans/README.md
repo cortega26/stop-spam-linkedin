@@ -106,7 +106,7 @@ implementation-ready plans:
 | 030 | [Options edit preservation](archive/030-options-edit-preservation.md) | P2 | M | — | DONE (2026-08-15, branch advisor/030-options-edit-preservation @ c2756e4 in /tmp/opencode/wt-030, reviewed + verified; editDraft + locallyWrittenKeys, e2e asserts draft/focus/toggle persistence; 54 unit tests; e2e green) |
 | 031 | [Storage error checks](archive/031-storage-error-checks.md) | P2 | S–M | — (soft: 029) | DONE (2026-08-15, branch advisor/031-storage-error-checks @ 743f38e in /tmp/opencode/wt-031, reviewed + verified; all 40 set() sites guarded — audit re-run by reviewer; 54 unit tests; e2e green) |
 | 032 | [restorePost pruning](archive/032-restorepost-pruning.md) | P2 | S | — (soft: 023) | DONE (2026-08-15, branch advisor/032-restorepost-pruning @ ff1f721 in /tmp/opencode/wt-032, reviewed + verified; first shrink path for labelBlockedPosts; 54 unit tests; e2e + package green) |
-| 033 | [Cooldown eviction order](033-cooldown-eviction.md) | P3 | S | — | TODO |
+| 033 | [Cooldown eviction order](archive/033-cooldown-eviction.md) | P3 | S | — | DONE (2026-08-15, branch advisor/033-cooldown-eviction @ 97603a0 in /tmp/opencode/wt-033, reviewed + verified; LRU-by-refresh, test stash-proven non-vacuous; 55 unit tests) |
 | 034 | [buildPatterns extraction](034-buildpatterns-extraction.md) | P2 | M | 025 | TODO |
 | 035 | [Stats pipeline e2e](035-stats-e2e.md) | P2 | S–M | — | TODO |
 | 036 | [Firefox smoke negatives](036-firefox-negatives.md) | P3 | S | — | TODO |
