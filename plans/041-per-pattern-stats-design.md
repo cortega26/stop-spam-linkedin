@@ -172,3 +172,112 @@ Stop and report back (do not improvise) if:
 - Reviewer should check the design doc's migration section against the
   real `migrateRuntimeStorage` code — the pattern must be copied, not
   reinvented.
+
+## Design deliverable (spike output)
+
+> Appended by the plan-041 spike executor on the branch
+> `advisor/041-per-pattern-stats-spike` (base commit `804fcb2`, executed
+> 2026-08-15). This is the spike's written deliverable. All live-code
+> citations below were located by symbol name, not by the stale line
+> numbers in the plan text.
+
+### Step 1: Storage shape and migration
+
+#### Key and shape (decision)
+
+- **Key**: `ss_pattern_counts` in `chrome.storage.local` (added to
+  `STORAGE_KEYS` in `shared/constants.js` as `PATTERN_COUNTS`, per the
+  repo convention that every key is `ss_`-prefixed and defined once).
+- **Shape**: flat map of bucket id → lifetime count:
+  `{ "EN-1": 3, "custom": 2, "author": 1 }`. Absent key or absent bucket
+  reads as `0`. The count is **lifetime**, matching the semantics of
+  `ss_blocked_count` — per-pattern numbers are a breakdown of the same
+  lifetime total, reset together with it via the existing `resetCount`
+  action.
+
+**Alternatives evaluated**:
+
+1. **Flat map (chosen)** — one local key, one `.get` to read, trivially
+   merged, natural reset companion to `ss_blocked_count`. Limitation:
+   it cannot answer "this week by pattern" (no timestamps).
+2. **Nested day key** — `ss_daily_counts` extended to
+   `{ "2026-08-15": { "EN-1": 1 } }`. Would support time-windowed
+   per-pattern views, but changes the shape of an existing key, forcing
+   a migration + popup rollup changes for a P3 ask. Rejected for this
+   iteration; noted as the migration path if "this week by pattern"
+   becomes a requirement.
+3. **Event log** — `[{ pattern, ts }]`. Maximum query flexibility,
+   unbounded growth requiring a retention/prune policy, and it is the
+   most PII-adjacent option (a full history of every blocked post's
+   category). Rejected.
+
+The flat map supports the planned UI (per-pattern rows with lifetime
+counts, plus the existing today/week totals unchanged); it does NOT
+block it, so no STOP condition fires on the shape.
+
+#### Bucket keys
+
+Derived at the increment site from `blockPost`'s `info` argument:
+
+| Bucket | Condition | Example |
+|--------|-----------|---------|
+| `info.id` | built-in match (`SS_buildPatterns` entries carry the stable id, `shared/pattern-data.js` buildPatterns pushes `id: entry.id` for built-ins) | `"EN-1"`, `"DE-2"` |
+| `"custom"` | custom-phrase match (`info.source === "custom"`, custom entries carry no id) | `"custom"` |
+| `"author"` | author-blocklist block (`info.reason === "author-blocklist"`) | `"author"` |
+| `"builtin"` | defensive fallback only — unreachable in practice because every text match carries either an id or `source` | `"builtin"` |
+
+**Excluded**: Promoted/Featured label-hides never increment any bucket.
+The increment lives inside `blockPost`'s existing
+`if (!isLabelBlock && !counted.has(post))` block (`content.js:757-762`
+by current line numbers), so the existing `isLabelBlock` exclusion is
+inherited automatically.
+
+**Nice property**: a pattern the user disables stops accruing counts
+automatically — disabled ids are filtered out of `spamPatterns` by
+`SS_buildPatterns`, so no future match can attribute to them. Counts
+therefore double as an honest "is this pattern still useful" signal:
+a disabled pattern's bucket freezes.
+
+#### Increment site and persistence
+
+- Increment: immediately after `dailyCounts[key] = (dailyCounts[key] ||
+  0) + 1;` inside the guarded counting block in `blockPost` — one line
+  plus a small bucket-key derivation.
+- Persistence: extend the **existing single**
+  `chrome.storage.local.set({ [STORAGE_KEYS.COUNT], [STORAGE_KEYS.DAILY_COUNTS] })`
+  call at the end of `blockPost` (`content.js:1002-1009`) with
+  `[STORAGE_KEYS.PATTERN_COUNTS]`. The plan-031 error-check callback is
+  already in place; no new write path is introduced, so all three
+  counters stay consistent in one write.
+
+#### Migration story
+
+- `ss_pattern_counts` has never existed in `chrome.storage.sync`, so
+  the `migrateRuntimeStorage` sync→local pattern (content.js:134-159)
+  has **nothing to migrate** — the key is added to the
+  `chrome.storage.local.get` list only and defaults to `{}`. It must
+  NOT be added to the migration key list: that list exists to rescue
+  keys that once lived in sync, and this key never did.
+- Existing users: the key starts empty and accrues from the first block
+  after upgrade. No backfill is needed or attempted (there is no
+  historical per-pattern data — attribution was only ever held in the
+  5-slot in-memory `lastBlocked` window).
+- Multi-tab race: identical accepted caveat as `blockedCount` —
+  independent content-script state per tab, last `local.set` writer
+  wins (documented at content.js:998-1001). Impact is cosmetic count
+  drift on a P3 telemetry surface; no correctness impact.
+- Reset: `resetCount` (both the content-script message handler and the
+  popup's offline fallback `setExtensionState` path) must also clear
+  `ss_pattern_counts` so the three counters never disagree.
+
+#### Privacy statement
+
+Counts are local-only by design (`chrome.storage.local`). They are
+PII-adjacent — they reveal what a user's feed contains — which is fine
+locally and would NOT be fine anywhere else. **Decision: counts are NOT
+included in backup/export** (backup flows are out of scope for this
+plan; the design records the decision: export carries user intent
+(phrases, exclusions) but not feed-composition telemetry). The extension
+makes no network requests; nothing here changes that. Any future
+temptation to sync or upload these counts is a privacy violation and
+must be rejected (plan Maintenance notes).
