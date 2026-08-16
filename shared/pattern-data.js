@@ -241,6 +241,9 @@
         return true;
       },
       set(key) {
+        /* Re-insert refreshes so eviction (keys().next()) drops the key
+           with the shortest remaining lifetime, not the longest. */
+        if (map.has(key)) map.delete(key);
         map.set(key, Date.now() + expiryMs);
         while (map.size > maxEntries) {
           const oldest = map.keys().next().value;

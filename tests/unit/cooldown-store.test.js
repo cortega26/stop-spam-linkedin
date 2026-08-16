@@ -37,6 +37,17 @@ test("evicts the oldest entries past maxEntries", () => {
   assert.equal(store.has("urn:li:activity:four"), true);
 });
 
+test("refreshing a key re-orders it so the earlier-expiring key is evicted first", () => {
+  const store = createCooldownStore(1000, 2);
+  store.set("urn:li:activity:alpha");
+  store.set("urn:li:activity:bravo");
+  store.set("urn:li:activity:alpha");
+  store.set("urn:li:activity:charlie");
+  assert.equal(store.has("urn:li:activity:alpha"), true);
+  assert.equal(store.has("urn:li:activity:bravo"), false);
+  assert.equal(store.has("urn:li:activity:charlie"), true);
+});
+
 test("set on an existing key refreshes its expiry", () => {
   const store = createCooldownStore(1000, 10);
   store.set("urn:li:activity:spam-1");
