@@ -21,7 +21,7 @@ ships.
 
 | Command | What it does |
 |---------|--------------|
-| `npm run smoke` | `jq` JSON validation of `manifest.json` + both locale files, then `node --check` on the runtime files listed in the smoke script (`content.js`, `background.js`, `popup/popup.js`, `options/options.js`, `i18n.js`, `shared/constants.js`, `shared/pattern-data.js`) plus `tests/extension-smoke.js` and `tests/unit/pattern-data.test.js`. Note: shipped file `shared/post-container.js` is not in the smoke chain (lint/CI covers it; adding it is plan 038) |
+| `npm run smoke` | `jq` JSON validation of `manifest.json` + both locale files, then `node --check` on every shipped and test JS file (`content.js`, `background.js`, `popup/popup.js`, `options/options.js`, `i18n.js`, `shared/constants.js`, `shared/pattern-data.js`, `shared/post-container.js`, `tests/extension-smoke.js`, `tests/extension-interactions.js`, `tests/firefox-smoke.js`, `tests/helpers.js`, `tests/unit/pattern-data.test.js`, `tests/unit/post-container.test.js`, `tests/unit/cooldown-store.test.js`, `scripts/package-extension.js`, `scripts/submit-stores.js`) |
 | `npm run lint` | ESLint 9 flat config — recommended rules per execution context (`eslint.config.js`) |
 | `npm run typecheck` | TypeScript checkJs — JSDoc type-checking of runtime files with zero build step (`tsconfig.json`) |
 | `npm run test:unit` | Node's built-in test runner over `tests/unit/*.test.js` (glob form — needs Node ≥ 24); currently 16 tests |
