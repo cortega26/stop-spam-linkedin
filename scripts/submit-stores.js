@@ -78,19 +78,56 @@ async function submitFirefox() {
   formData.append("channel", "listed");
 
   console.log(`Uploading ${path.basename(zipPath)} to Mozilla Add-ons...`);
-  const response = await fetch("https://addons.mozilla.org/api/v5/addons/upload/", {
+  const uploadRes = await fetch("https://addons.mozilla.org/api/v5/addons/upload/", {
     method: "POST",
     headers: { Authorization: `JWT ${jwt}` },
     body: formData,
   });
-
-  const result = await response.json();
-  console.log("Response:", JSON.stringify(result, null, 2));
-
-  if (!response.ok) {
-    console.error("Firefox upload failed:", result);
+  const upload = await uploadRes.json();
+  if (!uploadRes.ok || !upload.uuid) {
+    console.error("Firefox upload failed:", JSON.stringify(upload, null, 2));
     process.exit(1);
   }
+  console.log("Upload uuid:", upload.uuid);
+
+  const deadline = Date.now() + 60000;
+  let status;
+  do {
+    await new Promise((r) => setTimeout(r, 3000));
+    status = await fetch(`https://addons.mozilla.org/api/v5/addons/upload/${upload.uuid}/`, {
+      headers: { Authorization: `JWT ${jwt}` },
+    }).then((r) => r.json());
+  } while (!status.processed && Date.now() < deadline);
+  if (!status.processed) {
+    console.error("Upload timed out");
+    process.exit(1);
+  }
+  if (!status.valid) {
+    console.error("Firefox upload INVALID:", JSON.stringify(status.validation || status, null, 2));
+    process.exit(1);
+  }
+  console.log("Upload valid:", status.valid, "| channel:", status.channel);
+
+  if (process.env.DRY_RUN === "1") {
+    console.log("DRY_RUN: skipping version creation");
+    return;
+  }
+
+  const addonGuid = upload.guid || "linkedin-spam-blocker@carlos";
+  const versionRes = await fetch(
+    `https://addons.mozilla.org/api/v5/addons/addon/${encodeURIComponent(addonGuid)}/versions/`,
+    {
+      method: "POST",
+      headers: { Authorization: `JWT ${jwt}`, "Content-Type": "application/json" },
+      body: JSON.stringify({ upload: upload.uuid, channel: "listed" }),
+    }
+  );
+  const version = await versionRes.json();
+  if (!versionRes.ok) {
+    console.error("Firefox version creation failed:", JSON.stringify(version, null, 2));
+    process.exit(1);
+  }
+  console.log("Version created:", version.version, "| status:", version.status);
 
   console.log("Mozilla Add-ons: done.");
 }
