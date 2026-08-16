@@ -121,6 +121,7 @@ implementation-ready plans:
 | 045 | [Version bump 1.4.0](045-version-1.4.0.md) | P1 | S | — | DONE (2026-08-15, branch advisor/045-version-1.4.0 @ c2da0e1 in /tmp/opencode/wt-045, reviewed + verified; 5 lockstep files + badges + privacy date; Firefox badge intentionally kept at v1.2.4 — AMO last published 1.2.4, bumping would be false; zip 1.4.0 verified) |
 | 046 | [Firefox submit fix](046-firefox-submit-fix.md) | P1 | S | — | DONE (2026-08-15, branch advisor/046-firefox-submit-fix @ 4544e7f in /tmp/opencode/wt-046, reviewed + verified; root cause: upload-only, never created version; fix polls/validates/creates version — 1.4.0 LIVE on AMO id 6417108, listed, unreviewed; deviation: v5 endpoint is /versions/ POST with upload uuid in body — plan's /versions/{uuid}/ is 405; submitChrome untouched) |
 | 047 | [Docs + store copy sync](047-docs-store-sync.md) | P2 | S–M | — | DONE (2026-08-15, branch advisor/047-docs-store-sync @ 8de62b9 in /tmp/opencode/wt-047, reviewed + verified; README + 4 translations gain Block-this-author/pattern-language/full-settings; store copy EN+ES rewritten must-have; 3 plan-grep inconsistencies adjudicated — copy intent satisfied) |
+| 048 | [Shared helper consolidation](048-shared-helpers-consolidation.md) | P3 | M | — (soft: 029) | TODO |
 
 Status values: TODO | IN PROGRESS | DONE (→ move the file to `plans/archive/` and relink the index row) | BLOCKED (with one-line reason) | REJECTED (with one-line rationale — finding fixed independently or approach abandoned)
 
