@@ -21,7 +21,7 @@ ships.
 
 | Command | What it does |
 |---------|--------------|
-| `npm run smoke` | `jq` JSON validation of `manifest.json` + both locale files, then `node --check` on every runtime JS file plus `tests/extension-smoke.js` and `tests/unit/pattern-data.test.js` |
+| `npm run smoke` | `jq` JSON validation of `manifest.json` + both locale files, then `node --check` on the runtime files listed in the smoke script (`content.js`, `background.js`, `popup/popup.js`, `options/options.js`, `i18n.js`, `shared/constants.js`, `shared/pattern-data.js`) plus `tests/extension-smoke.js` and `tests/unit/pattern-data.test.js`. Note: shipped file `shared/post-container.js` is not in the smoke chain (lint/CI covers it; adding it is plan 038) |
 | `npm run lint` | ESLint 9 flat config — recommended rules per execution context (`eslint.config.js`) |
 | `npm run typecheck` | TypeScript checkJs — JSDoc type-checking of runtime files with zero build step (`tsconfig.json`) |
 | `npm run test:unit` | Node's built-in test runner over `tests/unit/*.test.js` (glob form — needs Node ≥ 24); currently 16 tests |
@@ -37,10 +37,10 @@ the test suite that covers the change.
 
 ## Architecture & conventions
 
-- **Files**: `content.js` (~1100 lines) is the content script —
+- **Files**: `content.js` (~1300 lines) is the content script —
   scan/detect/block. `background.js` (92 lines) is the MV3 service worker:
   context menu + badge relay only, loads no other modules. `popup/popup.js`
-  (388 lines) and `options/options.js` (~1170 lines) drive their pages.
+  (~410 lines) and `options/options.js` (~1600 lines) drive their pages.
   `i18n.js` does `__MSG_key__` token substitution on popup/options pages.
 - **Every JS file is a `"use strict"` IIFE.** Shared pure logic lives in
   `shared/pattern-data.js` as a UMD module: it exposes globals on the page
@@ -54,14 +54,15 @@ the test suite that covers the change.
   and `<script>` tags in `popup.html`/`options.html` (both load
   `shared/constants.js` + `shared/pattern-data.js`). `background.js` loads
   nothing extra.
-- **Storage**: all keys are `ss_`-prefixed. Runtime counters/state live in
-  `chrome.storage.local`, preferences in `chrome.storage.sync`, with a
-  sync→local migration helper duplicated as `migrateRuntimeStorage`
-  (`content.js`) and `migrateRuntimeState` (`popup.js`). Keys are currently
-  defined per file (`STORAGE_KEYS` in `content.js`/`popup.js`, `STORAGE_KEY`
-  in `background.js`, `EXCLUDED_STORAGE_KEY` in `options.js`) — there is no
-  shared constants module yet. `ss_excluded` entries are `{sig, preview,
-  created}` objects.
+- **Storage**: all keys are `ss_`-prefixed and defined once in
+  `shared/constants.js` as `SS_CONSTANTS` (`STORAGE_KEYS`, `LIMITS`,
+  `DEFAULT_ENABLED_LANGS`); every runtime file destructures it
+  (`content.js:4`, `popup/popup.js:4`, `options/options.js:4`,
+  `background.js:7`). Runtime counters/state live in `chrome.storage.local`,
+  preferences in `chrome.storage.sync`, with a sync→local migration helper
+  duplicated as `migrateRuntimeStorage` (`content.js`) and
+  `migrateRuntimeState` (`popup.js`). `ss_excluded` entries are `{sig,
+  preview, created}` objects.
 - **i18n**: user-facing strings use `t("key")` in JS or `__MSG_key__` in
   HTML; a new key must be added to BOTH `_locales/en/messages.json` and
   `_locales/es/messages.json`. Detection-language coverage (5 languages,
