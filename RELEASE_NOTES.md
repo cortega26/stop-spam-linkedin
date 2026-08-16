@@ -1,5 +1,17 @@
 # Release Notes
 
+## 1.4.0
+
+New features, detection fixes, and a reliability pass. Key changes:
+
+- **In-feed "Block this author"**: text-block placeholders now offer a "Block this author" button alongside "Never block this author" — the author's posts stay hidden feed-wide and the placeholder switches to the author-block variant.
+- **Missed-spam reports carry the language**: the clipboard report now includes which pattern language matched ("Pattern language: EN"), and the issue form collects negative examples to prevent over-matching.
+- **Complete settings backup**: Export/Import now also covers blocked authors, disabled patterns, and the Promoted/Featured hide toggles.
+- **Detection fixes (FR/PT)**: French "commentez X pour recevoir" and "je vous enverrai" and Portuguese "vou enviar" now match correctly — these previously never blocked; English/ES/DE verified solid.
+- **Reliability**: storage quotas now measured in UTF-8 bytes (non-ASCII phrase lists near the cap no longer fail silently); every storage write checks errors; undo list deduplicated after snooze/disable; oversized imports are byte-pruned instead of failing silently; exclusion eviction and the 15-minute Show cooldown keep only the entries they should.
+- **E2E coverage**: FR/PT/DE detection now unit-tested (54→63 tests); stats pipeline and backup round-trip covered end-to-end; Firefox smoke gained a negative control.
+- **Under the hood**: pattern assembly moved to a shared, unit-tested module; options page preserves in-progress edits and no longer double-renders; context menus are recreated cleanly on update.
+
 ## 1.3.0
 
 New features, detection fixes, and quality improvements. Key changes:

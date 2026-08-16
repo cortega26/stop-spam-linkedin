@@ -1,6 +1,6 @@
 # Privacy Policy — LinkedIn Spam Blocker
 
-**Last updated:** 14 August 2026
+**Last updated:** 15 August 2026
 
 ## Data Collection
 

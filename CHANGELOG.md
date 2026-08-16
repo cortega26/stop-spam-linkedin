@@ -1,5 +1,39 @@
 # Changelog
 
+## 1.4.0 - Features, Detection Fixes, Reliability
+
+### Features
+
+- Added an in-feed **"Block this author"** button on text-block placeholders (alongside "Never block this author") — blocking an author keeps their posts hidden feed-wide and switches the placeholder to the author-block variant (plan 040).
+- Missed-spam reports now carry the **matched pattern language** in the clipboard payload ("Pattern language: EN") and the issue form gains a **negative-examples** field to prevent over-matching (plan 042).
+- **Export/Import now covers all settings**: blocked authors, disabled patterns, and the Promoted/Featured hide toggles now travel with the backup (plan 027).
+- Options page shows an **exclusion-count / near-quota warning** when the storage budget is running out (batch 021).
+
+### Detection
+
+- Fixed **French detection**: "commentez X pour recevoir" (missing space) and "je vous enverrai" (object pronouns) now match — previously never blocked.
+- Fixed **Portuguese detection**: near-future "vou enviar" now matches — previously never blocked (plan 025).
+- FR/PT/DE detection now covered by 12 new unit tests plus per-language e2e coverage; EN/ES/DE verified solid.
+
+### Fixes
+
+- Storage quota measurement is now **UTF-8 byte-accurate** — non-ASCII phrase lists near the cap no longer fail silently (plan 029).
+- Added `chrome.runtime.lastError` guards to all storage writes (plan 031).
+- Undo rows are deduplicated when posts are snoozed, disabled, or "Show all"-ed (plan 028).
+- Imports are **byte-pruned** instead of failing silently when they exceed the storage quota (plan 026).
+- Exclusion eviction now scores correctly (plan 022); `parseAuthorId` no longer throws on malformed URIs (plan 024).
+- Whitelist restore keeps the same tab via an `oldValue` diff (plan 023); the Show cooldown evicts in the right order (plan 033).
+- Context menus are removed and recreated cleanly on extension update (plan 039).
+- Options page preserves in-progress edits and renders exactly once instead of double-rendering (plan 030).
+- `restorePost` set is pruned so restored posts are never re-flagged (plan 032).
+
+### Tests & tooling
+
+- `buildPatterns` extracted into a shared, unit-tested module (plan 034); unit suite grew 54→63 tests.
+- Stats pipeline covered end-to-end (plan 035); Firefox smoke gained a negative control (plan 036).
+- Smoke now checks all 17 shipped/test JS files (plan 038); `AGENTS.md` facts refreshed (plan 037).
+- E2E runs headless under `xvfb` — no visible browser windows in CI (plan 044).
+
 ## 1.3.0 - Features, Detection Fixes, Quality
 
 ### Features
