@@ -111,7 +111,7 @@ implementation-ready plans:
 | 035 | [Stats pipeline e2e](archive/035-stats-e2e.md) | P2 | S–M | — | DONE (2026-08-15, branch advisor/035-stats-e2e @ 41e2193 in /tmp/opencode/wt-035, reviewed + verified; ss_daily_counts shape + reset + popup counters; 63 unit tests; e2e green) |
 | 036 | [Firefox smoke negatives](archive/036-firefox-negatives.md) | P3 | S | — | DONE (2026-08-15, branch advisor/036-firefox-negatives @ efd89af in /tmp/opencode/wt-036, reviewed + verified; clean-1 negative control + harness-coverage comment; 63 unit tests; firefox + e2e green) |
 | 037 | [AGENTS.md refresh](archive/037-agents-md-refresh.md) | P3 | S | — | DONE (2026-08-15, branch advisor/037-agents-md-refresh @ 821d214 in /tmp/opencode/wt-037, reviewed + verified; SS_CONSTANTS storage facts, smoke coverage note, fresh line counts) |
-| 038 | [Smoke coverage](038-smoke-coverage.md) | P3 | S | — | TODO |
+| 038 | [Smoke coverage](archive/038-smoke-coverage.md) | P3 | S | — | DONE (2026-08-15, branch advisor/038-smoke-coverage @ 527bd81 in /tmp/opencode/wt-038, reviewed + verified; shell-loop chain over all 17 shipped/test JS files, gate proven catches syntax errors, AGENTS.md synced) |
 | 039 | [Context menus cleanup](039-contextmenus-cleanup.md) | P3 | S | — | TODO |
 | 040 | [Block-author button](040-block-author-button.md) | P2 | S–M | — | TODO |
 | 041 | [Per-pattern stats (design)](041-per-pattern-stats-design.md) | P3 | M | — (soft: 022) | TODO |
