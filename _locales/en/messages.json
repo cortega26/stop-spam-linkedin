@@ -26,6 +26,7 @@
   "notSpam": { "message": "Not spam" },
   "notSpamTooltip": { "message": "Report as false positive" },
   "neverBlock": { "message": "Never block this author" },
+  "blockAuthor": { "message": "Block this author" },
   "reportMissed": { "message": "Report missed spam" },
   "reportCopied": { "message": "Post text copied — paste it into the issue form" },
   "reportFailed": { "message": "Couldn't copy — please copy the post text manually" },

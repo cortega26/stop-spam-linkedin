@@ -903,6 +903,45 @@
       placeholder.appendChild(whitelistBtn);
     }
 
+    /* "Block this author" button — the blocklist counterpart to the
+       whitelist button above: hides every post by this author feed-wide.
+       Only meaningful on text-block placeholders (author-block
+       placeholders already show the unblock action, and label blocks are
+       author-agnostic). On click the post stays hidden and its
+       placeholder is swapped to the author-block variant (plan 040 D1). */
+    if (authorId && !isAuthorBlock && !isLabelBlock) {
+      const blockBtn = document.createElement("button");
+      blockBtn.textContent = t("blockAuthor");
+      blockBtn.style.cssText = [
+        "background:none; border:1px solid #d0d0d0; border-radius:4px;",
+        "padding:4px 12px; cursor:pointer; font-size:12px; color:#767676;",
+      ].join("");
+      blockBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = getAuthorId(post);
+        if (id) {
+          blockedAuthors.add(id);
+          pruneSet(blockedAuthors, LIMITS.MAX_BLOCKED_AUTHORS);
+          chrome.storage.sync.set({ [STORAGE_KEYS.BLOCKED_AUTHORS]: [...blockedAuthors] }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn("Failed to save blocked author (sync.set):", chrome.runtime.lastError.message);
+            }
+          });
+          /* Swap the placeholder to the author-block variant: re-run
+             blockPost with the author-blocklist reason now that the
+             author is blocked. The re-entry guards are satisfied — the
+             old placeholder is removed first, processed is cleared, and
+             this post is not on cooldown or forceShow. The post stays
+             hidden; counting is idempotent (counted.has(post)). */
+          const ph = post.nextElementSibling;
+          if (ph && ph.dataset && ph.dataset.ssPh) ph.remove();
+          processed.delete(post);
+          blockPost(post, null, { reason: "author-blocklist", authorId: id });
+        }
+      });
+      placeholder.appendChild(blockBtn);
+    }
+
     const restoreBtn = document.createElement("button");
     restoreBtn.textContent = t("show");
     restoreBtn.style.cssText = [

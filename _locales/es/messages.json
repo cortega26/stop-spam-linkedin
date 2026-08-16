@@ -26,6 +26,7 @@
   "notSpam": { "message": "No es spam" },
   "notSpamTooltip": { "message": "Reportar como falso positivo" },
   "neverBlock": { "message": "No bloquear a este autor" },
+  "blockAuthor": { "message": "Bloquear a este autor" },
   "reportMissed": { "message": "Reportar spam no detectado" },
   "reportCopied": { "message": "Texto de la publicación copiado — pégalo en el formulario de incidencia" },
   "reportFailed": { "message": "No se pudo copiar — copia el texto de la publicación manualmente" },
