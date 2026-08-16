@@ -79,6 +79,17 @@ the test suite that covers the change.
   use shields.io URL and move to last position` and `test(e2e): drive
   popup, placeholder, and options flows in Playwright`. See
   `git log --oneline` for more.
+- **Store badges track the PUBLISHED store version.** The README badge
+  for each store reflects what that store has actually published, not
+  the repo's manifest version: the Chrome badge is bumped at release
+  time (the tag workflow publishes Chrome automatically), and the
+  Firefox badge is bumped when AMO review completes and the version
+  becomes `public` (verify via the AMO API before bumping). A badge
+  ahead of the store's published state is a false claim — keep them
+  honest. Store listing copy lives in `STORE_ASSETS.md` and is pasted
+  into the dashboards manually at release time (Chrome has no
+  description API; AMO descriptions are updated via `PATCH` and stored
+  as plain text — markdown markers are stripped).
 - **No build step** — do not introduce one.
 - **Never commit secrets.** Dev/agent config dirs (`.agents/`, `.claude/`,
   etc.) are gitignored; do not commit them.
