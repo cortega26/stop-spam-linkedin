@@ -113,7 +113,7 @@ implementation-ready plans:
 | 037 | [AGENTS.md refresh](archive/037-agents-md-refresh.md) | P3 | S | — | DONE (2026-08-15, branch advisor/037-agents-md-refresh @ 821d214 in /tmp/opencode/wt-037, reviewed + verified; SS_CONSTANTS storage facts, smoke coverage note, fresh line counts) |
 | 038 | [Smoke coverage](archive/038-smoke-coverage.md) | P3 | S | — | DONE (2026-08-15, branch advisor/038-smoke-coverage @ 527bd81 in /tmp/opencode/wt-038, reviewed + verified; shell-loop chain over all 17 shipped/test JS files, gate proven catches syntax errors, AGENTS.md synced) |
 | 039 | [Context menus cleanup](archive/039-contextmenus-cleanup.md) | P3 | S | — | DONE (2026-08-15, branch advisor/039-contextmenus-cleanup @ e67c3ba in /tmp/opencode/wt-039, reviewed + verified; removeAll + lastError, update-path probe clean; 63 unit tests; e2e green) |
-| 040 | [Block-author button](040-block-author-button.md) | P2 | S–M | — | TODO |
+| 040 | [Block-author button](archive/040-block-author-button.md) | P2 | S–M | — | DONE (2026-08-15, branch advisor/040-block-author-button @ 0f147af in /tmp/opencode/wt-040, reviewed + verified; placeholder swap to author-block variant, e2e; 63 unit tests; e2e green) |
 | 041 | [Per-pattern stats (design)](041-per-pattern-stats-design.md) | P3 | M | — (soft: 022) | TODO |
 | 042 | [Missed-spam language](042-missed-spam-language.md) | P2 | S | — (soft: 034) | TODO |
 | 043 | [Suggestion loop (design)](043-suggestion-loop-design.md) | P3 | M | — | TODO |
