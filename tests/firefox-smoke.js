@@ -311,11 +311,23 @@ async function main() {
 
     /* Two placeholders: spam-1 plus whitelisted-1 (the mock's "trusted"
        author whitelist isn't seeded in this harness, so its bait text
-       blocks too). clean-1 stays visible. */
+       blocks too). clean-1 stays visible — the negative control that
+       catches over-match regressions. The whitelist skip path and author
+       parsing (SS_parseAuthorId) can't be driven here: geckodriver
+       executes in the page context, not the extension's isolated world,
+       and can't seed chrome.storage — the Chromium e2e covers that
+       branch. */
     const placeholderCount = await driver.execute(
       "return document.querySelectorAll('[data-ss-ph]').length;"
     );
     assert.equal(placeholderCount, 2, "expected two placeholders");
+
+    const cleanVisible = await driver.execute(`
+      const post = document.querySelector('[data-id="urn:li:activity:clean-1"]');
+      return post && getComputedStyle(post).display !== "none";
+    `);
+    assert.equal(cleanVisible, true,
+      "expected the clean post to stay visible in Firefox (over-match regression)");
 
     /* Extension context is wired: the profile's prefs.js maps the addon
        id to the UUID used in moz-extension:// URLs — proof the addon
