@@ -368,6 +368,10 @@
         }
         chrome.storage.sync.set({
           [STORAGE_KEYS.ENABLED]: enabled,
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.warn("Failed to save toggle state (sync.set):", chrome.runtime.lastError.message);
+          }
         });
         sendResponse({ enabled });
         break;
@@ -378,6 +382,10 @@
         chrome.storage.local.set({
           [STORAGE_KEYS.COUNT]: 0,
           [STORAGE_KEYS.DAILY_COUNTS]: {},
+        }, () => {
+          if (chrome.runtime.lastError) {
+            console.warn("Failed to save reset counters (local.set):", chrome.runtime.lastError.message);
+          }
         });
         setBadge("");
         sendResponse({ blockedCount: 0, dailyCounts: {} });
@@ -417,7 +425,11 @@
 
       case "dismissOnboard":
         onboarded = true;
-        chrome.storage.local.set({ [STORAGE_KEYS.ONBOARDED]: true });
+        chrome.storage.local.set({ [STORAGE_KEYS.ONBOARDED]: true }, () => {
+          if (chrome.runtime.lastError) {
+            console.warn("Failed to save onboarding flag (local.set):", chrome.runtime.lastError.message);
+          }
+        });
         sendResponse({ ok: true });
         break;
 
@@ -470,7 +482,11 @@
         if (msg.authorId) {
           whitelistedAuthors.add(msg.authorId);
           pruneSet(whitelistedAuthors, LIMITS.MAX_WHITELIST);
-          chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: [...whitelistedAuthors] });
+          chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: [...whitelistedAuthors] }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn("Failed to save whitelist add (sync.set):", chrome.runtime.lastError.message);
+            }
+          });
           sendResponse({ ok: true });
         } else {
           sendResponse({ ok: false });
@@ -480,7 +496,11 @@
       case "removeFromWhitelist":
         if (msg.authorId) {
           whitelistedAuthors.delete(msg.authorId);
-          chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: [...whitelistedAuthors] });
+          chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: [...whitelistedAuthors] }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn("Failed to save whitelist remove (sync.set):", chrome.runtime.lastError.message);
+            }
+          });
           sendResponse({ ok: true });
         } else {
           sendResponse({ ok: false });
@@ -495,7 +515,11 @@
         if (msg.authorId) {
           blockedAuthors.add(msg.authorId);
           pruneSet(blockedAuthors, LIMITS.MAX_BLOCKED_AUTHORS);
-          chrome.storage.sync.set({ [STORAGE_KEYS.BLOCKED_AUTHORS]: [...blockedAuthors] });
+          chrome.storage.sync.set({ [STORAGE_KEYS.BLOCKED_AUTHORS]: [...blockedAuthors] }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn("Failed to save blocked author add (sync.set):", chrome.runtime.lastError.message);
+            }
+          });
           sendResponse({ ok: true });
         } else {
           sendResponse({ ok: false });
@@ -505,7 +529,11 @@
       case "removeFromBlockedAuthor":
         if (msg.authorId) {
           blockedAuthors.delete(msg.authorId);
-          chrome.storage.sync.set({ [STORAGE_KEYS.BLOCKED_AUTHORS]: [...blockedAuthors] });
+          chrome.storage.sync.set({ [STORAGE_KEYS.BLOCKED_AUTHORS]: [...blockedAuthors] }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn("Failed to save blocked author remove (sync.set):", chrome.runtime.lastError.message);
+            }
+          });
           sendResponse({ ok: true });
         } else {
           sendResponse({ ok: false });
@@ -876,7 +904,11 @@
             STORAGE_KEYS.EXCLUDED,
             Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.9)
           );
-          chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excludedSignatures) });
+          chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excludedSignatures) }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn("Failed to save excluded signature (sync.set):", chrome.runtime.lastError.message);
+            }
+          });
         }
         restorePost(post);
       });
@@ -896,7 +928,11 @@
         e.stopPropagation();
         if (info.authorId) {
           blockedAuthors.delete(info.authorId);
-          chrome.storage.sync.set({ [STORAGE_KEYS.BLOCKED_AUTHORS]: [...blockedAuthors] });
+          chrome.storage.sync.set({ [STORAGE_KEYS.BLOCKED_AUTHORS]: [...blockedAuthors] }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn("Failed to save unblocked author (sync.set):", chrome.runtime.lastError.message);
+            }
+          });
         }
         restorePost(post);
       });
@@ -920,7 +956,11 @@
         if (id) {
           whitelistedAuthors.add(id);
           pruneSet(whitelistedAuthors, LIMITS.MAX_WHITELIST);
-          chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: [...whitelistedAuthors] });
+          chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: [...whitelistedAuthors] }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn("Failed to save whitelist entry (sync.set):", chrome.runtime.lastError.message);
+            }
+          });
         }
         restorePost(post);
       });
@@ -987,6 +1027,10 @@
     chrome.storage.local.set({
       [STORAGE_KEYS.COUNT]: blockedCount,
       [STORAGE_KEYS.DAILY_COUNTS]: dailyCounts,
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Failed to save block counters (local.set):", chrome.runtime.lastError.message);
+      }
     });
   }
 
@@ -1039,12 +1083,20 @@
 
   function snooze() {
     syncSnoozeState(Date.now() + LIMITS.SNOOZE_DURATION_MS);
-    chrome.storage.local.set({ [STORAGE_KEYS.SNOOZE_UNTIL]: snoozeUntil });
+    chrome.storage.local.set({ [STORAGE_KEYS.SNOOZE_UNTIL]: snoozeUntil }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Failed to save snooze state (local.set):", chrome.runtime.lastError.message);
+      }
+    });
   }
 
   function clearSnooze() {
     syncSnoozeState(0);
-    chrome.storage.local.set({ [STORAGE_KEYS.SNOOZE_UNTIL]: 0 });
+    chrome.storage.local.set({ [STORAGE_KEYS.SNOOZE_UNTIL]: 0 }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Failed to save snooze clear (local.set):", chrome.runtime.lastError.message);
+      }
+    });
   }
 
   function syncSnoozeState(nextSnoozeUntil) {
@@ -1067,7 +1119,11 @@
     restoreBlocked();
     snoozeTimer = setTimeout(() => {
       snoozeUntil = 0;
-      chrome.storage.local.set({ [STORAGE_KEYS.SNOOZE_UNTIL]: 0 });
+      chrome.storage.local.set({ [STORAGE_KEYS.SNOOZE_UNTIL]: 0 }, () => {
+        if (chrome.runtime.lastError) {
+          console.warn("Failed to save snooze expiry (local.set):", chrome.runtime.lastError.message);
+        }
+      });
       if (enabled) {
         scheduleInitialScan();
         startObserver();
@@ -1149,7 +1205,11 @@
   function showFirstRunToast() {
     if (onboarded) return;
     onboarded = true;
-    chrome.storage.local.set({ [STORAGE_KEYS.ONBOARDED]: true });
+    chrome.storage.local.set({ [STORAGE_KEYS.ONBOARDED]: true }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Failed to save first-run flag (local.set):", chrome.runtime.lastError.message);
+      }
+    });
 
     const banner = document.createElement("div");
     banner.textContent = t("blockedToast", [String(blockedCount)]);

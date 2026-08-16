@@ -73,7 +73,11 @@
       clearExcludedBtn.title = t("excludedClearAll");
       excluded = [];
       pendingExclusionRemove = null;
-      chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) });
+      chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) }, () => {
+        if (chrome.runtime.lastError) {
+          console.warn("Failed to clear excluded signatures (sync.set):", chrome.runtime.lastError.message);
+        }
+      });
       renderExcluded();
     } else {
       clearExcludedBtn.dataset.confirming = "1";
@@ -93,11 +97,19 @@
 
   hidePromotedCheckbox.addEventListener("change", () => {
     hidePromoted = hidePromotedCheckbox.checked;
-    chrome.storage.sync.set({ [STORAGE_KEYS.HIDE_PROMOTED]: hidePromoted });
+    chrome.storage.sync.set({ [STORAGE_KEYS.HIDE_PROMOTED]: hidePromoted }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Failed to save hide-promoted toggle (sync.set):", chrome.runtime.lastError.message);
+      }
+    });
   });
   hideFeaturedCheckbox.addEventListener("change", () => {
     hideFeatured = hideFeaturedCheckbox.checked;
-    chrome.storage.sync.set({ [STORAGE_KEYS.HIDE_FEATURED]: hideFeatured });
+    chrome.storage.sync.set({ [STORAGE_KEYS.HIDE_FEATURED]: hideFeatured }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Failed to save hide-featured toggle (sync.set):", chrome.runtime.lastError.message);
+      }
+    });
   });
 
   /* Clean up toast timer on page unload. */
@@ -118,7 +130,11 @@
       hidePromoted = result[STORAGE_KEYS.HIDE_PROMOTED] === true;
       hideFeatured = result[STORAGE_KEYS.HIDE_FEATURED] === true;
       if (hasLegacyExcludedEntries(result[STORAGE_KEYS.EXCLUDED] || [])) {
-        chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) });
+        chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) }, () => {
+          if (chrome.runtime.lastError) {
+            console.warn("Failed to migrate legacy excluded entries (sync.set):", chrome.runtime.lastError.message);
+          }
+        });
       }
       render();
     });
@@ -299,7 +315,11 @@
       disabledPatterns = [...disabledPatterns, id];
     }
     locallyWrittenKeys.add(STORAGE_KEYS.DISABLED_PATTERNS);
-    chrome.storage.sync.set({ [STORAGE_KEYS.DISABLED_PATTERNS]: disabledPatterns });
+    chrome.storage.sync.set({ [STORAGE_KEYS.DISABLED_PATTERNS]: disabledPatterns }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Failed to save disabled patterns (sync.set):", chrome.runtime.lastError.message);
+      }
+    });
     render();
   }
 
@@ -1056,7 +1076,11 @@
 
   function saveLangs() {
     locallyWrittenKeys.add(STORAGE_KEYS.LANGS);
-    chrome.storage.sync.set({ [STORAGE_KEYS.LANGS]: enabledLangs });
+    chrome.storage.sync.set({ [STORAGE_KEYS.LANGS]: enabledLangs }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Failed to save languages (sync.set):", chrome.runtime.lastError.message);
+      }
+    });
   }
 
   function handleLangToggle(lang) {
@@ -1142,7 +1166,11 @@
         if (pendingWhitelistRemove === id) {
           pendingWhitelistRemove = null;
           whitelist = whitelist.filter(w => w !== id);
-          chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: whitelist });
+          chrome.storage.sync.set({ [STORAGE_KEYS.WHITELIST]: whitelist }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn("Failed to remove whitelist entry (sync.set):", chrome.runtime.lastError.message);
+            }
+          });
           renderWhitelist();
         } else {
           pendingWhitelistRemove = id;
@@ -1192,7 +1220,11 @@
         if (pendingBlockedAuthorRemove === id) {
           pendingBlockedAuthorRemove = null;
           blockedAuthors = blockedAuthors.filter(a => a !== id);
-          chrome.storage.sync.set({ [STORAGE_KEYS.BLOCKED_AUTHORS]: blockedAuthors });
+          chrome.storage.sync.set({ [STORAGE_KEYS.BLOCKED_AUTHORS]: blockedAuthors }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn("Failed to remove blocked author (sync.set):", chrome.runtime.lastError.message);
+            }
+          });
           renderBlockedAuthors();
         } else {
           pendingBlockedAuthorRemove = id;
@@ -1322,7 +1354,11 @@
         if (pendingExclusionRemove === entry.sig) {
           pendingExclusionRemove = null;
           excluded = excluded.filter((e) => e.sig !== entry.sig);
-          chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) });
+          chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn("Failed to remove excluded signature (sync.set):", chrome.runtime.lastError.message);
+            }
+          });
           renderExcluded();
         } else {
           pendingExclusionRemove = entry.sig;

@@ -137,10 +137,20 @@
     const tasks = [];
 
     if (syncPatch && Object.keys(syncPatch).length > 0) {
-      tasks.push((done) => chrome.storage.sync.set(syncPatch, done));
+      tasks.push((done) => chrome.storage.sync.set(syncPatch, () => {
+        if (chrome.runtime.lastError) {
+          console.warn("Failed to save extension state (sync.set):", chrome.runtime.lastError.message);
+        }
+        done();
+      }));
     }
     if (localPatch && Object.keys(localPatch).length > 0) {
-      tasks.push((done) => chrome.storage.local.set(localPatch, done));
+      tasks.push((done) => chrome.storage.local.set(localPatch, () => {
+        if (chrome.runtime.lastError) {
+          console.warn("Failed to save extension state (local.set):", chrome.runtime.lastError.message);
+        }
+        done();
+      }));
     }
 
     if (tasks.length === 0) {
