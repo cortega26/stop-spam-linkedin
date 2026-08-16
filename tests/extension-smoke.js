@@ -113,6 +113,24 @@ async function main() {
     const countBeforeToggle = await getLocalStorage(context, "ss_blocked_count");
     assert.equal(countBeforeToggle, 1, "expected one spam post counted before toggle");
 
+    /* Stats storage shape (plan 035): the single block must be bucketed
+       under today's local day key (YYYY-MM-DD) with value 1 — no other
+       days, no other counts. */
+    const dailyCounts = await waitForLocalValue(context, "ss_daily_counts", (v) =>
+      v !== undefined && typeof v === "object" && Object.keys(v).length === 1
+    );
+    const expectedDayKey = getLocalDayKey();
+    assert.deepEqual(
+      Object.keys(dailyCounts),
+      [expectedDayKey],
+      "expected ss_daily_counts to hold exactly one key for today's local day"
+    );
+    assert.equal(
+      dailyCounts[expectedDayKey],
+      1,
+      "expected one block counted in today's bucket"
+    );
+
     const offResponse = await sendTabMessage(context, { action: "toggle", enabled: false });
     assert.ok(offResponse, "expected toggle-off message to reach the content script");
 
@@ -144,6 +162,23 @@ async function main() {
       countAfterToggle,
       countBeforeToggle,
       "expected blocked count unchanged after toggle off/on"
+    );
+
+    /* Stats reset (plan 035): resetCount must clear both the lifetime
+       counter and the daily buckets to their exact empty shapes. */
+    const resetResponse = await sendTabMessage(context, { action: "resetCount" });
+    assert.ok(resetResponse, "expected resetCount message to reach the content script");
+    assert.deepEqual(
+      await waitForLocalValue(context, "ss_daily_counts", (v) =>
+        v !== undefined && typeof v === "object" && Object.keys(v).length === 0
+      ),
+      {},
+      "expected ss_daily_counts to be exactly {} after reset"
+    );
+    assert.equal(
+      await waitForLocalValue(context, "ss_blocked_count", (v) => v === 0),
+      0,
+      "expected ss_blocked_count to be 0 after reset"
     );
 
     await page.reload({ waitUntil: "domcontentloaded" });
@@ -815,6 +850,28 @@ async function waitForSyncValue(context, key, predicate, timeoutMs = 10000) {
     }
     await new Promise((r) => setTimeout(r, 100));
   }
+}
+
+async function waitForLocalValue(context, key, predicate, timeoutMs = 10000) {
+  const start = Date.now();
+  for (;;) {
+    const value = await getLocalStorage(context, key);
+    if (predicate(value)) return value;
+    if (Date.now() - start > timeoutMs) {
+      throw new Error(`timed out waiting for local ${key} to satisfy predicate`);
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+}
+
+/* Mirror of SS_getLocalDayKey: the extension's local-time YYYY-MM-DD
+   bucket key. If the two ever disagree, this duplication is doing its
+   job (plan 035). */
+function getLocalDayKey() {
+  const d = new Date();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${month}-${day}`;
 }
 
 async function waitForToastChange(optionsPage, prevText, timeoutMs = 10000) {
