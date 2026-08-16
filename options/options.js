@@ -14,6 +14,10 @@
   /* In-progress edit text: preserved across render() rebuilds so a
      sibling toggle/search/timer re-render can't wipe unsaved typing. */
   let editDraft = null;
+  /* Keys this page wrote to storage.sync just now. onChanged skips the
+     re-render for these (the direct render already happened); state
+     variables are still updated unconditionally. */
+  const locallyWrittenKeys = new Set();
   let enabledLangs = [...DEFAULT_ENABLED_LANGS];
   let disabledPatterns = [];
   let whitelist = [];
@@ -139,15 +143,21 @@
     }
     if (changes[PHRASES_STORAGE_KEY]) {
       phrases = changes[PHRASES_STORAGE_KEY].newValue || [];
-      render();
+      if (!locallyWrittenKeys.delete(PHRASES_STORAGE_KEY)) {
+        render();
+      }
     }
     if (changes[STORAGE_KEYS.LANGS]) {
       enabledLangs = changes[STORAGE_KEYS.LANGS].newValue || [...DEFAULT_ENABLED_LANGS];
-      render();
+      if (!locallyWrittenKeys.delete(STORAGE_KEYS.LANGS)) {
+        render();
+      }
     }
     if (changes[STORAGE_KEYS.DISABLED_PATTERNS]) {
       disabledPatterns = changes[STORAGE_KEYS.DISABLED_PATTERNS].newValue || [];
-      render();
+      if (!locallyWrittenKeys.delete(STORAGE_KEYS.DISABLED_PATTERNS)) {
+        render();
+      }
     }
     if (changes[STORAGE_KEYS.HIDE_PROMOTED]) {
       hidePromoted = changes[STORAGE_KEYS.HIDE_PROMOTED].newValue === true;
@@ -161,8 +171,10 @@
 
   function save() {
     const prev = phrases.slice();
+    locallyWrittenKeys.add(PHRASES_STORAGE_KEY);
     chrome.storage.sync.set({ [PHRASES_STORAGE_KEY]: phrases }, () => {
       if (chrome.runtime.lastError) {
+        locallyWrittenKeys.delete(PHRASES_STORAGE_KEY);
         phrases = prev;
         render();
         showToast("Storage write failed: " + chrome.runtime.lastError.message, true);
@@ -286,6 +298,7 @@
     } else {
       disabledPatterns = [...disabledPatterns, id];
     }
+    locallyWrittenKeys.add(STORAGE_KEYS.DISABLED_PATTERNS);
     chrome.storage.sync.set({ [STORAGE_KEYS.DISABLED_PATTERNS]: disabledPatterns });
     render();
   }
@@ -1042,6 +1055,7 @@
   /* ── Language toggles ───────────────────────────────────────── */
 
   function saveLangs() {
+    locallyWrittenKeys.add(STORAGE_KEYS.LANGS);
     chrome.storage.sync.set({ [STORAGE_KEYS.LANGS]: enabledLangs });
   }
 
