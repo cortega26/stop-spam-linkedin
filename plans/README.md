@@ -117,6 +117,7 @@ implementation-ready plans:
 | 041 | [Per-pattern stats (design)](041-per-pattern-stats-design.md) | P3 | M | — (soft: 022) | TODO |
 | 042 | [Missed-spam language](042-missed-spam-language.md) | P2 | S | — (soft: 034) | TODO |
 | 043 | [Suggestion loop (design)](043-suggestion-loop-design.md) | P3 | M | — | TODO |
+| 044 | [E2E under xvfb (no visible browser)](044-e2e-headless.md) | P1 | S | — | DONE (2026-08-15, branch advisor/044-e2e-headless @ 09a289d in /tmp/opencode/wt-044, reviewed + verified; xvfb-run unconditional in both e2e scripts, zero windows on :0 — 181→181; headless proven impossible on Chromium 148; 63 unit tests; e2e + package + DISPLAY= green) |
 
 Status values: TODO | IN PROGRESS | DONE (→ move the file to `plans/archive/` and relink the index row) | BLOCKED (with one-line reason) | REJECTED (with one-line rationale — finding fixed independently or approach abandoned)
 
