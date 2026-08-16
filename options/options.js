@@ -11,6 +11,13 @@
   /* ── State ──────────────────────────────────────────────────── */
   let phrases = [];
   let editId = null;
+  /* In-progress edit text: preserved across render() rebuilds so a
+     sibling toggle/search/timer re-render can't wipe unsaved typing. */
+  let editDraft = null;
+  /* Keys this page wrote to storage.sync just now. onChanged skips the
+     re-render for these (the direct render already happened); state
+     variables are still updated unconditionally. */
+  const locallyWrittenKeys = new Set();
   let enabledLangs = [...DEFAULT_ENABLED_LANGS];
   let disabledPatterns = [];
   let whitelist = [];
@@ -136,15 +143,21 @@
     }
     if (changes[PHRASES_STORAGE_KEY]) {
       phrases = changes[PHRASES_STORAGE_KEY].newValue || [];
-      render();
+      if (!locallyWrittenKeys.delete(PHRASES_STORAGE_KEY)) {
+        render();
+      }
     }
     if (changes[STORAGE_KEYS.LANGS]) {
       enabledLangs = changes[STORAGE_KEYS.LANGS].newValue || [...DEFAULT_ENABLED_LANGS];
-      render();
+      if (!locallyWrittenKeys.delete(STORAGE_KEYS.LANGS)) {
+        render();
+      }
     }
     if (changes[STORAGE_KEYS.DISABLED_PATTERNS]) {
       disabledPatterns = changes[STORAGE_KEYS.DISABLED_PATTERNS].newValue || [];
-      render();
+      if (!locallyWrittenKeys.delete(STORAGE_KEYS.DISABLED_PATTERNS)) {
+        render();
+      }
     }
     if (changes[STORAGE_KEYS.HIDE_PROMOTED]) {
       hidePromoted = changes[STORAGE_KEYS.HIDE_PROMOTED].newValue === true;
@@ -158,8 +171,10 @@
 
   function save() {
     const prev = phrases.slice();
+    locallyWrittenKeys.add(PHRASES_STORAGE_KEY);
     chrome.storage.sync.set({ [PHRASES_STORAGE_KEY]: phrases }, () => {
       if (chrome.runtime.lastError) {
+        locallyWrittenKeys.delete(PHRASES_STORAGE_KEY);
         phrases = prev;
         render();
         showToast("Storage write failed: " + chrome.runtime.lastError.message, true);
@@ -283,6 +298,7 @@
     } else {
       disabledPatterns = [...disabledPatterns, id];
     }
+    locallyWrittenKeys.add(STORAGE_KEYS.DISABLED_PATTERNS);
     chrome.storage.sync.set({ [STORAGE_KEYS.DISABLED_PATTERNS]: disabledPatterns });
     render();
   }
@@ -295,7 +311,10 @@
       /* Second click — confirmed */
       pendingDeleteId = null;
       phrases = phrases.filter((x) => x.id !== id);
-      if (editId === id) editId = null;
+      if (editId === id) {
+        editId = null;
+        editDraft = null;
+      }
       save();
       showToast(t("deletedPhraseToast", p.text));
     } else {
@@ -313,6 +332,7 @@
 
   function handleEdit(id) {
     editId = id;
+    editDraft = null;
     render();
     /** @type {HTMLInputElement} */
     const editInput = document.querySelector(".edit-row input");
@@ -340,6 +360,7 @@
     if (dup !== -1) {
       showToast(t("duplicatePhraseToast", text), true);
       editId = null;
+      editDraft = null;
       render();
       highlightDuplicate(text);
       return;
@@ -349,12 +370,14 @@
     if (p) {
       p.text = text;
       editId = null;
+      editDraft = null;
       save();
     }
   }
 
   function handleCancelEdit() {
     editId = null;
+    editDraft = null;
     render();
   }
 
@@ -1032,6 +1055,7 @@
   /* ── Language toggles ───────────────────────────────────────── */
 
   function saveLangs() {
+    locallyWrittenKeys.add(STORAGE_KEYS.LANGS);
     chrome.storage.sync.set({ [STORAGE_KEYS.LANGS]: enabledLangs });
   }
 
@@ -1365,6 +1389,16 @@
         list.appendChild(createRow(p));
       }
     }
+
+    /* Restore focus to an in-progress edit after a rebuild. */
+    if (editId !== null) {
+      /** @type {HTMLInputElement} */
+      const editInput = document.querySelector(".edit-row input");
+      if (editInput) {
+        editInput.focus();
+        editInput.select();
+      }
+    }
   }
 
   function createBuiltinRow(bp) {
@@ -1440,7 +1474,10 @@
       editWrap.className = "edit-row";
       const inp = document.createElement("input");
       inp.type = "text";
-      inp.value = p.text;
+      inp.value = editDraft && editDraft.id === p.id ? editDraft.text : p.text;
+      inp.addEventListener("input", () => {
+        editDraft = { id: p.id, text: inp.value };
+      });
       inp.addEventListener("keydown", (e) => {
         if (e.key === "Enter") handleSaveEdit(p.id);
         if (e.key === "Escape") handleCancelEdit();

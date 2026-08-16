@@ -513,6 +513,60 @@ async function main() {
       Array.isArray(v) && v.includes("ES")
     );
 
+    /* ── Edit preservation (plan 030) ──────────────────────────── */
+
+    /* An in-progress edit must survive the re-render a sibling toggle
+       triggers: the edit input keeps the typed draft (not the stored
+       text) and keeps focus, and the toggle still persists. */
+    await optionsPage.locator("#phraseInput").fill("PHRASE A");
+    await optionsPage.locator("#addBtn").click();
+    await waitForSyncValue(context, "ss_phrases", (v) =>
+      Array.isArray(v) && v.some((p) => p.text === "PHRASE A")
+    );
+    await optionsPage.locator("#phraseInput").fill("PHRASE B");
+    await optionsPage.locator("#addBtn").click();
+    await waitForSyncValue(context, "ss_phrases", (v) =>
+      Array.isArray(v) && v.some((p) => p.text === "PHRASE B")
+    );
+
+    const phraseARow = optionsPage.locator(".phrase-row.custom", { hasText: "PHRASE A" });
+    const phraseBRow = optionsPage.locator(".phrase-row.custom", { hasText: "PHRASE B" });
+
+    /* Start editing phrase A and type a draft (without saving). */
+    await phraseARow.locator(".actions button", { hasText: /Edit|Editar/ }).click();
+    await optionsPage.locator(".edit-row input").fill("PHRASE A DRAFT");
+
+    /* Toggle phrase B's enable switch: save() → render() → onChanged. */
+    await phraseBRow.locator("label.toggle").click();
+
+    /* The toggle persisted: storage and B's row both show the new state. */
+    await waitForSyncValue(context, "ss_phrases", (v) =>
+      Array.isArray(v) &&
+      v.some((p) => p.text === "PHRASE B" && p.enabled === false)
+    );
+    assert.equal(
+      await phraseBRow.locator("label.toggle input").isChecked(),
+      false,
+      "expected phrase B's toggle state to reflect the storage write"
+    );
+
+    /* The edit row for A must still hold the draft and keep focus. */
+    assert.equal(
+      await optionsPage.locator(".edit-row input").inputValue(),
+      "PHRASE A DRAFT",
+      "expected the in-progress edit to survive the sibling-toggle re-render"
+    );
+    assert.equal(
+      await optionsPage.evaluate(() =>
+        !!document.activeElement && document.activeElement.matches(".edit-row input")
+      ),
+      true,
+      "expected focus to stay in the edit input after the re-render"
+    );
+
+    /* Cancel the edit to leave clean state for the next scenario. */
+    await optionsPage.locator(".edit-row input").press("Escape");
+
     /* ── Attribution: which pattern matched (plan 010) ─────────── */
 
     /* Deterministic start: no custom phrases, fresh feed. spam-1 matches
