@@ -53,13 +53,14 @@ La detection est heuristique, pas magique. Elle peut manquer de nouveaux formats
 - Annuler n'importe quelle publication bloquee depuis le popup ou l'emplacement dans le fil
 - "Tout afficher" depuis le popup pour restaurer toutes les publications masquees de la session
 - Exclusion "Not spam" pour que le meme texte ne soit jamais rebloque
-- "Signaler un spam manque" sur n'importe quel emplacement : copie le texte de la publication dans le presse-papiers et ouvre un ticket GitHub pre-rempli (rien n'est envoye automatiquement)
+- "Signaler un spam manque" sur n'importe quel emplacement : copie le texte de la publication dans le presse-papiers et ouvre un ticket GitHub pre-rempli (le rapport indique dans quelle langue le motif a correspondance ; rien n'est envoye automatiquement)
 - Toggles optionnels pour masquer les publications "Sponsorisees" dans le fil et la section "En vedette" sur les profils (desactives par defaut ; activez-les dans les parametres)
 - Liste blanche d'auteurs pour les profils, entreprises, ecoles et pages showcase
+- **Bloquer cet auteur** sur le marqueur de toute publication bloquee : masque toutes les publications de cet auteur dans le fil (egalement disponible depuis le menu contextuel du lien de profil)
 - Pause de 30 minutes avec reprise automatique
 - Clic droit sur le texte selectionne pour ajouter une phrase instantanement
 - Parametres en direct — les changements de phrases et de langues s'appliquent sans rechargement
-- Import / Export de votre liste de phrases en JSON
+- Import / Export des parametres complets en JSON — phrases, liste blanche, liste de blocage d'auteurs, motifs desactives et toggles masquer Promu/En vedette
 
 **Statistiques et couverture**
 - Compteurs du jour, de la semaine et du total dans le popup
