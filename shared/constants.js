@@ -22,6 +22,9 @@
     DISABLED_PATTERNS: "ss_disabled_patterns",
     HIDE_PROMOTED: "ss_hide_promoted",
     HIDE_FEATURED: "ss_hide_featured",
+    /* Spike 043: suggestion loop persistence (storage.local, ephemeral). */
+    PENDING_SUGGESTIONS: "ss_pending_suggestions",
+    DISMISSED_SUGGESTIONS: "ss_dismissed_suggestions",
   });
 
   /**

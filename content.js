@@ -158,6 +158,49 @@
     });
   }
 
+  /* Spike 043: the suggestion queue and dismissal set persist in
+     storage.local so they survive reloads and are reachable from the
+     popup (fallback) and options page. The in-memory copies stay
+     authoritative while this content script runs; the stored copy is a
+     mirror, refreshed on every mutation and on boot. */
+  function normalizePendingSuggestions(list) {
+    if (!Array.isArray(list)) return [];
+    return list
+      .filter((s) => (
+        s &&
+        typeof s.word === "string" &&
+        s.word.length > 0 &&
+        s.word.length <= LIMITS.MAX_PHRASE_LENGTH
+      ))
+      .slice(0, 3)
+      .map((s) => ({
+        word: s.word,
+        timestamp: typeof s.timestamp === "number" ? s.timestamp : Date.now(),
+      }));
+  }
+
+  function normalizeDismissed(list) {
+    const out = new Set();
+    if (!Array.isArray(list)) return out;
+    for (const w of list) {
+      if (typeof w === "string" && w.length > 0 && w.length <= LIMITS.MAX_PHRASE_LENGTH) {
+        out.add(w);
+      }
+    }
+    return out;
+  }
+
+  function persistSuggestions() {
+    chrome.storage.local.set({
+      [STORAGE_KEYS.PENDING_SUGGESTIONS]: pendingSuggestions,
+      [STORAGE_KEYS.DISMISSED_SUGGESTIONS]: [...dismissedSuggestions],
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Failed to persist suggestions (local.set):", chrome.runtime.lastError.message);
+      }
+    });
+  }
+
   /* Inject styles for placeholder buttons (hover, active, dark mode). */
   const style = document.createElement("style");
   style.textContent = [
@@ -182,6 +225,8 @@
           STORAGE_KEYS.ONBOARDED,
           STORAGE_KEYS.DAILY_COUNTS,
           STORAGE_KEYS.SNOOZE_UNTIL,
+          STORAGE_KEYS.PENDING_SUGGESTIONS,
+          STORAGE_KEYS.DISMISSED_SUGGESTIONS,
         ],
         /** @param {{ [key: string]: any }} localResult */
         (localResult) => {
@@ -221,6 +266,8 @@
           hideFeatured = syncResult[STORAGE_KEYS.HIDE_FEATURED] === true;
           spamPatterns = SS_buildPatterns(syncResult[PHRASES_STORAGE_KEY], enabledLangs, disabledPatterns, LIMITS.MAX_PHRASE_LENGTH);
           userPhrases = syncResult[PHRASES_STORAGE_KEY] || [];
+          pendingSuggestions = normalizePendingSuggestions(localResult[STORAGE_KEYS.PENDING_SUGGESTIONS] || []);
+          dismissedSuggestions = normalizeDismissed(localResult[STORAGE_KEYS.DISMISSED_SUGGESTIONS] || []);
           if (!enabled) return;
           if (Date.now() < snoozeUntil) {
             syncSnoozeState(snoozeUntil);
@@ -250,6 +297,12 @@
       }
       if (changes[STORAGE_KEYS.SNOOZE_UNTIL]) {
         syncSnoozeState(changes[STORAGE_KEYS.SNOOZE_UNTIL].newValue || 0);
+      }
+      if (changes[STORAGE_KEYS.PENDING_SUGGESTIONS]) {
+        pendingSuggestions = normalizePendingSuggestions(changes[STORAGE_KEYS.PENDING_SUGGESTIONS].newValue || []);
+      }
+      if (changes[STORAGE_KEYS.DISMISSED_SUGGESTIONS]) {
+        dismissedSuggestions = normalizeDismissed(changes[STORAGE_KEYS.DISMISSED_SUGGESTIONS].newValue || []);
       }
       return;
     }
@@ -447,6 +500,7 @@
             }
           });
           pendingSuggestions = pendingSuggestions.filter(s => s.word !== msg.word);
+          persistSuggestions();
           sendResponse({ ok: true });
         }
         break;
@@ -454,6 +508,7 @@
       case "dismissSuggestion":
         pendingSuggestions = pendingSuggestions.filter(s => s.word !== msg.word);
         if (msg.word) dismissedSuggestions.add(msg.word);
+        persistSuggestions();
         sendResponse({ ok: true });
         break;
 
@@ -789,6 +844,7 @@
           !pendingSuggestions.some(s => s.word === word)) {
         pendingSuggestions.push({ word, timestamp: Date.now() });
         if (pendingSuggestions.length > 3) pendingSuggestions.shift();
+        persistSuggestions();
       }
     }
 
