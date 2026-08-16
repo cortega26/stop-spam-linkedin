@@ -1,7 +1,7 @@
 (function () {
   "use strict";
 
-  const { STORAGE_KEYS, LIMITS } = globalThis.SS_CONSTANTS;
+  const { PHRASES_STORAGE_KEY, STORAGE_KEYS, LIMITS } = globalThis.SS_CONSTANTS;
 
   function t(key, subs) {
     return chrome.i18n.getMessage(key, subs) || key;
@@ -83,6 +83,87 @@
     });
   }
 
+  /* Spike 043: stored-suggestion helpers used when no live LinkedIn tab
+     is available. The content script remains authoritative while it runs;
+     these act directly on the same storage.local keys it mirrors. */
+  function normalizeStoredSuggestions(list) {
+    if (!Array.isArray(list)) return [];
+    return list
+      .filter((s) => (
+        s &&
+        typeof s.word === "string" &&
+        s.word.length > 0 &&
+        s.word.length <= LIMITS.MAX_PHRASE_LENGTH
+      ))
+      .slice(0, 3)
+      .map((s) => ({
+        word: s.word,
+        timestamp: typeof s.timestamp === "number" ? s.timestamp : Date.now(),
+      }));
+  }
+
+  function addStoredSuggestion(word, cb) {
+    chrome.storage.sync.get([PHRASES_STORAGE_KEY],
+      /** @param {{ [key: string]: any }} result */
+      (result) => {
+      const existing = result[PHRASES_STORAGE_KEY] || [];
+      if (
+        word.length > LIMITS.MAX_PHRASE_LENGTH ||
+        existing.some((p) => p.text.toLowerCase() === word.toLowerCase())
+      ) {
+        if (cb) cb(false);
+        return;
+      }
+      if (existing.length >= LIMITS.MAX_CUSTOM_PHRASES) {
+        if (cb) cb(false);
+        return;
+      }
+      const candidate = existing.concat([{
+        id: crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 9),
+        text: word,
+        enabled: true,
+        created: Date.now(),
+        mode: "exact",
+      }]);
+      const bytes = new TextEncoder().encode(JSON.stringify(candidate)).length + PHRASES_STORAGE_KEY.length;
+      if (bytes > Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95)) {
+        if (cb) cb(false);
+        return;
+      }
+      chrome.storage.sync.set({ [PHRASES_STORAGE_KEY]: candidate }, () => {
+        chrome.storage.local.get([STORAGE_KEYS.PENDING_SUGGESTIONS],
+          /** @param {{ [key: string]: any }} local */
+          (local) => {
+            const pending = normalizeStoredSuggestions(local[STORAGE_KEYS.PENDING_SUGGESTIONS] || [])
+              .filter((s) => s.word !== word);
+            chrome.storage.local.set({ [STORAGE_KEYS.PENDING_SUGGESTIONS]: pending }, () => {
+              if (cb) cb(true);
+            });
+          }
+        );
+      });
+    });
+  }
+
+  function dismissStoredSuggestion(word, cb) {
+    chrome.storage.local.get(
+      [STORAGE_KEYS.PENDING_SUGGESTIONS, STORAGE_KEYS.DISMISSED_SUGGESTIONS],
+      /** @param {{ [key: string]: any }} local */
+      (local) => {
+        const pending = normalizeStoredSuggestions(local[STORAGE_KEYS.PENDING_SUGGESTIONS] || [])
+          .filter((s) => s.word !== word);
+        const dismissed = new Set(local[STORAGE_KEYS.DISMISSED_SUGGESTIONS] || []);
+        dismissed.add(word);
+        chrome.storage.local.set({
+          [STORAGE_KEYS.PENDING_SUGGESTIONS]: pending,
+          [STORAGE_KEYS.DISMISSED_SUGGESTIONS]: [...dismissed],
+        }, () => {
+          if (cb) cb();
+        });
+      }
+    );
+  }
+
   function getStoredState(cb) {
     chrome.storage.sync.get(
       [
@@ -97,6 +178,8 @@
             STORAGE_KEYS.COUNT,
             STORAGE_KEYS.DAILY_COUNTS,
             STORAGE_KEYS.SNOOZE_UNTIL,
+            STORAGE_KEYS.PENDING_SUGGESTIONS,
+            STORAGE_KEYS.DISMISSED_SUGGESTIONS,
           ],
           (localResult) => {
             migrateRuntimeState(syncResult, localResult);
@@ -125,7 +208,9 @@
               snoozeUntil,
               snoozed: Date.now() < snoozeUntil,
               lastBlocked: [],
-              suggestions: [],
+              suggestions: normalizeStoredSuggestions(
+                localResult[STORAGE_KEYS.PENDING_SUGGESTIONS] || []
+              ),
             });
           }
         );
@@ -248,8 +333,10 @@
       lastBlockedSection.style.display = "none";
     }
 
-    /* Suggestions */
-    if (hasLiveState && response.suggestions && response.suggestions.length > 0) {
+    /* Suggestions — rendered from the live content-script state, or in
+       fallback (no live tab) from the persisted storage.local queue
+       (spike 043). */
+    if (response.suggestions && response.suggestions.length > 0) {
       suggestionSection.style.display = "block";
       suggestionList.innerHTML = "";
       response.suggestions.forEach((s) => {
@@ -265,9 +352,13 @@
         addBtn.className = "suggestion-add";
         addBtn.textContent = t("add");
         addBtn.addEventListener("click", () => {
-          send({ action: "addSuggestion", word: s.word }, (resp) => {
-            if (resp && resp.ok) refreshState();
-          });
+          if (hasLiveState) {
+            send({ action: "addSuggestion", word: s.word }, (resp) => {
+              if (resp && resp.ok) refreshState();
+            });
+          } else {
+            addStoredSuggestion(s.word, () => refreshState());
+          }
         });
         row.appendChild(addBtn);
 
@@ -277,7 +368,11 @@
         dismissBtn.title = t("suggestionDismiss");
         dismissBtn.setAttribute("aria-label", t("suggestionDismiss"));
         dismissBtn.addEventListener("click", () => {
-          send({ action: "dismissSuggestion", word: s.word }, () => refreshState());
+          if (hasLiveState) {
+            send({ action: "dismissSuggestion", word: s.word }, () => refreshState());
+          } else {
+            dismissStoredSuggestion(s.word, () => refreshState());
+          }
         });
         row.appendChild(dismissBtn);
 
