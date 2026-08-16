@@ -11,6 +11,9 @@
   /* ── State ──────────────────────────────────────────────────── */
   let phrases = [];
   let editId = null;
+  /* In-progress edit text: preserved across render() rebuilds so a
+     sibling toggle/search/timer re-render can't wipe unsaved typing. */
+  let editDraft = null;
   let enabledLangs = [...DEFAULT_ENABLED_LANGS];
   let disabledPatterns = [];
   let whitelist = [];
@@ -295,7 +298,10 @@
       /* Second click — confirmed */
       pendingDeleteId = null;
       phrases = phrases.filter((x) => x.id !== id);
-      if (editId === id) editId = null;
+      if (editId === id) {
+        editId = null;
+        editDraft = null;
+      }
       save();
       showToast(t("deletedPhraseToast", p.text));
     } else {
@@ -313,6 +319,7 @@
 
   function handleEdit(id) {
     editId = id;
+    editDraft = null;
     render();
     /** @type {HTMLInputElement} */
     const editInput = document.querySelector(".edit-row input");
@@ -340,6 +347,7 @@
     if (dup !== -1) {
       showToast(t("duplicatePhraseToast", text), true);
       editId = null;
+      editDraft = null;
       render();
       highlightDuplicate(text);
       return;
@@ -349,12 +357,14 @@
     if (p) {
       p.text = text;
       editId = null;
+      editDraft = null;
       save();
     }
   }
 
   function handleCancelEdit() {
     editId = null;
+    editDraft = null;
     render();
   }
 
@@ -1365,6 +1375,16 @@
         list.appendChild(createRow(p));
       }
     }
+
+    /* Restore focus to an in-progress edit after a rebuild. */
+    if (editId !== null) {
+      /** @type {HTMLInputElement} */
+      const editInput = document.querySelector(".edit-row input");
+      if (editInput) {
+        editInput.focus();
+        editInput.select();
+      }
+    }
   }
 
   function createBuiltinRow(bp) {
@@ -1440,7 +1460,10 @@
       editWrap.className = "edit-row";
       const inp = document.createElement("input");
       inp.type = "text";
-      inp.value = p.text;
+      inp.value = editDraft && editDraft.id === p.id ? editDraft.text : p.text;
+      inp.addEventListener("input", () => {
+        editDraft = { id: p.id, text: inp.value };
+      });
       inp.addEventListener("keydown", (e) => {
         if (e.key === "Enter") handleSaveEdit(p.id);
         if (e.key === "Escape") handleCancelEdit();
