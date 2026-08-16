@@ -29,4 +29,11 @@ body:
     attributes:
       label: LinkedIn page type
       placeholder: Feed, profile, search, company page, group, etc.
+  - type: textarea
+    id: negative-examples
+    attributes:
+      label: Similar posts that should NOT be blocked
+      description: Optional: 10-15 examples of similar text that is NOT spam, to prevent over-matching.
+      placeholder: Paste similar posts that should stay visible...
+
 
