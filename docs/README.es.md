@@ -53,13 +53,14 @@ La deteccion es heuristica, no magia. Puede pasar por alto nuevos formatos de sp
 - Deshacer cualquier publicacion bloqueada desde el popup o el marcador en el feed
 - "Mostrar todas" desde el popup para restaurar todas las publicaciones ocultas de la sesion
 - Exclusion "No es spam" para que ese mismo texto nunca vuelva a bloquearse
-- "Reportar spam no detectado" en cualquier marcador: copia el texto de la publicacion al portapapeles y abre un issue de GitHub prellenado (no se envia nada automaticamente)
+- "Reportar spam no detectado" en cualquier marcador: copia el texto de la publicacion al portapapeles y abre un issue de GitHub prellenado (el reporte incluye que idioma de patron coincidio; no se envia nada automaticamente)
 - Toggles opcionales para ocultar publicaciones "Promocionadas" en el feed y la seccion "Destacados" en los perfiles (desactivados por defecto; activalos en ajustes)
 - Lista de autores permitidos para perfiles, empresas, escuelas y showcases
+- **Bloquear a este autor** en el marcador de cualquier publicacion bloqueada: oculta todas las publicaciones de ese autor en todo el feed (tambien disponible desde el menu contextual del enlace de perfil)
 - Pausa temporal de 30 minutos con reactivacion automatica
 - Clic derecho sobre texto seleccionado para agregar una frase al instante
 - Ajustes en vivo — cambios de frases e idiomas sin recargar la extension
-- Importar / Exportar la lista de frases como JSON
+- Importar / Exportar la configuracion completa como JSON — frases, autores permitidos, lista de autores bloqueados, patrones desactivados y los toggles de Promocionadas/Destacados
 
 **Estadisticas y cobertura**
 - Conteos de hoy, esta semana y de por vida en el popup

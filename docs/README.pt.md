@@ -53,13 +53,14 @@ A deteccao e heuristica, nao magia. Ela pode perder novos formatos de spam e, oc
 - Desfazer qualquer publicacao bloqueada pelo popup ou pelo marcador no feed
 - "Mostrar tudo" pelo popup para restaurar todas as publicacoes ocultas da sessao
 - Exclusao "Not spam" para que o mesmo texto nunca seja bloqueado de novo
-- "Reportar spam nao detectado" em qualquer marcador: copia o texto da publicacao para a area de transferencia e abre um issue do GitHub pre-preenchido (nada e enviado automaticamente)
+- "Reportar spam nao detectado" em qualquer marcador: copia o texto da publicacao para a area de transferencia e abre um issue do GitHub pre-preenchido (o relatorio inclui qual idioma de padrao correspondeu; nada e enviado automaticamente)
 - Opcoes para ocultar publicacoes "Promovidas" no feed e a secao "Em destaque" nos perfis (desativadas por padrao; ative nas configuracoes)
 - Lista de autores permitidos para perfis, empresas, escolas e showcases
+- **Bloquear este autor** no marcador de qualquer publicacao bloqueada: oculta todas as publicacoes desse autor em todo o feed (tambem disponivel no menu de contexto do link de perfil)
 - Pausa de 30 minutos com retorno automatico
 - Clique direito no texto selecionado para adicionar uma frase instantaneamente
 - Configuracoes ao vivo — mudancas de frases e idiomas sem recarregar a extensao
-- Importar / Exportar a lista de frases como JSON
+- Importar / Exportar as configuracoes completas como JSON — frases, autores permitidos, lista de autores bloqueados, padroes desativados e os toggles de Promovidas/Em destaque
 
 **Estatisticas e cobertura**
 - Contagens de hoje, desta semana e de todo o periodo no popup

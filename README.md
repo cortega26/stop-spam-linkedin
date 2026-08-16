@@ -22,7 +22,7 @@ It detects posts that ask people to comment a keyword like "CLAUDE", "SKILL", or
 
 - **Private by design** — no analytics, telemetry, remote blocklists, AI APIs, or network requests of any kind
 - **Multilingual** — built-in patterns for English, Spanish, French, Portuguese, and German, all toggleable
-- **Adjustable** — add custom phrases, whitelist authors you trust, and import/export your phrase list
+- **Adjustable** — add custom phrases, whitelist authors you trust, and import/export your full settings
 - **Reversible** — show a hidden post temporarily or mark it as "Not spam" so the same text is never blocked again
 
 ## Why This Exists
@@ -54,14 +54,18 @@ Detection is heuristic, not magic. It can miss new spam formats, and it can occa
 - "Show all" from the popup to restore every hidden post for the session
 - "Not spam" exclusion so the same text is never blocked again
 - "Report missed spam" on any placeholder — copies the post text to your
-  clipboard and opens a pre-filled GitHub issue (nothing is sent anywhere
-  automatically)
+  clipboard and opens a pre-filled GitHub issue (the report includes which
+  pattern language matched; nothing is sent anywhere automatically)
 - Optional toggles to hide "Promoted" posts in the feed and the "Featured" section on profiles (off by default; enable in settings)
 - Author whitelist for profile, company, school, and showcase pages
+- **Block this author** on any blocked post's placeholder — hides
+  every post from that author feed-wide (also available from the
+  profile-link right-click menu)
 - Snooze for 30 minutes with automatic resume
 - Right-click any selected text to add it as a phrase instantly
 - Live settings — phrase and language changes apply without reloading
-- Import / Export your phrase list as JSON
+- Import / Export full settings as JSON — phrases, whitelist, author
+  blocklist, disabled patterns, and the Promoted/Featured hide toggles
 
 **Stats & coverage**
 - Today, this week, and lifetime blocked counts in the popup
@@ -88,7 +92,8 @@ Detection is heuristic, not magic. It can miss new spam formats, and it can occa
 4. Click the extension icon to view stats, toggle blocking, snooze, or open settings.
 5. Click "Show" on any blocked post to restore it temporarily.
 6. Click "Not spam" if a post was incorrectly blocked.
-7. Add custom phrases from settings or by selecting text and using the right-click menu when your feed invents a new flavor of bait.
+7. Click "Block this author" on any blocked post to hide that author's posts feed-wide.
+8. Add custom phrases from settings or by selecting text and using the right-click menu when your feed invents a new flavor of bait.
 
 ## Install
 
@@ -140,7 +145,7 @@ Useful commands:
 ## Permissions
 
 - `storage` — saves preferences, custom phrases, language settings, stats, snooze state, whitelist entries, and false-positive exclusion signatures in browser storage
-- `contextMenus` — adds the right-click "Add to LinkedIn Spam Blocker" action for selected text
+- `contextMenus` — adds the right-click "Add to LinkedIn Spam Blocker" action for selected text and the "Block this author" action for LinkedIn profile/company/school/showcase links
 - Static content-script matches on supported `https://www.linkedin.com/*` routes — scans LinkedIn pages without requesting a broader host permission
 
 No data is ever transmitted. See [PRIVACY_POLICY.md](PRIVACY_POLICY.md).
