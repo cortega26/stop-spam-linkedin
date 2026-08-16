@@ -8,6 +8,7 @@ const path = require("node:path");
 
 const {
   escapeRegex,
+  buildPatterns,
   isLinkedInHost,
   parseAuthorId,
   hashString,
@@ -281,4 +282,87 @@ test("the loop stops exactly at the byte budget", () => {
 test("estimateEntriesBytes counts key length plus serialized entries", () => {
   const map = new Map([["sig:abc", { preview: "hello", created: 123 }]]);
   assert.equal(estimateEntriesBytes(map, "ss_excluded"), 62);
+});
+
+/* buildPatterns assembly branches (plan 034). `[]` langs means no
+   built-ins, isolating the custom-phrase branches; EN/ES ids exercise the
+   built-in filtering branches against the current pattern data. */
+test("buildPatterns exact-mode adds \\b anchors on both sides", () => {
+  const [entry] = buildPatterns([{ text: "hello", enabled: true }], [], new Set(), 120);
+  assert.equal(entry.regex.source, "\\bhello\\b");
+  assert.equal(entry.regex.flags, "i");
+  assert.equal(entry.label, "hello");
+  assert.equal(entry.source, "custom");
+  assert.equal(entry.regex.test("say hello now"), true);
+  assert.equal(entry.regex.test("hello!"), true);
+  assert.equal(entry.regex.test("xhellox"), false);
+});
+
+test("buildPatterns gates \\b anchors on word characters (punctuation-safe)", () => {
+  const trailingPunct = buildPatterns([{ text: "hello?", enabled: true }], [], new Set(), 120)[0];
+  assert.equal(trailingPunct.regex.source, "\\bhello\\?");
+  assert.equal(trailingPunct.regex.test("ask hello? now"), true);
+  assert.equal(trailingPunct.regex.test("hello?x"), true);
+
+  /* " hello" trims to "hello" (leading \b returns); a non-word first
+     char like "?" is what actually suppresses the leading anchor. */
+  const leadingPunct = buildPatterns([{ text: "?hello", enabled: true }], [], new Set(), 120)[0];
+  assert.equal(leadingPunct.regex.source, "\\?hello\\b");
+
+  const bothWords = buildPatterns([{ text: "hello world", enabled: true }], [], new Set(), 120)[0];
+  assert.equal(bothWords.regex.source, "\\bhello world\\b");
+});
+
+test("buildPatterns contains-mode builds an unanchored escaped regex", () => {
+  const [entry] = buildPatterns([{ mode: "contains", text: "a.b", enabled: true }], [], new Set(), 120);
+  assert.equal(entry.regex.source, "a\\.b");
+  assert.equal(entry.regex.flags, "i");
+  assert.equal(entry.regex.test("xa.bz"), true);
+  assert.equal(entry.regex.test("axb"), false);
+});
+
+test("buildPatterns drops phrases over maxPhraseLength and empty/whitespace ones", () => {
+  const longPhrase = "x".repeat(121);
+  const dropped = buildPatterns(
+    [{ text: longPhrase, enabled: true }, { text: "", enabled: true }, { text: "   ", enabled: true }, { text: "ok", enabled: false }],
+    [],
+    new Set(),
+    120
+  );
+  assert.equal(dropped.length, 0);
+
+  const kept = buildPatterns(
+    [{ text: "x".repeat(120), enabled: true }, { text: "fine", enabled: true }],
+    [],
+    new Set(),
+    120
+  );
+  assert.deepEqual(kept.map((e) => e.label), ["x".repeat(120), "fine"]);
+});
+
+test("buildPatterns skips disabled built-in pattern ids", () => {
+  const result = buildPatterns([], ["EN"], new Set(["EN-1"]), 120);
+  assert.deepEqual(result.map((e) => e.id), ["EN-2"]);
+});
+
+test("buildPatterns includes only built-ins for enabled languages", () => {
+  const result = buildPatterns([], ["ES"], new Set(), 120);
+  assert.deepEqual(result.map((e) => e.id), ["ES-1", "ES-2"]);
+  assert.equal(result.every((e) => e.source === "builtin"), true);
+});
+
+test("buildPatterns orders custom phrases before built-ins (attribution wins)", () => {
+  const result = buildPatterns([{ text: "and I'll send", enabled: true }], ["EN"], new Set(), 120);
+  assert.equal(result[0].source, "custom");
+  assert.equal(result[1].id, "EN-1");
+  const text = "comment CLAUDE and I'll send you the PDF";
+  assert.equal(result[0].regex.test(text), true);
+  assert.equal(result[1].regex.test(text), true);
+});
+
+test("buildPatterns escapes regex metacharacters in custom phrases", () => {
+  const [entry] = buildPatterns([{ text: "a.b*c", enabled: true }], [], new Set(), 120);
+  assert.equal(entry.regex.source, "\\ba\\.b\\*c\\b");
+  assert.equal(entry.regex.test("value a.b*c here"), true);
+  assert.equal(entry.regex.test("xa.b*cy"), false);
 });

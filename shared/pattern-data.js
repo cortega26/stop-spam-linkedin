@@ -91,6 +91,65 @@
     return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   }
 
+  /* Built-in match-list entries carry the display label (blocked-post
+     attribution), the stable id (per-pattern disable), and
+     source: "builtin"; custom phrase entries carry source: "custom". */
+  /**
+   * Assembles the effective pattern list from enabled built-ins and
+   * custom phrases. Custom phrases first (they win attribution); built-ins
+   * filtered by enabled languages and disabled pattern ids.
+   * @param {Array<{text: string, enabled?: boolean, mode?: string}>} phrases
+   * @param {readonly string[]} langs Enabled language codes.
+   * @param {ReadonlySet<string>} disabledPatterns Pattern ids disabled by the user.
+   * @param {number} maxPhraseLength Phrase length cap (LIMITS.MAX_PHRASE_LENGTH).
+   * @returns {Array<{regex: RegExp, label: string, source: string}>}
+   */
+  function buildPatterns(phrases, langs, disabledPatterns, maxPhraseLength) {
+    const builtin = [];
+    /* langs is always a non-empty array: content.js's call sites pass the
+       live enabledLangs list (never falsy). */
+    for (const lang of langs) {
+      if (PATTERN_DATA[lang]) {
+        for (const entry of PATTERN_DATA[lang]) {
+          if (disabledPatterns.has(entry.id)) continue;
+          builtin.push({
+            regex: entry.regex,
+            label: entry.label,
+            source: "builtin",
+            id: entry.id,
+          });
+        }
+      }
+    }
+    const custom = (phrases || [])
+      .filter((p) => (
+        p &&
+        p.enabled &&
+        typeof p.text === "string" &&
+        p.text.trim().length > 0 &&
+        p.text.trim().length <= maxPhraseLength
+      ))
+      .map((p) => {
+        const text = p.text.trim();
+        const escaped = escapeRegex(text);
+        if (p.mode === "contains") {
+          return { regex: new RegExp(escaped, "i"), label: text, source: "custom" };
+        }
+        /* Only add \b anchors when adjacent char is a word character.
+           Prevents silent non-matching phrases like "hello?" where \b
+           after ? can never be true (non-word → end = no boundary). */
+        const start = /^\w/.test(text) ? "\\b" : "";
+        const end = /\w$/.test(text) ? "\\b" : "";
+        return { regex: new RegExp(start + escaped + end, "i"), label: text, source: "custom" };
+      });
+    /* Custom phrases first: when a text matches both a built-in pattern
+       and an enabled custom phrase, the first matching entry is the one
+       attributed (and gates the trigger-word suggestion). Custom-first
+       reproduces the original semantics — any custom phrase covering the
+       text wins over the generic built-in label. */
+    return [...custom, ...builtin];
+  }
+
   /**
    * True when hostname is linkedin.com or a subdomain of it.
    * @param {string} hostname Hostname without protocol.
@@ -315,6 +374,7 @@
   root.SS_FEATURED_LABELS = FEATURED_LABELS;
   root.SS_matchesLabel = matchesLabel;
   root.SS_escapeRegex = escapeRegex;
+  root.SS_buildPatterns = buildPatterns;
   root.SS_isLinkedInHost = isLinkedInHost;
   root.SS_parseAuthorId = parseAuthorId;
   root.SS_hashString = hashString;
@@ -331,6 +391,7 @@
       FEATURED_LABELS,
       matchesLabel,
       escapeRegex,
+      buildPatterns,
       isLinkedInHost,
       parseAuthorId,
       hashString,

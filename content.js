@@ -25,33 +25,12 @@
     return storageKey.length + bytes;
   }
 
-  /* Derived from shared/pattern-data.js — see that file for the actual
-     pattern definitions and their display labels. Each entry carries its
-     display label so blocked-post attribution can show which pattern
-     matched, and its stable id so users can disable individual patterns. */
-  const BASE_PATTERNS = Object.freeze(
-    Object.fromEntries(
-      Object.entries(SS_PATTERN_DATA).map(([lang, entries]) => [
-        lang,
-        Object.freeze(
-          entries.map((entry) =>
-            Object.freeze({
-              regex: entry.regex,
-              label: entry.label,
-              source: "builtin",
-              id: entry.id,
-            })
-          )
-        ),
-      ])
-    )
-  );
-
   function t(key, subs) {
     return chrome.i18n.getMessage(key, subs) || key;
   }
 
-  /* Built from BASE_PATTERNS + user keywords at runtime. */
+  /* Effective pattern list, assembled by SS_buildPatterns
+     (shared/pattern-data.js) from built-in patterns + user keywords. */
   let spamPatterns = [];
 
   /* Fallback selectors — tried after the selector-free heuristic fails. */
@@ -118,7 +97,7 @@
   /* User-excluded text signatures (false-positive feedback). */
   let excludedSignatures = new Map();
 
-  /* Enabled detection languages (subset of BASE_PATTERNS keys). */
+  /* Enabled detection languages (subset of the built-in pattern keys). */
   let enabledLangs = [...DEFAULT_ENABLED_LANGS];
 
   /* Built-in pattern ids the user turned off (from ss_disabled_patterns). */
@@ -240,7 +219,7 @@
           disabledPatterns = new Set(syncResult[STORAGE_KEYS.DISABLED_PATTERNS] || []);
           hidePromoted = syncResult[STORAGE_KEYS.HIDE_PROMOTED] === true;
           hideFeatured = syncResult[STORAGE_KEYS.HIDE_FEATURED] === true;
-          spamPatterns = buildPatterns(syncResult[PHRASES_STORAGE_KEY], enabledLangs);
+          spamPatterns = SS_buildPatterns(syncResult[PHRASES_STORAGE_KEY], enabledLangs, disabledPatterns, LIMITS.MAX_PHRASE_LENGTH);
           userPhrases = syncResult[PHRASES_STORAGE_KEY] || [];
           if (!enabled) return;
           if (Date.now() < snoozeUntil) {
@@ -293,18 +272,18 @@
       }
       if (changes[PHRASES_STORAGE_KEY]) {
         userPhrases = changes[PHRASES_STORAGE_KEY].newValue || [];
-        spamPatterns = buildPatterns(changes[PHRASES_STORAGE_KEY].newValue, enabledLangs);
+        spamPatterns = SS_buildPatterns(changes[PHRASES_STORAGE_KEY].newValue, enabledLangs, disabledPatterns, LIMITS.MAX_PHRASE_LENGTH);
       }
       if (changes[STORAGE_KEYS.EXCLUDED]) {
         excludedSignatures = normalizeExcludedEntries(changes[STORAGE_KEYS.EXCLUDED].newValue || []);
       }
       if (changes[STORAGE_KEYS.LANGS]) {
         enabledLangs = changes[STORAGE_KEYS.LANGS].newValue || [...DEFAULT_ENABLED_LANGS];
-        spamPatterns = buildPatterns(userPhrases, enabledLangs);
+        spamPatterns = SS_buildPatterns(userPhrases, enabledLangs, disabledPatterns, LIMITS.MAX_PHRASE_LENGTH);
       }
       if (changes[STORAGE_KEYS.DISABLED_PATTERNS]) {
         disabledPatterns = new Set(changes[STORAGE_KEYS.DISABLED_PATTERNS].newValue || []);
-        spamPatterns = buildPatterns(userPhrases, enabledLangs);
+        spamPatterns = SS_buildPatterns(userPhrases, enabledLangs, disabledPatterns, LIMITS.MAX_PHRASE_LENGTH);
       }
       if (changes[STORAGE_KEYS.WHITELIST]) {
         /* Diff against oldValue, not the live set: the in-flow writers
@@ -547,54 +526,11 @@
   });
 
   /* ==================================================================
-   *  PATTERN BUILDING
-   * ================================================================== */
-
-  function buildPatterns(phrases, langs) {
-    const builtin = [];
-    for (const lang of langs || DEFAULT_ENABLED_LANGS) {
-      if (BASE_PATTERNS[lang]) {
-        for (const entry of BASE_PATTERNS[lang]) {
-          if (disabledPatterns.has(entry.id)) continue;
-          builtin.push(entry);
-        }
-      }
-    }
-    const custom = (phrases || [])
-      .filter((p) => (
-        p &&
-        p.enabled &&
-        typeof p.text === "string" &&
-        p.text.trim().length > 0 &&
-        p.text.trim().length <= LIMITS.MAX_PHRASE_LENGTH
-      ))
-      .map((p) => {
-        const text = p.text.trim();
-        const escaped = SS_escapeRegex(text);
-        if (p.mode === "contains") {
-          return { regex: new RegExp(escaped, "i"), label: text, source: "custom" };
-        }
-        /* Only add \b anchors when adjacent char is a word character.
-           Prevents silent non-matching phrases like "hello?" where \b
-           after ? can never be true (non-word → end = no boundary). */
-        const start = /^\w/.test(text) ? "\\b" : "";
-        const end = /\w$/.test(text) ? "\\b" : "";
-        return { regex: new RegExp(start + escaped + end, "i"), label: text, source: "custom" };
-      });
-    /* Custom phrases first: when a text matches both a built-in pattern
-       and an enabled custom phrase, the first matching entry is the one
-       attributed (and gates the trigger-word suggestion). Custom-first
-       reproduces the original semantics — any custom phrase covering the
-       text wins over the generic built-in label. */
-    return [...custom, ...builtin];
-  }
-
-  /* ==================================================================
    *  SPAM DETECTION
    * ================================================================== */
 
   /* Returns the matched pattern entry ({ regex, label, source }) or null.
-     Because buildPatterns orders custom phrases first, a text covered by
+     Because SS_buildPatterns orders custom phrases first, a text covered by
      both a custom phrase and a built-in pattern attributes to the custom
      phrase. */
   function findMatch(text) {

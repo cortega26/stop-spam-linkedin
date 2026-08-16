@@ -24,6 +24,13 @@ declare var SS_PATTERN_DATA: Record<
   ReadonlyArray<{ id: string; regex: RegExp; label: string }>
 >;
 
+declare function SS_buildPatterns(
+  phrases: Array<{ text: string; enabled?: boolean; mode?: string }>,
+  langs: readonly string[],
+  disabledPatterns: ReadonlySet<string>,
+  maxPhraseLength: number,
+): Array<{ regex: RegExp; label: string; source: string }>;
+
 declare var SS_PROMOTED_LABELS: readonly string[];
 declare var SS_FEATURED_LABELS: readonly string[];
 
