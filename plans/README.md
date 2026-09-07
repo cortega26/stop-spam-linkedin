@@ -6,6 +6,18 @@ drift) reconciled the queue and added plans 013–019. Execute in the order
 below unless dependencies say otherwise. Each executor: read the plan fully
 before starting, honor its STOP conditions, and update your row when done.
 
+### Direction pass (2026-09-07, `next` variant at `ffdffab`)
+
+A `next`/direction-only survey (no other category audited) with all prior
+plans merged except 048 (TODO). Five new findings → six plans (049–054);
+the sixth and fifth build slots go to the already-designed 041/043 spikes
+rather than fresh research. Recon baselines, all executed: `npm run smoke`
+exit 0, `npm run lint` exit 0, `npm run typecheck` exit 0,
+`npm run test:unit` 63/63 pass. Browser suites (`test:extension`,
+`test:package`, `test:firefox`) are `declared` in every new plan. D5
+(snooze durations) was surveyed, presented, and not selected — recorded
+under "Findings considered and rejected" so it isn't re-proposed.
+
 **Archival rule (standing)**: the moment a plan's status row is set to
 DONE **or** REJECTED, its file MUST be moved to `plans/archive/` (e.g.
 `git mv plans/005-unit-test-coverage.md plans/archive/`) and the index
@@ -121,7 +133,13 @@ implementation-ready plans:
 | 045 | [Version bump 1.4.0](045-version-1.4.0.md) | P1 | S | — | DONE (2026-08-15, branch advisor/045-version-1.4.0 @ c2da0e1 in /tmp/opencode/wt-045, reviewed + verified; 5 lockstep files + badges + privacy date; Firefox badge intentionally kept at v1.2.4 — AMO last published 1.2.4, bumping would be false; zip 1.4.0 verified) |
 | 046 | [Firefox submit fix](046-firefox-submit-fix.md) | P1 | S | — | DONE (2026-08-15, branch advisor/046-firefox-submit-fix @ 4544e7f in /tmp/opencode/wt-046, reviewed + verified; root cause: upload-only, never created version; fix polls/validates/creates version — 1.4.0 LIVE on AMO id 6417108, listed, unreviewed; deviation: v5 endpoint is /versions/ POST with upload uuid in body — plan's /versions/{uuid}/ is 405; submitChrome untouched) |
 | 047 | [Docs + store copy sync](047-docs-store-sync.md) | P2 | S–M | — | DONE (2026-08-15, branch advisor/047-docs-store-sync @ 8de62b9 in /tmp/opencode/wt-047, reviewed + verified; README + 4 translations gain Block-this-author/pattern-language/full-settings; store copy EN+ES rewritten must-have; 3 plan-grep inconsistencies adjudicated — copy intent satisfied) |
-| 048 | [Shared helper consolidation](048-shared-helpers-consolidation.md) | P3 | M | — (soft: 029) | TODO |
+| 048 | [Shared helper consolidation](archive/048-shared-helpers-consolidation.md) | P3 | M | — (soft: 029) | DONE (2026-09-07, branch advisor/048-shared-helpers @ cf4698b in /tmp/opencode/wt-048, reviewed + verified; unmerged) |
+| 049 | [Missed-spam report (design/spike)](archive/049-missed-spam-report.md) | P2 | M | — | DONE (2026-09-07, spike branch advisor/049-missed-spam-report-spike @ df33bda in /tmp/opencode/wt-049, reviewed + verified; design deliverable merged into the plan; prototype unmerged — build plan is the natural follow-up) |
+| 050 | [UI localization FR/PT/DE (audit+process)](050-ui-localization.md) | P3 | M + validation | — | TODO |
+| 051 | [Match tester in options](051-match-tester.md) | P2 | S–M | — (soft: 048) | TODO |
+| 052 | [Second detection family (corpus+spike)](052-second-family-spike.md) | P3 | M | — | TODO |
+| 053 | [Per-pattern stats build (from 041 design)](053-per-pattern-stats-build.md) | P3 | M | 041 design (read-only, committed) | TODO |
+| 054 | [Suggestion-loop build (from 043 design)](054-suggestion-loop-build.md) | P3 | M | 043 design (read-only, committed) | TODO |
 
 Status values: TODO | IN PROGRESS | DONE (→ move the file to `plans/archive/` and relink the index row) | BLOCKED (with one-line reason) | REJECTED (with one-line rationale — finding fixed independently or approach abandoned)
 
@@ -245,6 +263,27 @@ Status values: TODO | IN PROGRESS | DONE (→ move the file to `plans/archive/` 
   writes `ss_blocked_authors`; 023's onChanged diff only reads
   whitelist — no conflict, but both touch the placeholder/restore
   neighborhood of `content.js`.
+
+### Batch 049–054 (2026-09-07, `next` direction pass) — dependency notes
+
+- **051 soft-couples with 048**: 048 is DONE (merged state pending —
+  branch `advisor/048-shared-helpers` @ cf4698b, unmerged), so when 051
+  runs it must reuse the landed `SS_*` match helpers rather than writing
+  its own extraction. If 051 runs before 048 merges, rebase onto it first;
+  the findMatch-mirror fallback in plan 051 applies only if 048 is
+  REVERTED, not merely unmerged.
+- **053/054 depend on their archived designs read-only**
+  (`archive/041-per-pattern-stats-design.md`,
+  `archive/043-suggestion-loop-design.md` — both committed, plus throwaway
+  spike branches `advisor/041-per-pattern-stats-spike` /
+  `advisor/043-suggestion-loop-spike` on origin for reference). No ordering
+  constraint; do not rebuild what the designs decided.
+- **052 is self-sealing**: candidates live on its spike branch only; a
+  PROCEED verdict becomes a future build plan, a DO-NOT-SHIP verdict closes
+  the thread without further work.
+- **050 gates on a sourcing decision** (Step 3): native-speaker vs
+  approved-MT vs defer-locales. Do not start Step 4 file creation without
+  the recorded decision.
 
 ## Recommended execution order rationale
 
@@ -508,3 +547,16 @@ a design document + throwaway prototype branch, not shipped code).
   finding — the popup already shows attribution in the undo window; the
   gap is persistence + a UI, which is a product decision, so it ships as
   a design plan.
+
+### Added by the 2026-09-07 `next` pass
+
+- **D5 — snooze duration choice** (fixed 30 min in
+  `content.js:1065-1071` / `LIMITS.SNOOZE_DURATION_MS`, single `snooze30`
+  locale key): surveyed and presented, not selected for planning.
+  Grounding HIGH, leverage LOW — a workday-quiet mode wants more than a
+  duration picker anyway. Revisit only alongside a broader blocking-controls
+  proposal.
+- **Per-page-type detection toggles** (11 match routes in
+  `manifest.json:33-45`, one global switch): considered during the survey
+  and not proposed — no demand evidence in-repo (no issue, no TODO, no
+  asymmetry beyond route count), so it would be speculation, not a finding.
