@@ -284,6 +284,15 @@ test("estimateEntriesBytes counts key length plus serialized entries", () => {
   assert.equal(estimateEntriesBytes(map, "ss_excluded"), 62);
 });
 
+test("estimateEntriesBytes counts UTF-8 bytes, not UTF-16 units", () => {
+  /* "café" is 4 UTF-16 code units but 5 UTF-8 bytes (é = 2 bytes), so
+     the serialized form is one byte longer than .length reports. */
+  const map = new Map([["sig:abc", { preview: "café", created: 123 }]]);
+  const serialized = JSON.stringify([{ sig: "sig:abc", preview: "café", created: 123 }]);
+  assert.equal(serialized.length + 1, Buffer.byteLength(serialized, "utf8"));
+  assert.equal(estimateEntriesBytes(map, "ss_excluded"), "ss_excluded".length + Buffer.byteLength(serialized, "utf8"));
+});
+
 /* buildPatterns assembly branches (plan 034). `[]` langs means no
    built-ins, isolating the custom-phrase branches; EN/ES ids exercise the
    built-in filtering branches against the current pattern data. */

@@ -20,15 +20,6 @@
     EXCLUSION_PREVIEW_LENGTH: 60,
   });
 
-  function estimatePhraseBytes(phrases, storageKey) {
-    const bytes = new TextEncoder().encode(JSON.stringify(phrases)).length;
-    return storageKey.length + bytes;
-  }
-
-  function t(key, subs) {
-    return chrome.i18n.getMessage(key, subs) || key;
-  }
-
   /* Effective pattern list, assembled by SS_buildPatterns
      (shared/pattern-data.js) from built-in patterns + user keywords. */
   let spamPatterns = [];
@@ -125,12 +116,6 @@
    *  INITIALISATION
    * ================================================================== */
 
-  function readRuntimeValue(localResult, syncResult, key, fallback) {
-    if (localResult[key] !== undefined) return localResult[key];
-    if (syncResult[key] !== undefined) return syncResult[key];
-    return fallback;
-  }
-
   function migrateRuntimeStorage(syncResult, localResult) {
     const localPatch = {};
     const removeKeys = [];
@@ -188,31 +173,31 @@
           migrateRuntimeStorage(syncResult, localResult);
 
           enabled = syncResult[STORAGE_KEYS.ENABLED] !== false;
-          blockedCount = readRuntimeValue(
+          blockedCount = SS_readRuntimeValue(
             localResult,
             syncResult,
             STORAGE_KEYS.COUNT,
             0
           );
-          onboarded = readRuntimeValue(
+          onboarded = SS_readRuntimeValue(
             localResult,
             syncResult,
             STORAGE_KEYS.ONBOARDED,
             false
           ) === true;
-          dailyCounts = readRuntimeValue(
+          dailyCounts = SS_readRuntimeValue(
             localResult,
             syncResult,
             STORAGE_KEYS.DAILY_COUNTS,
             {}
           );
-          snoozeUntil = readRuntimeValue(
+          snoozeUntil = SS_readRuntimeValue(
             localResult,
             syncResult,
             STORAGE_KEYS.SNOOZE_UNTIL,
             0
           );
-          excludedSignatures = normalizeExcludedEntries(syncResult[STORAGE_KEYS.EXCLUDED] || []);
+          excludedSignatures = SS_normalizeExcludedEntries(syncResult[STORAGE_KEYS.EXCLUDED] || [], CONFIG.EXCLUSION_PREVIEW_LENGTH);
           enabledLangs = syncResult[STORAGE_KEYS.LANGS] || [...DEFAULT_ENABLED_LANGS];
           whitelistedAuthors = new Set(syncResult[STORAGE_KEYS.WHITELIST] || []);
           blockedAuthors = new Set(syncResult[STORAGE_KEYS.BLOCKED_AUTHORS] || []);
@@ -275,7 +260,7 @@
         spamPatterns = SS_buildPatterns(changes[PHRASES_STORAGE_KEY].newValue, enabledLangs, disabledPatterns, LIMITS.MAX_PHRASE_LENGTH);
       }
       if (changes[STORAGE_KEYS.EXCLUDED]) {
-        excludedSignatures = normalizeExcludedEntries(changes[STORAGE_KEYS.EXCLUDED].newValue || []);
+        excludedSignatures = SS_normalizeExcludedEntries(changes[STORAGE_KEYS.EXCLUDED].newValue || [], CONFIG.EXCLUSION_PREVIEW_LENGTH);
       }
       if (changes[STORAGE_KEYS.LANGS]) {
         enabledLangs = changes[STORAGE_KEYS.LANGS].newValue || [...DEFAULT_ENABLED_LANGS];
@@ -435,7 +420,7 @@
           }]);
 
           const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
-          if (estimatePhraseBytes(candidate, PHRASES_STORAGE_KEY) > limit) {
+          if (SS_estimatePhraseBytes(candidate, PHRASES_STORAGE_KEY) > limit) {
             sendResponse({ ok: false, reason: "quota" });
             break;
           }
@@ -807,10 +792,10 @@
 
     const label = document.createElement("span");
     label.textContent = isAuthorBlock
-      ? t("blockedByAuthor")
+      ? SS_t("blockedByAuthor")
       : isLabelBlock
-        ? (info.reason === "promoted" ? t("blockedPromoted") : t("blockedFeatured"))
-        : t("blockedBy");
+        ? (info.reason === "promoted" ? SS_t("blockedPromoted") : SS_t("blockedFeatured"))
+        : SS_t("blockedBy");
     placeholder.appendChild(label);
 
     const matchedText = textNode ? textNode.textContent : "";
@@ -821,8 +806,8 @@
        for author blocks; label blocks have no matched text at all). */
     if (!isAuthorBlock && !isLabelBlock) {
       const notSpamBtn = document.createElement("button");
-      notSpamBtn.textContent = t("notSpam");
-      notSpamBtn.title = t("notSpamTooltip");
+      notSpamBtn.textContent = SS_t("notSpam");
+      notSpamBtn.title = SS_t("notSpamTooltip");
       notSpamBtn.style.cssText = [
         "background:none; border:1px solid #d0d0d0; border-radius:4px;",
         "padding:4px 12px; cursor:pointer; font-size:13px; color:#767676;",
@@ -832,7 +817,7 @@
         if (matchedText) {
           const sig = SS_getExcludedSignature(matchedText);
           excludedSignatures.set(sig, {
-            preview: truncateForPreview(matchedText, CONFIG.EXCLUSION_PREVIEW_LENGTH),
+            preview: SS_truncateForPreview(matchedText, CONFIG.EXCLUSION_PREVIEW_LENGTH),
             created: Date.now(),
           });
           SS_pruneExcludedByBytes(
@@ -840,7 +825,7 @@
             STORAGE_KEYS.EXCLUDED,
             Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.9)
           );
-          chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excludedSignatures) }, () => {
+          chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: SS_serializeExcluded(excludedSignatures) }, () => {
             if (chrome.runtime.lastError) {
               console.warn("Failed to save excluded signature (sync.set):", chrome.runtime.lastError.message);
             }
@@ -855,7 +840,7 @@
        from the blocklist and restore the post (plan 008 Decision 2). */
     if (isAuthorBlock) {
       const unblockBtn = document.createElement("button");
-      unblockBtn.textContent = t("unblockAuthor");
+      unblockBtn.textContent = SS_t("unblockAuthor");
       unblockBtn.style.cssText = [
         "background:none; border:1px solid #d0d0d0; border-radius:4px;",
         "padding:4px 12px; cursor:pointer; font-size:13px; color:#767676;",
@@ -881,7 +866,7 @@
        whole class of posts rather than one author). */
     if (authorId && !isAuthorBlock && !isLabelBlock) {
       const whitelistBtn = document.createElement("button");
-      whitelistBtn.textContent = t("neverBlock");
+      whitelistBtn.textContent = SS_t("neverBlock");
       whitelistBtn.style.cssText = [
         "background:none; border:1px solid #d0d0d0; border-radius:4px;",
         "padding:4px 12px; cursor:pointer; font-size:12px; color:#767676;",
@@ -911,7 +896,7 @@
        placeholder is swapped to the author-block variant (plan 040 D1). */
     if (authorId && !isAuthorBlock && !isLabelBlock) {
       const blockBtn = document.createElement("button");
-      blockBtn.textContent = t("blockAuthor");
+      blockBtn.textContent = SS_t("blockAuthor");
       blockBtn.style.cssText = [
         "background:none; border:1px solid #d0d0d0; border-radius:4px;",
         "padding:4px 12px; cursor:pointer; font-size:12px; color:#767676;",
@@ -943,7 +928,7 @@
     }
 
     const restoreBtn = document.createElement("button");
-    restoreBtn.textContent = t("show");
+    restoreBtn.textContent = SS_t("show");
     restoreBtn.style.cssText = [
       "background:none; border:1px solid #999; border-radius:4px;",
       "padding:4px 12px; cursor:pointer; font-size:13px; color:#555;",
@@ -959,7 +944,7 @@
        spam text to report. */
     if (textNode) {
       const reportBtn = document.createElement("button");
-      reportBtn.textContent = t("reportMissed");
+      reportBtn.textContent = SS_t("reportMissed");
       reportBtn.style.cssText = [
         "background:none; border:1px solid #d0d0d0; border-radius:4px;",
         "padding:4px 12px; cursor:pointer; font-size:12px; color:#767676;",
@@ -983,7 +968,7 @@
         const copy = () => navigator.clipboard.writeText(payload);
         if (navigator.clipboard) {
           copy().then(
-            () => showReportToast(t("reportCopied")),
+            () => showReportToast(SS_t("reportCopied")),
             () => copyFallback(payload)
           );
         } else {
@@ -1118,7 +1103,7 @@
   function startObserver() {
     if (observer) return;
     observer = new MutationObserver(
-      debounce((mutations) => {
+      SS_debounce((mutations) => {
         if (!enabled || Date.now() < snoozeUntil) return;
         const roots = collectNewRoots(mutations);
         for (const root of roots) {
@@ -1163,18 +1148,6 @@
   }
 
   /* ==================================================================
-   *  UTILITY
-   * ================================================================== */
-
-  function debounce(fn, ms) {
-    let timer;
-    return (...args) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => fn(...args), ms);
-    };
-  }
-
-  /* ==================================================================
    *  STATS & ONBOARDING HELPERS
    * ================================================================== */
 
@@ -1192,7 +1165,7 @@
     });
 
     const banner = document.createElement("div");
-    banner.textContent = t("blockedToast", [String(blockedCount)]);
+    banner.textContent = SS_t("blockedToast", [String(blockedCount)]);
     Object.assign(banner.style, {
       padding: "10px 24px",
       margin: "8px auto",
@@ -1231,9 +1204,9 @@
     ta.select();
     try {
       document.execCommand("copy");
-      showReportToast(t("reportCopied"));
+      showReportToast(SS_t("reportCopied"));
     } catch (_) {
-      showReportToast(t("reportFailed"), true);
+      showReportToast(SS_t("reportFailed"), true);
     }
     ta.remove();
   }
@@ -1293,51 +1266,6 @@
     }
 
     return null;
-  }
-
-  function truncateForPreview(text, maxLen) {
-    const trimmed = String(text).trim();
-    if (trimmed.length <= maxLen) return trimmed;
-    return trimmed.slice(0, maxLen) + "…";
-  }
-
-  function normalizeExcludedEntries(entries) {
-    const map = new Map();
-    for (const entry of entries || []) {
-      if (typeof entry === "string" && entry.trim()) {
-        if (entry.startsWith("sig:")) {
-          if (!map.has(entry)) {
-            map.set(entry, { preview: null, created: null });
-          }
-        } else {
-          const sig = SS_getExcludedSignature(entry);
-          if (!map.has(sig)) {
-            map.set(sig, {
-              preview: truncateForPreview(entry, CONFIG.EXCLUSION_PREVIEW_LENGTH),
-              created: null,
-            });
-          }
-        }
-      } else if (entry && typeof entry === "object" &&
-                 typeof entry.sig === "string" && entry.sig.startsWith("sig:")) {
-        if (!map.has(entry.sig)) {
-          const preview = typeof entry.preview === "string" && entry.preview.trim()
-            ? entry.preview
-            : null;
-          const created = typeof entry.created === "number" ? entry.created : null;
-          map.set(entry.sig, { preview, created });
-        }
-      }
-    }
-    return map;
-  }
-
-  function serializeExcluded(map) {
-    return Array.from(map, ([sig, meta]) => ({
-      sig,
-      preview: meta.preview,
-      created: meta.created,
-    }));
   }
 
   function pruneSet(set, maxSize) {

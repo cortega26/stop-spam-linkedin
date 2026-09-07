@@ -318,17 +318,21 @@
      lives in a different file since this logic was extracted. */
   /**
    * Serialized byte size of an exclusion map plus its storage key, using
-   * the same serialization shape as content.js's write path.
+   * the same serialization shape as the content.js "Not spam" write path.
+   * Counts UTF-8 bytes (TextEncoder), matching the phrase-quota math in
+   * estimatePhraseBytes — never UTF-16 string length, which undercounts
+   * non-ASCII text.
    * @param {Map<string, {preview: (string|null), created: (number|null)}>} map
    * @param {string} storageKey
    * @returns {number}
    */
   function estimateEntriesBytes(map, storageKey) {
-    return storageKey.length + JSON.stringify(Array.from(map, ([sig, meta]) => ({
+    const serialized = JSON.stringify(Array.from(map, ([sig, meta]) => ({
       sig,
       preview: meta.preview,
       created: meta.created,
-    }))).length;
+    })));
+    return storageKey.length + new TextEncoder().encode(serialized).length;
   }
 
   /**
@@ -369,6 +373,143 @@
     }
   }
 
+  /* Shared pure UI/storage helpers (plan 048). content.js, popup.js and
+     options.js load this module first (manifest content_scripts[] order
+     and <script> tags), so the copies they each carried now live here.
+     background.js intentionally keeps its own copies — see AGENTS.md. */
+
+  /**
+   * Localized message lookup with key fallback.
+   * @param {string} key i18n message key.
+   * @param {any} [substitutions] Substitutions for the message.
+   * @returns {string}
+   */
+  function t(key, substitutions) {
+    return chrome.i18n.getMessage(key, substitutions) || key;
+  }
+
+  /**
+   * Random id, falling back when crypto.randomUUID is unavailable.
+   * @returns {string}
+   */
+  function uid() {
+    try {
+      return crypto.randomUUID();
+    } catch (_) {
+      return (
+        Date.now().toString(36) +
+        "-" +
+        Math.random().toString(36).slice(2, 9)
+      );
+    }
+  }
+
+  /**
+   * Serialized byte size of a custom-phrase list plus its storage key,
+   * counted as UTF-8 bytes for the storage.sync per-item quota check.
+   * @param {Array<{text: string, enabled?: boolean, mode?: string}>} phrases
+   * @param {string} storageKey
+   * @returns {number}
+   */
+  function estimatePhraseBytes(phrases, storageKey) {
+    const bytes = new TextEncoder().encode(JSON.stringify(phrases)).length;
+    return storageKey.length + bytes;
+  }
+
+  /**
+   * Trims text for the exclusion-list preview, appending "…" when cut.
+   * @param {any} text Input text.
+   * @param {number} maxLen Maximum length before truncation.
+   * @returns {string}
+   */
+  function truncateForPreview(text, maxLen) {
+    const trimmed = String(text).trim();
+    if (trimmed.length <= maxLen) return trimmed;
+    return trimmed.slice(0, maxLen) + "…";
+  }
+
+  /**
+   * Normalizes stored exclusion entries into a signature-keyed map,
+   * accepting the legacy bare-"sig:"-string and plain-text shapes as well
+   * as the current { sig, preview, created } object shape.
+   * @param {Array<any>} entries Raw stored entries.
+   * @param {number} previewLength Preview length for plain-text entries.
+   * @returns {Map<string, {preview: (string|null), created: (number|null)}>}
+   */
+  function normalizeExcludedEntries(entries, previewLength) {
+    const map = new Map();
+    for (const entry of entries || []) {
+      if (typeof entry === "string" && entry.trim()) {
+        if (entry.startsWith("sig:")) {
+          if (!map.has(entry)) {
+            map.set(entry, { preview: null, created: null });
+          }
+        } else {
+          const sig = getExcludedSignature(entry);
+          if (!map.has(sig)) {
+            map.set(sig, {
+              preview: truncateForPreview(entry, previewLength),
+              created: null,
+            });
+          }
+        }
+      } else if (entry && typeof entry === "object" &&
+                 typeof entry.sig === "string" && entry.sig.startsWith("sig:")) {
+        if (!map.has(entry.sig)) {
+          const preview = typeof entry.preview === "string" && entry.preview.trim()
+            ? entry.preview
+            : null;
+          const created = typeof entry.created === "number" ? entry.created : null;
+          map.set(entry.sig, { preview, created });
+        }
+      }
+    }
+    return map;
+  }
+
+  /**
+   * Serializes an exclusion map to the stored [{ sig, preview, created }]
+   * array shape.
+   * @param {Map<string, {preview: (string|null), created: (number|null)}>} map
+   * @returns {Array<{sig: string, preview: (string|null), created: (number|null)}>}
+   */
+  function serializeExcluded(map) {
+    return Array.from(map, ([sig, meta]) => ({
+      sig,
+      preview: meta.preview,
+      created: meta.created,
+    }));
+  }
+
+  /**
+   * Trailing-edge debounce: invokes fn ms after the last call.
+   * @param {(...args: any[]) => void} fn Function to debounce.
+   * @param {number} ms Delay in milliseconds.
+   * @returns {(...args: any[]) => void}
+   */
+  function debounce(fn, ms) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), ms);
+    };
+  }
+
+  /**
+   * Reads a runtime counter that migrated from storage.sync to
+   * storage.local: local wins when present, then sync, then fallback.
+   * @param {{ [key: string]: any }} localResult storage.local result.
+   * @param {{ [key: string]: any }} syncResult storage.sync result.
+   * @param {string} key Storage key.
+   * @param {any} fallback Default when neither area has the key.
+   * @returns {any}
+   */
+  function readRuntimeValue(localResult, syncResult, key, fallback) {
+    if (localResult[key] !== undefined) return localResult[key];
+    if (syncResult[key] !== undefined) return syncResult[key];
+    return fallback;
+  }
+
   root.SS_PATTERN_DATA = PATTERN_DATA;
   root.SS_PROMOTED_LABELS = PROMOTED_LABELS;
   root.SS_FEATURED_LABELS = FEATURED_LABELS;
@@ -383,6 +524,14 @@
   root.SS_createCooldownStore = createCooldownStore;
   root.SS_estimateEntriesBytes = estimateEntriesBytes;
   root.SS_pruneExcludedByBytes = pruneExcludedByBytes;
+  root.SS_t = t;
+  root.SS_uid = uid;
+  root.SS_estimatePhraseBytes = estimatePhraseBytes;
+  root.SS_truncateForPreview = truncateForPreview;
+  root.SS_normalizeExcludedEntries = normalizeExcludedEntries;
+  root.SS_serializeExcluded = serializeExcluded;
+  root.SS_debounce = debounce;
+  root.SS_readRuntimeValue = readRuntimeValue;
 
   if (typeof module !== "undefined" && module.exports) {
     module.exports = {
@@ -400,6 +549,14 @@
       createCooldownStore,
       estimateEntriesBytes,
       pruneExcludedByBytes,
+      t,
+      uid,
+      estimatePhraseBytes,
+      truncateForPreview,
+      normalizeExcludedEntries,
+      serializeExcluded,
+      debounce,
+      readRuntimeValue,
     };
   }
 })(typeof self !== "undefined" ? self : globalThis);

@@ -63,6 +63,34 @@ declare function SS_pruneExcludedByBytes(
   safeByteLimit: number,
 ): void;
 
+/* Shared pure UI/storage helpers (plan 048) from shared/pattern-data.js.
+   content.js, popup.js and options.js consume these as read-only globals;
+   background.js keeps its own local copies (see AGENTS.md). */
+declare function SS_t(key: string, substitutions?: any): string;
+declare function SS_uid(): string;
+declare function SS_estimatePhraseBytes(
+  phrases: Array<{ text: string; enabled?: boolean; mode?: string }>,
+  storageKey: string,
+): number;
+declare function SS_truncateForPreview(text: any, maxLen: number): string;
+declare function SS_normalizeExcludedEntries(
+  entries: Array<any>,
+  previewLength: number,
+): Map<string, { preview: string | null; created: number | null }>;
+declare function SS_serializeExcluded(
+  map: Map<string, { preview: string | null; created: number | null }>,
+): Array<{ sig: string; preview: string | null; created: number | null }>;
+declare function SS_debounce(
+  fn: (...args: any[]) => void,
+  ms: number,
+): (...args: any[]) => void;
+declare function SS_readRuntimeValue(
+  localResult: { [key: string]: any },
+  syncResult: { [key: string]: any },
+  key: string,
+  fallback: any,
+): any;
+
 declare function SS_findBySiblingHeuristic(
   textNode: Node,
   ...args: any[]
