@@ -3,11 +3,6 @@
 
   const { PHRASES_STORAGE_KEY, STORAGE_KEYS, LIMITS, DEFAULT_ENABLED_LANGS } = globalThis.SS_CONSTANTS;
 
-  function estimatePhraseBytes(phrases, storageKey) {
-    const bytes = new TextEncoder().encode(JSON.stringify(phrases)).length;
-    return storageKey.length + bytes;
-  }
-
   /* ── State ──────────────────────────────────────────────────── */
   let phrases = [];
   let editId = null;
@@ -64,13 +59,13 @@
   importFile.addEventListener("change", handleImport);
   exportBtn.addEventListener("click", handleExport);
   starterPackBtn.addEventListener("click", handleStarterPack);
-  searchInput.addEventListener("input", debounce(() => render(), 200));
+  searchInput.addEventListener("input", SS_debounce(() => render(), 200));
   clearExcludedBtn.addEventListener("click", () => {
     if (clearExcludedBtn.dataset.confirming === "1") {
       clearExcludedBtn.dataset.confirming = "";
-      clearExcludedBtn.textContent = t("excludedClearAll");
-      clearExcludedBtn.setAttribute("aria-label", t("excludedClearAll"));
-      clearExcludedBtn.title = t("excludedClearAll");
+      clearExcludedBtn.textContent = SS_t("excludedClearAll");
+      clearExcludedBtn.setAttribute("aria-label", SS_t("excludedClearAll"));
+      clearExcludedBtn.title = SS_t("excludedClearAll");
       excluded = [];
       pendingExclusionRemove = null;
       chrome.storage.sync.set({ [STORAGE_KEYS.EXCLUDED]: serializeExcluded(excluded) }, () => {
@@ -81,15 +76,15 @@
       renderExcluded();
     } else {
       clearExcludedBtn.dataset.confirming = "1";
-      clearExcludedBtn.textContent = t("clickToConfirm");
-      clearExcludedBtn.setAttribute("aria-label", t("clickToConfirm"));
-      clearExcludedBtn.title = t("clickToConfirm");
+      clearExcludedBtn.textContent = SS_t("clickToConfirm");
+      clearExcludedBtn.setAttribute("aria-label", SS_t("clickToConfirm"));
+      clearExcludedBtn.title = SS_t("clickToConfirm");
       setTimeout(() => {
         if (clearExcludedBtn.dataset.confirming === "1") {
           clearExcludedBtn.dataset.confirming = "";
-          clearExcludedBtn.textContent = t("excludedClearAll");
-          clearExcludedBtn.setAttribute("aria-label", t("excludedClearAll"));
-          clearExcludedBtn.title = t("excludedClearAll");
+          clearExcludedBtn.textContent = SS_t("excludedClearAll");
+          clearExcludedBtn.setAttribute("aria-label", SS_t("excludedClearAll"));
+          clearExcludedBtn.title = SS_t("excludedClearAll");
         }
       }, 3000);
     }
@@ -213,15 +208,11 @@
     }, 2500);
   }
 
-  function t(key, substitutions) {
-    return chrome.i18n.getMessage(key, substitutions) || key;
-  }
-
   function countMessage(oneKey, manyKey, count, substitutions) {
     const values = Array.isArray(substitutions)
       ? substitutions.map(String)
       : [String(substitutions)];
-    return t(count === 1 ? oneKey : manyKey, values);
+    return SS_t(count === 1 ? oneKey : manyKey, values);
   }
 
   function renderEmptyState(message, hint) {
@@ -259,7 +250,7 @@
     const text = input.value.trim();
     if (!text) return;
     if (text.length > LIMITS.MAX_PHRASE_LENGTH) {
-      showToast(t("phraseTooLongToast", LIMITS.MAX_PHRASE_LENGTH), true);
+      showToast(SS_t("phraseTooLongToast", LIMITS.MAX_PHRASE_LENGTH), true);
       return;
     }
 
@@ -268,34 +259,34 @@
       (p) => p.text.toLowerCase() === text.toLowerCase()
     );
     if (dup !== -1) {
-      showToast(t("duplicatePhraseToast", text), true);
+      showToast(SS_t("duplicatePhraseToast", text), true);
       input.value = "";
       render();
       highlightDuplicate(text);
       return;
     }
     if (phrases.length >= LIMITS.MAX_CUSTOM_PHRASES) {
-      showToast(t("phraseLimitToast", LIMITS.MAX_CUSTOM_PHRASES), true);
+      showToast(SS_t("phraseLimitToast", LIMITS.MAX_CUSTOM_PHRASES), true);
       return;
     }
 
     const candidate = phrases.concat([{
-      id: uid(),
+      id: SS_uid(),
       text,
       enabled: true,
       created: Date.now(),
       mode: "exact",
     }]);
     const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
-    if (estimatePhraseBytes(candidate, PHRASES_STORAGE_KEY) > limit) {
-      showToast(t("phraseStorageFullToast"), true);
+    if (SS_estimatePhraseBytes(candidate, PHRASES_STORAGE_KEY) > limit) {
+      showToast(SS_t("phraseStorageFullToast"), true);
       return;
     }
 
     phrases = candidate;
     input.value = "";
     save();
-    showToast(t("addedPhraseToast", text));
+    showToast(SS_t("addedPhraseToast", text));
   }
 
   function handleToggle(id) {
@@ -336,7 +327,7 @@
         editDraft = null;
       }
       save();
-      showToast(t("deletedPhraseToast", p.text));
+      showToast(SS_t("deletedPhraseToast", p.text));
     } else {
       /* First click — ask for confirmation */
       pendingDeleteId = id;
@@ -369,7 +360,7 @@
     const text = editInput.value.trim();
     if (!text) return;
     if (text.length > LIMITS.MAX_PHRASE_LENGTH) {
-      showToast(t("phraseTooLongToast", LIMITS.MAX_PHRASE_LENGTH), true);
+      showToast(SS_t("phraseTooLongToast", LIMITS.MAX_PHRASE_LENGTH), true);
       return;
     }
 
@@ -378,7 +369,7 @@
       (x) => x.id !== id && x.text.toLowerCase() === text.toLowerCase()
     );
     if (dup !== -1) {
-      showToast(t("duplicatePhraseToast", text), true);
+      showToast(SS_t("duplicatePhraseToast", text), true);
       editId = null;
       editDraft = null;
       render();
@@ -427,13 +418,13 @@
       const dup = candidate.some(p => p.text.toLowerCase() === text.toLowerCase());
       if (dup) continue;
       const next = candidate.concat([{
-        id: uid(),
+        id: SS_uid(),
         text,
         enabled: true,
         created: Date.now(),
         mode: "exact",
       }]);
-      if (estimatePhraseBytes(next, PHRASES_STORAGE_KEY) > limit) break;
+      if (SS_estimatePhraseBytes(next, PHRASES_STORAGE_KEY) > limit) break;
       candidate = next;
       added++;
     }
@@ -449,7 +440,7 @@
         )
       );
     } else {
-      showToast(t("starterPackExists"), true);
+      showToast(SS_t("starterPackExists"), true);
     }
   }
 
@@ -486,7 +477,7 @@
     return (
       parts.slice(0, -1).join(", ") +
       " " +
-      t("settingsPartAnd") +
+      SS_t("settingsPartAnd") +
       " " +
       parts[parts.length - 1]
     );
@@ -505,7 +496,7 @@
 
   function handleExport() {
     if (!hasExportableData()) {
-      showToast(t("nothingToExport"), true);
+      showToast(SS_t("nothingToExport"), true);
       return;
     }
 
@@ -590,7 +581,7 @@
           phrases.length
         );
       }
-      return t(
+      return SS_t(
         clipboard ? "exportedSummaryClipboard" : "exportedSummaryDownloaded",
         [summary]
       );
@@ -646,13 +637,13 @@
         continue;
       }
       const candidateItem = {
-        id: uid(),
+        id: SS_uid(),
         text: item.text.trim(),
         enabled: item.enabled !== false,
         created: item.created || Date.now(),
         mode: item.mode === "contains" ? "contains" : "exact",
       };
-      if (estimatePhraseBytes(phrases.concat([candidateItem]), PHRASES_STORAGE_KEY) > limit) {
+      if (SS_estimatePhraseBytes(phrases.concat([candidateItem]), PHRASES_STORAGE_KEY) > limit) {
         skipped++;
         continue;
       }
@@ -666,7 +657,7 @@
     const file = importFile.files[0];
     if (!file) return;
     if (file.size > LIMITS.MAX_IMPORT_BYTES) {
-      showToast(t("importFileTooLarge"), true);
+      showToast(SS_t("importFileTooLarge"), true);
       importFile.value = "";
       return;
     }
@@ -677,7 +668,7 @@
       try {
         imported = JSON.parse(/** @type {string} */ (e.target.result));
       } catch (_) {
-        showToast(t("invalidJsonFile"), true);
+        showToast(SS_t("invalidJsonFile"), true);
         return;
       }
 
@@ -685,7 +676,7 @@
         /* Legacy format: bare phrase array — keep this path's behavior
            exactly as before the versioned format existed. */
         if (imported.length === 0) {
-          showToast(t("importFileEmpty"), true);
+          showToast(SS_t("importFileEmpty"), true);
           return;
         }
         const { valid, skipped } = importPhraseList(imported);
@@ -1046,21 +1037,21 @@
         if (parts.length === 0) {
           showToast(
             skipped > 0
-              ? t("importedNothingSkipped", [skipped])
-              : t("importedNothing")
+              ? SS_t("importedNothingSkipped", [skipped])
+              : SS_t("importedNothing")
           );
         } else {
           const summary = joinSettingsParts(parts);
           showToast(
             skipped > 0
-              ? t("importedSummarySkipped", [summary, skipped])
-              : t("importedSummary", [summary])
+              ? SS_t("importedSummarySkipped", [summary, skipped])
+              : SS_t("importedSummary", [summary])
           );
         }
         return;
       }
 
-      showToast(t("invalidJsonFile"), true);
+      showToast(SS_t("invalidJsonFile"), true);
     };
     reader.readAsText(file);
   }
@@ -1113,8 +1104,8 @@
       div.setAttribute("role", "button");
       div.setAttribute("tabindex", "0");
       div.setAttribute("aria-pressed", enabled ? "true" : "false");
-      div.setAttribute("aria-label", t("languageToggleLabel", [names.english, enabled ? t("enabled") : t("disabled")]));
-      div.title = t("languageToggleLabel", [names.english, enabled ? t("enabled") : t("disabled")]);
+      div.setAttribute("aria-label", SS_t("languageToggleLabel", [names.english, enabled ? SS_t("enabled") : SS_t("disabled")]));
+      div.title = SS_t("languageToggleLabel", [names.english, enabled ? SS_t("enabled") : SS_t("disabled")]);
 
       const dot = document.createElement("span");
       dot.className = "lang-dot";
@@ -1159,9 +1150,9 @@
       const isConfirming = pendingWhitelistRemove === id;
       const rmBtn = document.createElement("button");
       rmBtn.className = isConfirming ? "confirming" : "";
-      rmBtn.textContent = isConfirming ? t("clickToConfirm") : t("remove");
-      rmBtn.setAttribute("aria-label", t("removeWhitelistedAuthorLabel", id));
-      rmBtn.title = t("removeWhitelistedAuthorLabel", id);
+      rmBtn.textContent = isConfirming ? SS_t("clickToConfirm") : SS_t("remove");
+      rmBtn.setAttribute("aria-label", SS_t("removeWhitelistedAuthorLabel", id));
+      rmBtn.title = SS_t("removeWhitelistedAuthorLabel", id);
       rmBtn.addEventListener("click", () => {
         if (pendingWhitelistRemove === id) {
           pendingWhitelistRemove = null;
@@ -1213,9 +1204,9 @@
       const isConfirming = pendingBlockedAuthorRemove === id;
       const rmBtn = document.createElement("button");
       rmBtn.className = isConfirming ? "confirming" : "";
-      rmBtn.textContent = isConfirming ? t("clickToConfirm") : t("remove");
-      rmBtn.setAttribute("aria-label", t("removeBlockedAuthorLabel", id));
-      rmBtn.title = t("removeBlockedAuthorLabel", id);
+      rmBtn.textContent = isConfirming ? SS_t("clickToConfirm") : SS_t("remove");
+      rmBtn.setAttribute("aria-label", SS_t("removeBlockedAuthorLabel", id));
+      rmBtn.title = SS_t("removeBlockedAuthorLabel", id);
       rmBtn.addEventListener("click", () => {
         if (pendingBlockedAuthorRemove === id) {
           pendingBlockedAuthorRemove = null;
@@ -1247,37 +1238,14 @@
 
   /* Same semantics as content.js's normalizeExcludedEntries: accepts the
      legacy bare-"sig:"-string and plain-text shapes as well as the current
-     { sig, preview, created } object shape. Uses SS_getExcludedSignature
-     from shared/pattern-data.js for hashing. */
+     { sig, preview, created } object shape. Array in / array out — adapts
+     the Map-returning SS_normalizeExcludedEntries from
+     shared/pattern-data.js. Uses SS_getExcludedSignature for hashing. */
   function normalizeExcludedEntries(entries) {
-    const map = new Map();
-    for (const entry of entries || []) {
-      if (typeof entry === "string" && entry.trim()) {
-        if (entry.startsWith("sig:")) {
-          if (!map.has(entry)) {
-            map.set(entry, { preview: null, created: null });
-          }
-        } else {
-          const sig = SS_getExcludedSignature(entry);
-          if (!map.has(sig)) {
-            map.set(sig, {
-              preview: truncateForPreview(entry, 60),
-              created: null,
-            });
-          }
-        }
-      } else if (entry && typeof entry === "object" &&
-                 typeof entry.sig === "string" && entry.sig.startsWith("sig:")) {
-        if (!map.has(entry.sig)) {
-          const preview = typeof entry.preview === "string" && entry.preview.trim()
-            ? entry.preview
-            : null;
-          const created = typeof entry.created === "number" ? entry.created : null;
-          map.set(entry.sig, { preview, created });
-        }
-      }
-    }
-    return Array.from(map, ([sig, meta]) => ({ sig, preview: meta.preview, created: meta.created }));
+    return Array.from(
+      SS_normalizeExcludedEntries(entries, 60),
+      ([sig, meta]) => ({ sig, preview: meta.preview, created: meta.created })
+    );
   }
 
   function hasLegacyExcludedEntries(entries) {
@@ -1286,18 +1254,12 @@
     );
   }
 
+  /* Array in / array out — adapts the Map-input SS_serializeExcluded
+     from shared/pattern-data.js. */
   function serializeExcluded(entries) {
-    return entries.map((entry) => ({
-      sig: entry.sig,
-      preview: entry.preview,
-      created: entry.created,
-    }));
-  }
-
-  function truncateForPreview(text, maxLen) {
-    const trimmed = String(text).trim();
-    if (trimmed.length <= maxLen) return trimmed;
-    return trimmed.slice(0, maxLen) + "…";
+    return SS_serializeExcluded(
+      new Map(entries.map((entry) => [entry.sig, { preview: entry.preview, created: entry.created }]))
+    );
   }
 
   function renderExcluded() {
@@ -1306,9 +1268,9 @@
       excludedList.innerHTML = "";
       clearExcludedBtn.style.display = "none";
       clearExcludedBtn.dataset.confirming = "";
-      clearExcludedBtn.textContent = t("excludedClearAll");
-      clearExcludedBtn.setAttribute("aria-label", t("excludedClearAll"));
-      clearExcludedBtn.title = t("excludedClearAll");
+      clearExcludedBtn.textContent = SS_t("excludedClearAll");
+      clearExcludedBtn.setAttribute("aria-label", SS_t("excludedClearAll"));
+      clearExcludedBtn.title = SS_t("excludedClearAll");
       return;
     }
     excludedSection.style.display = "block";
@@ -1331,7 +1293,7 @@
     if (bytes >= safeByteLimit) {
       const warning = document.createElement("span");
       warning.className = "near-cap-warning";
-      warning.textContent = t("excludedNearCap");
+      warning.textContent = SS_t("excludedNearCap");
       excludedCountLabel.appendChild(warning);
     }
     for (const entry of excluded) {
@@ -1340,16 +1302,16 @@
 
       const label = document.createElement("span");
       label.className = "wl-id";
-      label.textContent = entry.preview || t("excludedNoPreview");
+      label.textContent = entry.preview || SS_t("excludedNoPreview");
       row.appendChild(label);
 
-      const removeLabel = entry.preview || t("excludedNoPreview");
+      const removeLabel = entry.preview || SS_t("excludedNoPreview");
       const isConfirming = pendingExclusionRemove === entry.sig;
       const rmBtn = document.createElement("button");
       rmBtn.className = isConfirming ? "confirming" : "";
-      rmBtn.textContent = isConfirming ? t("clickToConfirm") : t("remove");
-      rmBtn.setAttribute("aria-label", t("removeExcludedLabel", removeLabel));
-      rmBtn.title = t("removeExcludedLabel", removeLabel);
+      rmBtn.textContent = isConfirming ? SS_t("clickToConfirm") : SS_t("remove");
+      rmBtn.setAttribute("aria-label", SS_t("removeExcludedLabel", removeLabel));
+      rmBtn.title = SS_t("removeExcludedLabel", removeLabel);
       rmBtn.addEventListener("click", () => {
         if (pendingExclusionRemove === entry.sig) {
           pendingExclusionRemove = null;
@@ -1405,7 +1367,7 @@
     const enabled = filtered.filter((p) => p.enabled).length;
     countLabel.textContent =
       phrases.length === 0
-        ? t("noCustomPhrasesShort")
+        ? SS_t("noCustomPhrasesShort")
         : countMessage(
             "customPhraseStatusOne",
             "customPhraseStatusMany",
@@ -1415,10 +1377,10 @@
 
     if (phrases.length === 0) {
       empty.style.display = "block";
-      renderEmptyState(t("noCustomPhrases"), t("tryStarterPack"));
+      renderEmptyState(SS_t("noCustomPhrases"), SS_t("tryStarterPack"));
     } else if (query && filtered.length === 0) {
       empty.style.display = "block";
-      renderEmptyState(t("noPhrasesMatch", query));
+      renderEmptyState(SS_t("noPhrasesMatch", query));
     } else {
       empty.style.display = "none";
       for (const p of filtered) {
@@ -1446,8 +1408,8 @@
     const cb = document.createElement("input");
     cb.type = "checkbox";
     cb.checked = !disabledPatterns.includes(bp.id);
-    cb.setAttribute("aria-label", t("builtinPatternToggleLabel", bp.label));
-    cb.title = t("builtinPatternToggleHint");
+    cb.setAttribute("aria-label", SS_t("builtinPatternToggleLabel", bp.label));
+    cb.title = SS_t("builtinPatternToggleHint");
     cb.addEventListener("change", () => handleBuiltinToggle(bp.id));
     label.appendChild(cb);
     label.appendChild(document.createElement("span")).className = "slider";
@@ -1462,7 +1424,7 @@
     text.append(document.createTextNode(bp.label));
     const bl = document.createElement("span");
     bl.className = "builtin-label";
-    bl.textContent = t("builtinLabel");
+    bl.textContent = SS_t("builtinLabel");
     text.appendChild(bl);
     div.appendChild(text);
     div.appendChild(document.createElement("div")).className = "actions";
@@ -1479,8 +1441,8 @@
     const cb = document.createElement("input");
     cb.type = "checkbox";
     cb.checked = p.enabled;
-    cb.setAttribute("aria-label", t("phraseToggleLabel", p.text));
-    cb.title = t("phraseToggleLabel", p.text);
+    cb.setAttribute("aria-label", SS_t("phraseToggleLabel", p.text));
+    cb.title = SS_t("phraseToggleLabel", p.text);
     cb.addEventListener("change", () => handleToggle(p.id));
     label.appendChild(cb);
     label.appendChild(document.createElement("span")).className = "slider";
@@ -1489,14 +1451,14 @@
     /* Mode badge (clickable) */
     const badge = document.createElement("span");
     badge.className = "mode-badge" + (p.mode === "contains" ? " contains" : "");
-    badge.textContent = p.mode === "contains" ? t("contains") : t("exact");
+    badge.textContent = p.mode === "contains" ? SS_t("contains") : SS_t("exact");
     badge.title =
       p.mode === "contains"
-        ? t("containsTooltip")
-        : t("exactTooltip");
+        ? SS_t("containsTooltip")
+        : SS_t("exactTooltip");
     badge.setAttribute("role", "button");
     badge.setAttribute("tabindex", "0");
-    badge.setAttribute("aria-label", t("modeToggleLabel", [p.text, badge.textContent]));
+    badge.setAttribute("aria-label", SS_t("modeToggleLabel", [p.text, badge.textContent]));
     badge.addEventListener("click", () => toggleMode(p.id));
     badge.addEventListener("keydown", activateOnEnterOrSpace(() => toggleMode(p.id)));
     div.appendChild(badge);
@@ -1522,12 +1484,12 @@
 
       const saveBtn = document.createElement("button");
       saveBtn.className = "save";
-      saveBtn.textContent = t("save");
+      saveBtn.textContent = SS_t("save");
       saveBtn.addEventListener("click", () => handleSaveEdit(p.id));
       editWrap.appendChild(saveBtn);
 
       const cancelBtn = document.createElement("button");
-      cancelBtn.textContent = t("cancel");
+      cancelBtn.textContent = SS_t("cancel");
       cancelBtn.addEventListener("click", handleCancelEdit);
       editWrap.appendChild(cancelBtn);
 
@@ -1542,18 +1504,18 @@
     actions.className = "actions";
 
     const editBtn = document.createElement("button");
-    editBtn.textContent = t("edit");
-    editBtn.setAttribute("aria-label", t("editPhraseLabel", p.text));
-    editBtn.title = t("editPhraseLabel", p.text);
+    editBtn.textContent = SS_t("edit");
+    editBtn.setAttribute("aria-label", SS_t("editPhraseLabel", p.text));
+    editBtn.title = SS_t("editPhraseLabel", p.text);
     editBtn.addEventListener("click", () => handleEdit(p.id));
     actions.appendChild(editBtn);
 
     const isConfirming = pendingDeleteId === p.id;
     const delBtn = document.createElement("button");
     delBtn.className = "danger" + (isConfirming ? " confirming" : "");
-    delBtn.textContent = isConfirming ? t("clickToConfirm") : t("delete");
-    delBtn.setAttribute("aria-label", t("deletePhraseLabel", p.text));
-    delBtn.title = t("deletePhraseLabel", p.text);
+    delBtn.textContent = isConfirming ? SS_t("clickToConfirm") : SS_t("delete");
+    delBtn.setAttribute("aria-label", SS_t("deletePhraseLabel", p.text));
+    delBtn.title = SS_t("deletePhraseLabel", p.text);
     delBtn.addEventListener("click", () => handleDelete(p.id));
     actions.appendChild(delBtn);
 
@@ -1581,26 +1543,6 @@
   );
 
   /* ── Helpers ────────────────────────────────────────────────── */
-
-  function uid() {
-    try {
-      return crypto.randomUUID();
-    } catch (_) {
-      return (
-        Date.now().toString(36) +
-        "-" +
-        Math.random().toString(36).slice(2, 9)
-      );
-    }
-  }
-
-  function debounce(fn, ms) {
-    let timer;
-    return (...args) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => fn(...args), ms);
-    };
-  }
 
   function activateOnEnterOrSpace(callback) {
     return (event) => {

@@ -39,21 +39,28 @@ the test suite that covers the change.
 
 - **Files**: `content.js` (~1300 lines) is the content script —
   scan/detect/block. `background.js` (92 lines) is the MV3 service worker:
-  context menu + badge relay only, loads no other modules. `popup/popup.js`
+  context menu + badge relay only; it loads the shared files via
+  `importScripts` but keeps its own `t`/`uid`/`estimatePhraseBytes` copies.
+  `popup/popup.js`
   (~410 lines) and `options/options.js` (~1600 lines) drive their pages.
   `i18n.js` does `__MSG_key__` token substitution on popup/options pages.
 - **Every JS file is a `"use strict"` IIFE.** Shared pure logic lives in
   `shared/pattern-data.js` as a UMD module: it exposes globals on the page
   (`SS_PATTERN_DATA`, plus `SS_escapeRegex`, `SS_isLinkedInHost`,
   `SS_parseAuthorId`, `SS_hashString`, `SS_getExcludedSignature`,
-  `SS_createCooldownStore`) and `module.exports` for Node unit tests. It
-  holds the built-in pattern regexes (5 languages) and those pure helpers.
+  `SS_createCooldownStore`, `SS_t`, `SS_uid`, `SS_estimatePhraseBytes`,
+  `SS_truncateForPreview`, `SS_normalizeExcludedEntries`,
+  `SS_serializeExcluded`, `SS_debounce`, `SS_readRuntimeValue`) and
+  `module.exports` for Node unit tests. It holds the built-in pattern
+  regexes (5 languages) and those pure helpers.
 - **Load surfaces for shared files**: the `content_scripts[].js` array in
   `manifest.json` (`["shared/constants.js", "shared/pattern-data.js",
   "shared/post-container.js", "content.js"]` — shared must come first),
   and `<script>` tags in `popup.html`/`options.html` (both load
   `shared/constants.js` + `shared/pattern-data.js`). `background.js` loads
-  nothing extra.
+  the shared files via `importScripts` but intentionally keeps its own
+  `t`/`uid`/`estimatePhraseBytes` copies (plan 048 left the service worker
+  untouched — do not consolidate them without a dedicated plan).
 - **Storage**: all keys are `ss_`-prefixed and defined once in
   `shared/constants.js` as `SS_CONSTANTS` (`STORAGE_KEYS`, `LIMITS`,
   `DEFAULT_ENABLED_LANGS`); every runtime file destructures it
