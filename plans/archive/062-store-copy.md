@@ -314,7 +314,7 @@ arrays (lines ~66-91) with:
     "Match tester",
     "Per-pattern stats",
     "Comment-level blocking",
-    "school and showcase feeds",
+    "including school and",
     "Persistent suggestions",
     "First-run walkthrough",
     "Install it once. Forget it's there. Enjoy your feed again.",
@@ -345,7 +345,7 @@ const fs = require("fs");
 const s = fs.readFileSync("STORE_ASSETS.md", "utf8");
 const en = s.slice(s.indexOf("### Your feed, reclaimed."), s.indexOf("## Español"));
 const es = s.slice(s.indexOf("### Tu feed, recuperado."), s.indexOf("## Screenshots"));
-const enM = ["Your feed, reclaimed.","comment CLAUDE and I\u0027ll send you the","zero effort","Never-hide phrases","Match tester","Per-pattern stats","Comment-level blocking","school and showcase feeds","Persistent suggestions","First-run walkthrough","Install it once. Forget it\u0027s there. Enjoy your feed again.","zero network"];
+const enM = ["Your feed, reclaimed.","comment CLAUDE and I\u0027ll send you the","zero effort","Never-hide phrases","Match tester","Per-pattern stats","Comment-level blocking","including school and","Persistent suggestions","First-run walkthrough","Install it once. Forget it\u0027s there. Enjoy your feed again.","zero network"];
 const esM = ["Tu feed, recuperado.","comenta CLAUDE y te","cero esfuerzo","Frases que nunca se ocultan","Probador de coincidencias","Estadísticas por patrón","Bloqueo a nivel de comentario","feeds de escuelas y de showcase","Sugerencias persistentes","Guía de bienvenida","Instálalo una vez. Olvídate de que está. Vuelve a disfrutar tu feed."];
 const missingEn = enM.filter(m => !en.includes(m));
 const missingEs = esM.filter(m => !es.includes(m));
