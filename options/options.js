@@ -542,6 +542,7 @@
       excluded.length > 0 ||
       blockedAuthors.length > 0 ||
       disabledPatterns.length > 0 ||
+      allowPhrases.length > 0 ||
       hidePromoted ||
       hideFeatured ||
       !isDefaultLangs()
@@ -593,6 +594,7 @@
       disabledPatterns: disabledPatterns,
       hidePromoted: hidePromoted,
       hideFeatured: hideFeatured,
+      allowPhrases: allowPhrases,
     };
     const json = JSON.stringify(payload, null, 2);
 
@@ -646,6 +648,15 @@
           disabledPatterns.length,
           "patternCountOne",
           "patternCountMany"
+        )
+      );
+    }
+    if (allowPhrases.length > 0) {
+      extras.push(
+        settingsPart(
+          allowPhrases.length,
+          "settingsPartAllowOne",
+          "settingsPartAllowMany"
         )
       );
     }
@@ -1009,6 +1020,73 @@
           );
         }
 
+        /* Never-hide phrases (plan 056): additive merge mirroring the
+           whitelist block — dedupe case-insensitively (the UI's own
+           duplicate rule), validate text, cap at LIMITS.MAX_ALLOW_PHRASES,
+           then enforce the per-item sync byte quota (evict from the tail,
+           count as skipped). Files exported before this plan carry no
+           allowPhrases key and skip this branch entirely. */
+        let allowAdded = 0,
+          allowSkipped = 0;
+        const allowBefore = allowPhrases.slice();
+        if (Array.isArray(imported.allowPhrases)) {
+          for (const entry of imported.allowPhrases) {
+            if (allowPhrases.length >= LIMITS.MAX_ALLOW_PHRASES) {
+              allowSkipped++;
+              continue;
+            }
+            if (
+              !entry ||
+              typeof entry.text !== "string" ||
+              !entry.text.trim() ||
+              entry.text.trim().length > LIMITS.MAX_PHRASE_LENGTH
+            ) {
+              allowSkipped++;
+              continue;
+            }
+            const text = entry.text.trim();
+            if (
+              allowPhrases.some(
+                (p) => p.text.toLowerCase() === text.toLowerCase()
+              )
+            ) {
+              allowSkipped++;
+              continue;
+            }
+            allowPhrases.push({
+              id: SS_uid(),
+              text,
+              created: entry.created || Date.now(),
+            });
+            allowAdded++;
+          }
+          const allowSafeLimit = Math.floor(
+            chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.9
+          );
+          while (
+            allowPhrases.length > 0 &&
+            STORAGE_KEYS.ALLOW_PHRASES.length +
+              JSON.stringify(allowPhrases).length >
+              allowSafeLimit
+          ) {
+            allowPhrases.pop();
+            allowSkipped++;
+          }
+          chrome.storage.sync.set(
+            { [STORAGE_KEYS.ALLOW_PHRASES]: allowPhrases },
+            () => {
+              if (chrome.runtime.lastError) {
+                allowPhrases = allowBefore;
+                render();
+                showToast(
+                  "Storage write failed: " + chrome.runtime.lastError.message,
+                  true
+                );
+              }
+            }
+          );
+        }
+
         /* Feed hide toggles (plan 027): single booleans, last import wins.
            Silent in the summary toast (no count to report); still written
            to storage so a restored backup re-applies the hides. */
@@ -1110,12 +1188,22 @@
             )
           );
         }
+        if (allowAdded > 0) {
+          parts.push(
+            settingsPart(
+              allowAdded,
+              "settingsPartAllowOne",
+              "settingsPartAllowMany"
+            )
+          );
+        }
         const skipped =
           phraseCounts.skipped +
           whitelistSkipped +
           excludedSkipped +
           blockedAuthorsSkipped +
-          patternsSkipped;
+          patternsSkipped +
+          allowSkipped;
         if (parts.length === 0) {
           showToast(
             skipped > 0
