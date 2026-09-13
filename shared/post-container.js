@@ -15,6 +15,13 @@
 
   /* ── Strategy 1: sibling-content heuristic (zero selectors) ──── */
 
+  /* Comment element selectors (plan 059): the comment-preference check
+     uses these to decide that matched text sits in a comment, not the
+     post body. ".comment" is the fixture shape; ".comments-comment-item"
+     is LinkedIn's real comment-item class (unverified against live DOM —
+     centralized here so a real-DOM capture can adjust it in one place). */
+  const COMMENT_SELECTORS = [".comment", ".comments-comment-item"];
+
   /**
    * Thresholds controlling the sibling-content heuristic.
    * @typedef {Object} PostContainerConfig
@@ -117,14 +124,18 @@
 
   /**
    * Runs each detection strategy in order, returning the first Element
-   * result (strategies that throw are skipped).
+   * result (strategies that throw are skipped). When the result is
+   * post-like but the matched text sits in a comment element inside it,
+   * the comment element is returned instead (plan 059 Decision 1) — a
+   * bait comment must hide the comment, not the whole post.
    * @param {Node} textNode Text node inside the candidate post.
    * @param {PostContainerConfig} config Threshold values.
    * @param {readonly string[]} postSelectors CSS selectors to test.
    * @param {Document} [doc] Document the textNode lives in.
+   * @param {readonly string[]} [commentSelectors] Comment element selectors.
    * @returns {Element | null}
    */
-  function findPostContainer(textNode, config, postSelectors, doc) {
+  function findPostContainer(textNode, config, postSelectors, doc, commentSelectors) {
     doc = doc || globalThis.document;
     const strategies = [
       (node) => findBySiblingHeuristic(node, config, doc),
@@ -140,8 +151,32 @@
             : typeof Element !== "undefined"
               ? Element
               : Object)
-        )
+        ) {
+          /* Comment preference (plan 059 Decision 1): when the resolution
+             lands on a post-like container but the matched text sits in a
+             comment element inside it, block the comment, not the post.
+             B/C-shaped resolutions (already a comment, not post-like)
+             are untouched; the commentTarget !== result guard keeps a
+             comment that itself matches postSelectors (e.g. <article>)
+             a no-op. */
+          const commentTarget =
+            textNode?.parentElement &&
+            (commentSelectors ?? COMMENT_SELECTORS).length > 0
+              ? textNode.parentElement.closest((commentSelectors ?? COMMENT_SELECTORS).join(","))
+              : null;
+          const isPostLike =
+            result.hasAttribute("data-id") ||
+            postSelectors.some((sel) => result.matches?.(sel));
+          if (
+            isPostLike &&
+            commentTarget &&
+            commentTarget !== result &&
+            result.contains(commentTarget)
+          ) {
+            return commentTarget;
+          }
           return result;
+        }
       } catch (_) {
         /* skip failed strategy */
       }

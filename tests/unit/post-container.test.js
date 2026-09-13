@@ -273,11 +273,13 @@ test("findPostContainer survives throwing strategies", () => {
 
 /* ── Plan 057 spike: what does a bait comment block? ────────────────
    Characterization tests pinning the OBSERVED (not assumed) resolution
-   of findPostContainer for a text node inside a comment. They pin the
-   current behavior whatever it is; a later plan that deliberately
-   changes it must update them and say so. */
+   of findPostContainer for a text node inside a comment. Plan 059
+   deliberately flipped fixture A (lone bait comment) from the POST to
+   the COMMENT — a bait comment must hide the comment, not the post
+   (plan 059 Decision 1). B and C still pin the heavy-thread comment
+   resolution, which 059 leaves untouched. */
 
-test("spike: a lone bait comment under a post resolves to the POST (light thread)", () => {
+test("spike: a lone bait comment under a post resolves to the COMMENT (light thread)", () => {
   const { doc } = buildDom(`<main>
       <div id="feed">
         ${postWithComments(1, LONG_BODY, [COMMENT_TEXT])}
@@ -289,13 +291,49 @@ test("spike: a lone bait comment under a post resolves to the POST (light thread
   const baitText = doc.querySelector(".comment-body").firstChild;
 
   const result = findPostContainer(baitText, CONFIG, POST_SELECTORS, doc);
+  assert.equal(result, baitComment, "resolved " + describeElement(result));
+  assert.equal(
+    result.contains(postBody),
+    false,
+    "post body must not be hidden by the resolved container"
+  );
+  assert.notEqual(result, section);
+});
+
+/* ── Plan 059 tripwires: the comment preference must NOT fire for
+   true positives. Bait text in the post body, or anywhere outside a
+   comment element, still resolves to the POST. */
+
+test("plan 059: bait text in the post body still resolves to the POST", () => {
+  const { doc } = buildDom(`<main>
+      <div id="feed">
+        ${postWithComments(4, COMMENT_TEXT, ["harmless reply"])}
+      </div>
+    </main>`);
+  const section = doc.querySelector("section");
+  const postBody = doc.querySelector(".post-body");
+  const baitText = postBody.firstChild;
+
+  const result = findPostContainer(baitText, CONFIG, POST_SELECTORS, doc);
   assert.equal(result, section, "resolved " + describeElement(result));
   assert.equal(
     result.contains(postBody),
     true,
-    "post body would be hidden by the resolved container"
+    "post body must be inside the resolved container"
   );
-  assert.notEqual(result, baitComment);
+});
+
+test("plan 059: text outside any comment element still resolves to the POST", () => {
+  const { doc } = buildDom(`<main>
+      <div id="feed">
+        ${postWithComments(5, LONG_BODY, [COMMENT_TEXT])}
+      </div>
+    </main>`);
+  const section = doc.querySelector("section");
+  const actorText = doc.querySelector(".actor a span").firstChild;
+
+  const result = findPostContainer(actorText, CONFIG, POST_SELECTORS, doc);
+  assert.equal(result, section, "resolved " + describeElement(result));
 });
 
 test("spike: a bait comment among heavy sibling comments resolves to the COMMENT (heavy thread)", () => {
