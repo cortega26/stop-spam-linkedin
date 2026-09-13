@@ -185,7 +185,7 @@ if `_locales/{fr,pt,de}` already exist.
 | 048 | [Shared helper consolidation](archive/048-shared-helpers-consolidation.md) | P3 | M | — (soft: 029) | DONE (2026-09-07, branch advisor/048-shared-helpers @ cf4698b in /tmp/opencode/wt-048, reviewed + verified; merged — merge commit 4f80330) |
 | 049 | [Missed-spam report (design/spike)](archive/049-missed-spam-report.md) | P2 | M | — | DONE (2026-09-07, spike branch advisor/049-missed-spam-report-spike @ df33bda in /tmp/opencode/wt-049, reviewed + verified; design deliverable merged into the plan; prototype unmerged — build plan is the natural follow-up) |
 | 050 | [UI localization FR/PT/DE (audit+process)](050-ui-localization.md) | P3 | M + validation | — (soft: LAST — after 051, 053, 054, 056, 058) | TODO |
-| 051 | [Match tester in options](051-match-tester.md) | P2 | S–M | — (soft: after 056; before 050) | TODO (refreshed at 4f80330) |
+| 051 | [Match tester in options](archive/051-match-tester.md) | P2 | S–M | — (soft: after 056; before 050) | DONE (2026-09-13, branch advisor/051-match-tester @ 6771089 in /tmp/opencode/wt-051, reviewed + verified; live-storage tester mirroring findMatch incl. allow pardons, 72 unit tests, probe-pair e2e incl. identical-text overlap probe; unmerged) |
 | 052 | [Second detection family (corpus+spike)](052-second-family-spike.md) | P3 | M | — | TODO (refreshed at 4f80330) |
 | 053 | [Per-pattern stats build (from 041 design)](053-per-pattern-stats-build.md) | P3 | M | 041 design (read-only, committed); before 050, 054 | TODO (refreshed at 4f80330) |
 | 054 | [Suggestion-loop build (from 043 design)](054-suggestion-loop-build.md) | P3 | M | 043 design (read-only, committed); after 053; before 050 | TODO (refreshed at 4f80330) |
