@@ -708,3 +708,20 @@ convention (unmerged prototypes).
   next build; planned at `c11efc0` on `main`.
 - Post-merge housekeeping: stale merged `advisor/*` branches deleted from
   origin; README rows refreshed from "unmerged" to merged.
+
+## Execution record (2026-09-13, release 1.5.0 shipped + live badges)
+
+- **v1.5.0 tag pushed** (2026-09-13): `release.yml` all 4 jobs green —
+  package, GitHub Release ("LinkedIn Spam Blocker 1.5.0"), AMO submit
+  ("Version created: 1.5.0", id 6483467), Chrome submit
+  ("uploadState: SUCCEEDED"). AMO listing description re-verified live.
+- **AMO release notes PATCHed** for version 6483467 (en-US, from
+  `RELEASE_NOTES.md` §1.5.0 — the checklist's manual "paste notes" step,
+  automated). Chrome dashboard notes remain a manual paste (no CWS API).
+- **Plan 061 (live badges)**: all 5 READMEs use shields.io `amo/v` +
+  `chrome-web-store/v` endpoints; badges now self-maintain — the 060
+  "Firefox badge bump" follow-up is overtaken. The badge rule in
+  AGENTS.md rewritten ("live store endpoints"; store API is the
+  authority).
+- Both stores reviewing 1.5.0; nothing further required until their
+  verdicts (badges flip automatically on publish).
