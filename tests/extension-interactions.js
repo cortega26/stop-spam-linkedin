@@ -813,10 +813,12 @@ async function main() {
       "expected exactly one pending suggestion from the single built-in match"
     );
 
-    /* Dismiss from the live popup; the dismissal must reach storage. */
+    /* Dismiss from the live popup; the dismissal must reach storage.
+       The section is hidden (not emptied) when the queue drains, so
+       assert on its computed display, not the row count. */
     await popup.locator(".suggestion-dismiss").first().click();
     await popup.waitForFunction(
-      () => document.querySelectorAll(".suggestion-item").length === 0,
+      () => getComputedStyle(document.getElementById("suggestionSection")).display === "none",
       null,
       { timeout: 10000 }
     );
