@@ -22,6 +22,9 @@
   let pendingBlockedAuthorRemove = null;
   let excluded = [];
   let pendingExclusionRemove = null;
+  /* Never-hide phrases (plan 056): text the user never wants hidden. */
+  let allowPhrases = [];
+  let pendingAllowRemove = null;
   let hidePromoted = false;
   let hideFeatured = false;
 
@@ -45,6 +48,9 @@
   const excludedList = document.getElementById("excludedList");
   const excludedCountLabel = document.getElementById("excludedCountLabel");
   const clearExcludedBtn = document.getElementById("clearExcludedBtn");
+  const allowInput = /** @type {HTMLInputElement} */ (document.getElementById("allowInput"));
+  const allowAddBtn = document.getElementById("allowAddBtn");
+  const allowList = document.getElementById("allowList");
   const hidePromotedCheckbox = /** @type {HTMLInputElement} */ (document.getElementById("hidePromotedCheckbox"));
   const hideFeaturedCheckbox = /** @type {HTMLInputElement} */ (document.getElementById("hideFeaturedCheckbox"));
   const searchInput = /** @type {HTMLInputElement} */ (document.getElementById("searchInput"));
@@ -54,6 +60,10 @@
   addBtn.addEventListener("click", handleAdd);
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") handleAdd();
+  });
+  allowAddBtn.addEventListener("click", handleAllowAdd);
+  allowInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") handleAllowAdd();
   });
   importBtn.addEventListener("click", () => importFile.click());
   importFile.addEventListener("change", handleImport);
@@ -113,7 +123,7 @@
   /* ── Storage ────────────────────────────────────────────────── */
 
   function load() {
-    chrome.storage.sync.get([PHRASES_STORAGE_KEY, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.DISABLED_PATTERNS, STORAGE_KEYS.HIDE_PROMOTED, STORAGE_KEYS.HIDE_FEATURED],
+    chrome.storage.sync.get([PHRASES_STORAGE_KEY, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.DISABLED_PATTERNS, STORAGE_KEYS.HIDE_PROMOTED, STORAGE_KEYS.HIDE_FEATURED, STORAGE_KEYS.ALLOW_PHRASES],
       /** @param {{ [key: string]: any }} result */
       (result) => {
       phrases = result[PHRASES_STORAGE_KEY] || [];
@@ -122,6 +132,7 @@
       whitelist = result[STORAGE_KEYS.WHITELIST] || [];
       blockedAuthors = result[STORAGE_KEYS.BLOCKED_AUTHORS] || [];
       excluded = normalizeExcludedEntries(result[STORAGE_KEYS.EXCLUDED] || []);
+      allowPhrases = result[STORAGE_KEYS.ALLOW_PHRASES] || [];
       hidePromoted = result[STORAGE_KEYS.HIDE_PROMOTED] === true;
       hideFeatured = result[STORAGE_KEYS.HIDE_FEATURED] === true;
       if (hasLegacyExcludedEntries(result[STORAGE_KEYS.EXCLUDED] || [])) {
@@ -151,6 +162,12 @@
     if (changes[STORAGE_KEYS.EXCLUDED]) {
       excluded = normalizeExcludedEntries(changes[STORAGE_KEYS.EXCLUDED].newValue || []);
       renderExcluded();
+    }
+    if (changes[STORAGE_KEYS.ALLOW_PHRASES]) {
+      allowPhrases = changes[STORAGE_KEYS.ALLOW_PHRASES].newValue || [];
+      if (!locallyWrittenKeys.delete(STORAGE_KEYS.ALLOW_PHRASES)) {
+        render();
+      }
     }
     if (changes[PHRASES_STORAGE_KEY]) {
       phrases = changes[PHRASES_STORAGE_KEY].newValue || [];
@@ -265,6 +282,13 @@
       highlightDuplicate(text);
       return;
     }
+    /* Reverse conflict guard (plan 056 Decision 1): a custom phrase that
+       equals an existing never-hide phrase would silently override the
+       pardon. Refuse rather than write an ambiguous rule. */
+    if (allowPhrases.some((p) => p.text.toLowerCase() === text.toLowerCase())) {
+      showToast(SS_t("allowConflictToast", text), true);
+      return;
+    }
     if (phrases.length >= LIMITS.MAX_CUSTOM_PHRASES) {
       showToast(SS_t("phraseLimitToast", LIMITS.MAX_CUSTOM_PHRASES), true);
       return;
@@ -287,6 +311,64 @@
     input.value = "";
     save();
     showToast(SS_t("addedPhraseToast", text));
+  }
+
+  function handleAllowAdd() {
+    const text = allowInput.value.trim();
+    if (!text) return;
+    if (text.length > LIMITS.MAX_PHRASE_LENGTH) {
+      showToast(SS_t("phraseTooLongToast", LIMITS.MAX_PHRASE_LENGTH), true);
+      return;
+    }
+
+    /* Duplicate check */
+    const dup = allowPhrases.findIndex(
+      (p) => p.text.toLowerCase() === text.toLowerCase()
+    );
+    if (dup !== -1) {
+      showToast(SS_t("duplicatePhraseToast", text), true);
+      allowInput.value = "";
+      render();
+      return;
+    }
+    /* Conflict guard (plan 056 Decision 1): an allow-phrase that equals an
+       existing custom phrase would make the custom phrase silently stop
+       blocking. Refuse without writing. */
+    if (phrases.some((p) => p.text.toLowerCase() === text.toLowerCase())) {
+      showToast(SS_t("allowConflictToast", text), true);
+      return;
+    }
+    if (allowPhrases.length >= LIMITS.MAX_ALLOW_PHRASES) {
+      showToast(SS_t("allowLimitToast", LIMITS.MAX_ALLOW_PHRASES), true);
+      return;
+    }
+
+    const candidate = allowPhrases.concat([{
+      id: SS_uid(),
+      text,
+      created: Date.now(),
+    }]);
+    const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
+    if (SS_estimatePhraseBytes(candidate, STORAGE_KEYS.ALLOW_PHRASES) > limit) {
+      showToast(SS_t("phraseStorageFullToast"), true);
+      return;
+    }
+
+    const prev = allowPhrases.slice();
+    allowPhrases = candidate;
+    allowInput.value = "";
+    locallyWrittenKeys.add(STORAGE_KEYS.ALLOW_PHRASES);
+    chrome.storage.sync.set({ [STORAGE_KEYS.ALLOW_PHRASES]: allowPhrases }, () => {
+      if (chrome.runtime.lastError) {
+        locallyWrittenKeys.delete(STORAGE_KEYS.ALLOW_PHRASES);
+        allowPhrases = prev;
+        render();
+        showToast("Storage write failed: " + chrome.runtime.lastError.message, true);
+        return;
+      }
+      render();
+    });
+    showToast(SS_t("allowAddedToast", text));
   }
 
   function handleToggle(id) {
@@ -1339,6 +1421,63 @@
     }
   }
 
+  /* ── Never-hide phrases (plan 056) ───────────────────────────── */
+
+  /* Mirrors renderWhitelist's confirm-click remove, but the section stays
+     visible when empty — it holds the add input. Rows are plain text
+     labels (no toggle, no mode badge): removing the row is the off
+     switch (plan 056 Decision 3). */
+  function renderAllowPhrases() {
+    allowList.innerHTML = "";
+    if (allowPhrases.length === 0) {
+      const empty = document.createElement("div");
+      empty.className = "import-hint";
+      empty.textContent = SS_t("allowEmpty");
+      allowList.appendChild(empty);
+      return;
+    }
+    for (const p of allowPhrases) {
+      const row = document.createElement("div");
+      row.className = "whitelist-row";
+
+      const label = document.createElement("span");
+      label.className = "wl-id";
+      label.textContent = p.text;
+      row.appendChild(label);
+
+      const isConfirming = pendingAllowRemove === p.id;
+      const rmBtn = document.createElement("button");
+      rmBtn.className = isConfirming ? "confirming" : "";
+      rmBtn.textContent = isConfirming ? SS_t("clickToConfirm") : SS_t("remove");
+      rmBtn.setAttribute("aria-label", SS_t("removeAllowPhraseLabel", p.text));
+      rmBtn.title = SS_t("removeAllowPhraseLabel", p.text);
+      rmBtn.addEventListener("click", () => {
+        if (pendingAllowRemove === p.id) {
+          pendingAllowRemove = null;
+          allowPhrases = allowPhrases.filter((x) => x.id !== p.id);
+          chrome.storage.sync.set({ [STORAGE_KEYS.ALLOW_PHRASES]: allowPhrases }, () => {
+            if (chrome.runtime.lastError) {
+              console.warn("Failed to remove allow phrase (sync.set):", chrome.runtime.lastError.message);
+            }
+          });
+          renderAllowPhrases();
+        } else {
+          pendingAllowRemove = p.id;
+          renderAllowPhrases();
+          setTimeout(() => {
+            if (pendingAllowRemove === p.id) {
+              pendingAllowRemove = null;
+              renderAllowPhrases();
+            }
+          }, 3000);
+        }
+      });
+      row.appendChild(rmBtn);
+
+      allowList.appendChild(row);
+    }
+  }
+
   /* ── Render ─────────────────────────────────────────────────── */
 
   function render() {
@@ -1349,6 +1488,7 @@
     renderWhitelist();
     renderBlockedAuthors();
     renderExcluded();
+    renderAllowPhrases();
 
     const query = searchInput.value.trim().toLowerCase();
 
