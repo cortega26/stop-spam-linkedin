@@ -15,6 +15,7 @@
     ONBOARDED: "ss_onboarded",
     WELCOME_PENDING: "ss_welcome_pending",
     DAILY_COUNTS: "ss_daily_counts",
+    PATTERN_COUNTS: "ss_pattern_counts",
     SNOOZE_UNTIL: "ss_snooze_until",
     EXCLUDED: "ss_excluded",
     ALLOW_PHRASES: "ss_allow_phrases",

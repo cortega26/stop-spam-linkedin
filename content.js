@@ -84,6 +84,12 @@
   /* Onboarding & daily stats. */
   let onboarded = false;
   let dailyCounts = {};
+  /* Per-pattern lifetime block counts (ss_pattern_counts): flat bucket →
+     count, e.g. { "EN-1": 3, "custom": 2, "author": 1 }. Reset together
+     with the other counters; kept out of backup (plan 053 privacy
+     decision) and out of the sync-migration list (the key never lived in
+     sync). */
+  let patternCounts = {};
 
   /* User-excluded text signatures (false-positive feedback). */
   let excludedSignatures = new Map();
@@ -169,6 +175,7 @@
           STORAGE_KEYS.COUNT,
           STORAGE_KEYS.ONBOARDED,
           STORAGE_KEYS.DAILY_COUNTS,
+          STORAGE_KEYS.PATTERN_COUNTS,
           STORAGE_KEYS.SNOOZE_UNTIL,
         ],
         /** @param {{ [key: string]: any }} localResult */
@@ -194,6 +201,7 @@
             STORAGE_KEYS.DAILY_COUNTS,
             {}
           );
+          patternCounts = localResult[STORAGE_KEYS.PATTERN_COUNTS] || {};
           snoozeUntil = SS_readRuntimeValue(
             localResult,
             syncResult,
@@ -236,6 +244,9 @@
       }
       if (changes[STORAGE_KEYS.DAILY_COUNTS]) {
         dailyCounts = changes[STORAGE_KEYS.DAILY_COUNTS].newValue || {};
+      }
+      if (changes[STORAGE_KEYS.PATTERN_COUNTS]) {
+        patternCounts = changes[STORAGE_KEYS.PATTERN_COUNTS].newValue || {};
       }
       if (changes[STORAGE_KEYS.SNOOZE_UNTIL]) {
         syncSnoozeState(changes[STORAGE_KEYS.SNOOZE_UNTIL].newValue || 0);
@@ -313,6 +324,7 @@
           snoozed: Date.now() < snoozeUntil,
           snoozeUntil,
           dailyCounts,
+          patternCounts,
           onboarded,
           lastBlocked: lastBlocked.map(item => ({
             id: item.id,
@@ -351,16 +363,18 @@
       case "resetCount":
         blockedCount = 0;
         dailyCounts = {};
+        patternCounts = {};
         chrome.storage.local.set({
           [STORAGE_KEYS.COUNT]: 0,
           [STORAGE_KEYS.DAILY_COUNTS]: {},
+          [STORAGE_KEYS.PATTERN_COUNTS]: {},
         }, () => {
           if (chrome.runtime.lastError) {
             console.warn("Failed to save reset counters (local.set):", chrome.runtime.lastError.message);
           }
         });
         setBadge("");
-        sendResponse({ blockedCount: 0, dailyCounts: {} });
+        sendResponse({ blockedCount: 0, dailyCounts: {}, patternCounts: {} });
         break;
 
       case "snooze":
@@ -768,6 +782,18 @@
       blockedCount++;
       const key = getTodayKey();
       dailyCounts[key] = (dailyCounts[key] || 0) + 1;
+      /* Per-pattern bucket (plan 053): built-ins attribute by their stable
+         id; custom phrases by source; author-blocklist blocks by reason;
+         "builtin" is a defensive fallback unreachable in practice. Label
+         hides never reach here (isLabelBlock). */
+      const bucket = info && info.id
+        ? info.id
+        : info && info.source === "custom"
+          ? "custom"
+          : info && info.reason === "author-blocklist"
+            ? "author"
+            : "builtin";
+      patternCounts[bucket] = (patternCounts[bucket] || 0) + 1;
     }
     if (!isLabelBlock) setBadge(String(blockedCount));
 
@@ -1024,6 +1050,7 @@
     chrome.storage.local.set({
       [STORAGE_KEYS.COUNT]: blockedCount,
       [STORAGE_KEYS.DAILY_COUNTS]: dailyCounts,
+      [STORAGE_KEYS.PATTERN_COUNTS]: patternCounts,
     }, () => {
       if (chrome.runtime.lastError) {
         console.warn("Failed to save block counters (local.set):", chrome.runtime.lastError.message);
