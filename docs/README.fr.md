@@ -64,7 +64,7 @@ La detection est heuristique, pas magique. Elle peut manquer de nouveaux formats
 
 **Statistiques et couverture**
 - Compteurs du jour, de la semaine et du total dans le popup
-- Pages prises en charge : fil, profils, publications, pages entreprise, groupes, recherche, Mon reseau, notifications, emplois, newsletters et articles
+- Pages prises en charge : fil, profils, publications, pages entreprise, pages ecole, pages showcase, groupes, recherche, Mon reseau, notifications, emplois, newsletters et articles
 
 ## Limites
 
