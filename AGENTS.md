@@ -90,14 +90,14 @@ the test suite that covers the change.
   use shields.io URL and move to last position` and `test(e2e): drive
   popup, placeholder, and options flows in Playwright`. See
   `git log --oneline` for more.
-- **Store badges track the PUBLISHED store version.** The README badge
-  for each store reflects what that store has actually published, not
-  the repo's manifest version: the Chrome badge is bumped at release
-  time (the tag workflow publishes Chrome automatically), and the
-  Firefox badge is bumped when AMO review completes and the version
-  becomes `public` (verify via the AMO API before bumping). A badge
-  ahead of the store's published state is a false claim — keep them
-  honest. Store listing copy lives in `STORE_ASSETS.md` and is pasted
+- **Store badges are live store endpoints** (shields.io `amo/v` and
+  `chrome-web-store/v`), so they always reflect what each store has
+  actually published — never the repo's manifest version. They cannot go
+  stale and require no release-time action. The only thing to verify at
+  release time is that the badges render (e.g. `curl -sI` on the badge
+  URLs). If a badge ever shows the wrong version, the store API is the
+  authority — report a bug in the docs, don't hand-edit a version into
+  the badge. Store listing copy lives in `STORE_ASSETS.md` and is pasted
   into the dashboards manually at release time (Chrome has no
   description API; AMO descriptions are updated via `PATCH` and stored
   as plain text — markdown markers are stripped).
