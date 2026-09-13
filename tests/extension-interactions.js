@@ -1415,6 +1415,162 @@ async function main() {
     );
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 3);
 
+    /* ── Never-hide phrases: pardon beats patterns (plan 056) ───── */
+
+    /* Scenario 1 — Pardon hides nothing. A never-hide phrase matching
+       the bait post's text (seeded before load) keeps it visible: zero
+       placeholders on the page. */
+    await setSyncStorage(context, {
+      ss_allow_phrases: [{ id: "allow-1", text: "complete checklist", created: Date.now() }],
+      ss_phrases: [],
+      ss_whitelist: ["trusted"],
+      ss_blocked_authors: [],
+    });
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    /* Give the initial scan room to run; any block would have happened. */
+    await linkedInPage.waitForTimeout(1500);
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 0);
+    assert.notEqual(
+      await linkedInPage
+        .locator('[data-id="urn:li:activity:spam-1"]')
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the bait post to stay visible under a matching never-hide phrase"
+    );
+
+    /* Scenario 2 — Live un-hide. With no allow-phrases, spam-1 is
+       blocked. Writing a matching phrase to sync storage un-hides it in
+       THIS tab without a reload — proves restoreAllowedPosts and the
+       onChanged wiring. */
+    await setSyncStorage(context, {
+      ss_allow_phrases: [],
+      ss_whitelist: ["trusted"],
+      ss_blocked_authors: [],
+    });
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    await setSyncStorage(context, {
+      ss_allow_phrases: [{ id: "allow-2", text: "complete checklist", created: Date.now() }],
+    });
+    await linkedInPage.waitForFunction(
+      () => document.querySelectorAll("[data-ss-ph]").length === 0,
+      { timeout: 4000 }
+    );
+    assert.notEqual(
+      await linkedInPage
+        .locator('[data-id="urn:li:activity:spam-1"]')
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the post to un-hide when a matching never-hide phrase is added"
+    );
+
+    /* Scenario 3 — Overlap case (plan 056 Decision 1). A custom phrase
+       AND an allow-phrase both match the same post, with DIFFERENT texts
+       (the options page refuses equal texts as a conflict, so reusing one
+       string would be unsettable). The pardon must win: the post stays
+       visible. Without this scenario a refactor could silently flip the
+       precedence and every other test still passes. */
+    await setSyncStorage(context, {
+      ss_phrases: [{ text: "checklist", enabled: true, mode: "exact" }],
+      ss_allow_phrases: [{ id: "allow-3", text: "engagement bait", created: Date.now() }],
+      ss_whitelist: ["trusted"],
+      ss_blocked_authors: [],
+    });
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    /* spam-1 matches the custom phrase (and the built-in EN pattern) —
+       the allow-phrase does not cover it, so exactly one placeholder. */
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:overlap-1";
+      const p = document.createElement("p");
+      p.textContent =
+        "This post analyzes the engagement bait checklist and why it keeps " +
+        "appearing in professional feeds.";
+      section.appendChild(p);
+      document.querySelector("main").appendChild(section);
+    });
+    /* Give the debounced observer scan room to run; a block would have
+       happened within it. */
+    await linkedInPage.waitForTimeout(1500);
+    assert.notEqual(
+      await linkedInPage
+        .locator('[data-id="urn:li:activity:overlap-1"]')
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the allow-phrase to win over the matching custom phrase"
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* Scenario 4 — Label-block guard. A never-hide phrase must NOT
+       pardon a post hidden by the Promoted toggle: allow-phrases pardon
+       text blocks only. Both the initial match AND a phrase written
+       after the post is already hidden must leave it hidden
+       (restoreAllowedPosts skips label-blocked posts). */
+    await setSyncStorage(context, {
+      ss_hide_promoted: true,
+      ss_allow_phrases: [{ id: "allow-4a", text: "marketing team", created: Date.now() }],
+      ss_phrases: [],
+      ss_whitelist: ["trusted"],
+      ss_blocked_authors: [],
+    });
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:promoted-allow-1";
+      const span = document.createElement("span");
+      span.textContent = "Promoted";
+      section.appendChild(span);
+      const p = document.createElement("p");
+      p.textContent =
+        "A brief update from our marketing team about the launch event later " +
+        "this quarter.";
+      section.appendChild(p);
+      document.querySelector("main").appendChild(section);
+    });
+
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        return el && getComputedStyle(el).display === "none";
+      },
+      '[data-id="urn:li:activity:promoted-allow-1"]',
+      { timeout: 5000 }
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+
+    /* A second phrase matching the promoted post arrives after the hide;
+       the pardon must not restore a label-blocked post. */
+    await setSyncStorage(context, {
+      ss_allow_phrases: [
+        { id: "allow-4a", text: "marketing team", created: Date.now() },
+        { id: "allow-4b", text: "launch event", created: Date.now() },
+      ],
+    });
+    await linkedInPage.waitForTimeout(1500);
+    assert.equal(
+      await linkedInPage
+        .locator('[data-id="urn:li:activity:promoted-allow-1"]')
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the promoted post to stay hidden despite a matching never-hide phrase"
+    );
+    assert.equal(
+      await linkedInPage
+        .locator('[data-id="urn:li:activity:spam-1"]')
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the text-blocked post to stay hidden"
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+
     console.log("Extension interactions test passed.");
   } finally {
     await context.close();
