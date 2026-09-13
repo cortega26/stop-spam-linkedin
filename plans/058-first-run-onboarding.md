@@ -7,7 +7,7 @@
 > in `plans/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
-> **Drift check (run first)**: `git diff --stat 4f80330..HEAD -- background.js options/options.html options/options.js shared/constants.js content.js _locales tests/extension-smoke.js tests/extension-interactions.js tests/helpers.js`
+> **Drift check (run first)**: `git diff --stat e11a135..HEAD -- background.js options/options.html options/options.js shared/constants.js content.js _locales tests/extension-smoke.js tests/extension-interactions.js tests/helpers.js`
 > If any in-scope file changed since this plan was written, compare the
 > "Current state" excerpts against the live code before proceeding; on a
 > mismatch, treat it as a STOP condition.
@@ -22,7 +22,12 @@
   extension
 - **Depends on**: none
 - **Category**: direction (build — shape decided below)
-- **Planned at**: commit `4f80330`, 2026-09-13 (branch `advisor/b1-stopspam-lock`, 3 commits ahead of `main`)
+- **Planned at**: commit `4f80330`, 2026-09-13; **refreshed in place at
+  `e11a135` (2026-09-13, on `main`) after plans 056/051/055/057 landed** —
+  every line citation re-verified against the live tree, locale and unit
+  counts updated (153 EN/ES keys, 75 unit tests), drift-check base moved to
+  `e11a135`. Run AFTER plan 059 (serial: both touch `content.js` and
+  `tests/extension-interactions.js`).
 
 ## Why this matters
 
@@ -86,11 +91,14 @@ The facts the executor needs, inlined:
           if (chrome.runtime.lastError) {
             console.warn("contextMenus.create failed:", chrome.runtime.lastError.message);
   ```
-- **The entire current onboarding** (`content.js:1158-1189`,
+- **The entire current onboarding** (`content.js:1189-1220`,
   `showFirstRunToast`): sets `ss_onboarded`, injects a green banner with
   `SS_t("blockedToast", [String(blockedCount)])`, removes it after 5000 ms.
+  (Line moved +31 from the plan's original citation — plan 056's content.js
+  additions; content unchanged.)
 - **Storage keys are declared once** (`shared/constants.js:12-25`), frozen
-  and `ss_`-prefixed; `ONBOARDED: "ss_onboarded"` already lives there.
+  and `ss_`-prefixed; `ONBOARDED: "ss_onboarded"` is at line 15 and
+  `ALLOW_PHRASES` was added by plan 056.
 - **The options page opens in a tab** (`manifest.json:26-29`):
   ```json
     "options_ui": {
@@ -105,24 +113,25 @@ The facts the executor needs, inlined:
   "do not consolidate them without a dedicated plan". Use its local `t()`
   for any string it needs.
 - **Options-page section markup** to model the card on
-  (`options/options.html:539-542`), and its rendering counterpart
-  `renderWhitelist` (`options/options.js:1134-1181`), which toggles
-  `section.style.display` between `"none"` and `"block"`. Section headings
-  are `<div class="lang-section-title">`, NOT `<h2>`.
+  (`options/options.html:567-570`, `whitelistSection` — moved from the
+  plan's original 539-542 by 056/051 sections), and its rendering
+  counterpart `renderWhitelist` (`options/options.js:1308-1355`), which
+  toggles `section.style.display` between `"none"` and `"block"`. Section
+  headings are `<div class="lang-section-title">`, NOT `<h2>`.
 - **`.import-hint` is the wrong class for the card body.** It is the page's
   DE-EMPHASIS style (`options/options.html:402`: `font-size: 11px; color:
   var(--text-tertiary)`) — correct for a hint beside an input, wrong for the
   walkthrough's body copy. Step 3 says what to use instead.
 - **Sections that already read local storage** — the options page currently
-  reads only `chrome.storage.sync` in `load()` (`options/options.js:115-136`).
+  reads only `chrome.storage.sync` in `load()` (`options/options.js:129-152`).
   Reading `ss_welcome_pending` means adding a `chrome.storage.local.get`
   call; keep it separate from the sync read rather than merging the two.
-- **Every `set()` needs a `lastError` guard** (plan 031 audited all 40 call
-  sites). Pattern at `options/options.js:309-313`.
+- **Every `set()` needs a `lastError` guard** (plan 031 audited all call
+  sites). Pattern at `options/options.js:86-88` (and throughout).
 - **i18n**: new keys go in BOTH `_locales/en/messages.json` and
-  `_locales/es/messages.json` (136 keys each today); HTML uses
-  `__MSG_key__`, JS uses `SS_t("key")` (`background.js` uses its local
-  `t("key")`).
+  `_locales/es/messages.json` (**153 keys each today** — 136 + 12 from plan
+  056 + 5 from plan 051); HTML uses `__MSG_key__`, JS uses `SS_t("key")`
+  (`background.js` uses its local `t("key")`).
 - **The e2e harness installs the extension fresh on every run**
   (`tests/extension-smoke.js:27-35`): `chromium.launchPersistentContext`
   into a brand-new temp `userDataDir` with `--load-extension`. That means
@@ -137,12 +146,12 @@ The facts the executor needs, inlined:
 | Syntax + JSON smoke | `npm run smoke` | executed | exit 0 |
 | Lint | `npm run lint` | executed | exit 0 |
 | Typecheck | `npm run typecheck` | executed | exit 0 |
-| Unit tests | `npm run test:unit` | executed | exit 0, 64 tests pass |
+| Unit tests | `npm run test:unit` | executed | exit 0, **75** tests pass (refreshed — 056/051 landed) |
 | Browser e2e | `npm run test:extension` | declared | exit 0 |
 | Packaged e2e | `npm run test:package` | declared | exit 0 |
 | Firefox smoke | `npm run test:firefox` | declared | exit 0 |
 
-`executed` rows ran clean on an unmodified checkout at `4f80330`.
+`executed` rows ran clean on an unmodified checkout at `4f80330`; the reviewer re-ran them at `e11a135` (post-056/051/055/057): all green, 75/75 unit, extension + package e2e green.
 `test:firefox` is listed because this plan changes install-time behavior and
 Firefox runs the same `onInstalled` path.
 
@@ -179,7 +188,7 @@ Firefox runs the same `onInstalled` path.
 
 ### Step 0: Establish a green baseline
 
-**Verify**: `npm run smoke && npm run lint && npm run typecheck && npm run test:unit` → exit 0, 64 tests. Then run `npm run test:extension` and record that it passes BEFORE your change — Step 4 depends on knowing the suite was green.
+**Verify**: `npm run smoke && npm run lint && npm run typecheck && npm run test:unit` → exit 0, 75 tests. Then run `npm run test:extension` and record that it passes BEFORE your change — Step 4 depends on knowing the suite was green.
 
 A `declared` command that is missing or fails on the unmodified checkout is a
 broken baseline: STOP and report, do not repair it.
@@ -321,9 +330,9 @@ en=json.load(open('_locales/en/messages.json')); es=json.load(open('_locales/es/
 print(len(en), len(es), sorted(set(en)^set(es)))"
 ```
 → smoke exit 0; the two counts are EQUAL and the symmetric difference is
-`[]`. The absolute number is `143` if this plan lands alone, `153` if plan
-056 landed first — assert equality and the empty difference, not the
-absolute number.
+`[]`. The absolute number is `160` (153 current + 7 new — plans 056/051
+have landed since the original citation of 143) — assert equality and the
+empty difference, not the absolute number.
 
 ### Step 6: e2e scenarios for the card
 
@@ -360,7 +369,7 @@ scenarios (they navigate to `chrome-extension://${extensionId}/options/options.h
 ## Done criteria
 
 - [ ] `npm run smoke`, `npm run lint`, `npm run typecheck` exit 0
-- [ ] `npm run test:unit` exits 0 (64 tests, unchanged)
+- [ ] `npm run test:unit` exits 0 (75 tests, unchanged — this plan adds no pure logic)
 - [ ] `npm run test:extension`, `npm run test:package`, `npm run test:firefox` exit 0
 - [ ] The three new scenarios exist and pass; the report states whether any
       harness change was needed in Step 4

@@ -114,16 +114,18 @@ implementation-ready plans:
 | Order | Plan | Why here |
 |-------|------|----------|
 | 1 | **059 Comment-level block** (added 2026-09-13 after 057's CONFIRMED verdict) | P1 — the only open user-harm bug class (one bait comment hides an innocent post, proven by spike 057). Small, bounded, tripwire already committed. Goes before 058 (serial: both touch `content.js` + `tests/extension-interactions.js`). Adds no locale keys, so 050's parity count is unaffected |
-| 2 | 058 First-run onboarding | Before 053/054: it opens an options tab on every e2e install, so later plans should write their scenarios against that harness |
-| 3 | 053 Per-pattern stats | Design decided (041); nothing later depends on it |
-| 4 | 054 Suggestion loop | Same files as 053 — strictly after it |
-| 5 | 050 UI localization | LAST — after every plan that adds EN/ES-only locale keys (051, 053, 054, 056, 058). Its Step 3 sourcing decision may be taken any time; Step 4 must wait |
+| 2 | **060 Release 1.5.0** (added 2026-09-13) | P1 — main is 4+ features ahead of the published stores. After 059 (its fix is a flagship note item); before 058 (a release shouldn't wait another plan cycle — onboarding ships in 1.6.0, or is folded in if it lands first). Tag push is operator-gated |
+| 3 | 058 First-run onboarding | Before 053/054: it opens an options tab on every e2e install, so later plans should write their scenarios against that harness |
+| 4 | 053 Per-pattern stats | Design decided (041); nothing later depends on it |
+| 5 | 054 Suggestion loop | Same files as 053 — strictly after it |
+| 6 | 050 UI localization | LAST — after every plan that adds EN/ES-only locale keys (051, 053, 054, 056, 058). Its Step 3 sourcing decision may be taken any time; Step 4 must wait |
 | — | 052 Second-family spike | Independent, self-sealing — can run alongside anything |
 
-**Parallelism**: 059 → 058 → 053 → 054 → 050 are strictly serial
+**Parallelism**: 059 → 060 → 058 → 053 → 054 → 050 are strictly serial
 (they share `content.js`, `options/options.js`, `shared/constants.js`,
 `tests/extension-interactions.js`, and the locale files — parallel worktrees
-would conflict on merge). 052 can run alongside anything.
+would conflict on merge). 052 can run alongside anything. 060 additionally
+requires 059 merged (its release notes must include the fix).
 
 **Locale-ordering guards** are enforced inside the plans, both directions:
 050 STOPs if any of 051/053/054/056/058 is still open; each of those STOPs
@@ -191,8 +193,9 @@ discipline).
 | 055 | [School/showcase page coverage](archive/055-school-showcase-coverage.md) | P2 | S | — | DONE (2026-09-13, branch advisor/055-school-showcase-coverage @ f13e81d in /tmp/opencode/wt-055, reviewed + verified; 13 matches, single host, no permission widening, failing-first proven, docs ×5 synced; merged to main @ c11efc0) |
 | 056 | [Allow-phrases (never-hide text)](archive/056-allow-phrases.md) | P2 | M | — (before 051, 054, 050; after 057) | DONE (2026-09-13, branch advisor/056-allow-phrases @ f1f90b7 in /tmp/opencode/wt-056, reviewed + verified; 12 locale keys, 68 unit tests, 4 e2e scenarios incl. overlap precedence proven non-vacuous, full gate green; merged to main @ c11efc0) |
 | 057 | [Comment-bait container measurement (spike)](archive/057-comment-bait-spike.md) | P3 | S–M | — (before 056) | DONE (2026-09-13, spike branch advisor/057-comment-bait-spike @ 37f7754 in /tmp/opencode/wt-057, reviewed + verified; SPLIT verdict per STOP #2: CONFIRMED post-level in light-thread shape (jsdom + browser probe), BENIGN comment-level in heavy-thread shape; 3 characterization fixtures, 75 unit tests; recommendation: build plan for candidate fix (b) — block comment element, preserve B/C; merged to main @ c11efc0) |
-| 058 | [First-run onboarding walkthrough](058-first-run-onboarding.md) | P3 | M | — (before 053, 054, 050; after 059) | TODO |
+| 058 | [First-run onboarding walkthrough](058-first-run-onboarding.md) | P3 | M | — (before 053, 054, 050; after 059, 060) | TODO (refreshed at e11a135) |
 | 059 | [Comment-level block (fix from 057 spike)](059-comment-level-block.md) | P1 | M | — (soft: after 057 — its fixtures are updated here; before 058) | TODO |
+| 060 | [Release 1.5.0](060-release-1.5.0.md) | P1 | S–M | 059 (must be merged); before 058 | TODO |
 
 Status values: TODO | IN PROGRESS | DONE (→ move the file to `plans/archive/` and relink the index row) | BLOCKED (with one-line reason) | REJECTED (with one-line rationale — finding fixed independently or approach abandoned)
 
