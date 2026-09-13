@@ -1571,6 +1571,123 @@ async function main() {
     );
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
 
+    /* ── Match tester (plan 051) ───────────────────────────────── */
+
+    /* Deterministic start: custom phrase CLAUDE (exact), allow-phrase
+       "good news", no exclusions, stock toggles. spam-1's text matches
+       the custom phrase AND the EN built-in (custom wins attribution);
+       clean-1's text matches nothing. The probe-pair assertions below
+       prove the tester verdict agrees with the content script on the
+       same texts. */
+    await setSyncStorage(context, {
+      ss_phrases: [{ text: "CLAUDE", enabled: true, mode: "exact" }],
+      ss_allow_phrases: [{ id: "t-allow", text: "good news", created: Date.now() }],
+      ss_excluded: [],
+      ss_whitelist: ["trusted"],
+      ss_blocked_authors: [],
+      ss_disabled_patterns: [],
+      ss_hide_promoted: false,
+      ss_hide_featured: false,
+    });
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* Content-script verdict on the spam probe: spam-1 is blocked. */
+    assert.equal(
+      await linkedInPage
+        .locator('[data-id="urn:li:activity:spam-1"]')
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the spam probe post to be blocked by the content script"
+    );
+    /* Content-script verdict on the benign probe: clean-1 stays visible. */
+    assert.notEqual(
+      await linkedInPage
+        .locator('[data-id="urn:li:activity:clean-1"]')
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the benign probe post to stay visible"
+    );
+
+    /* Overlap probe: the allow-phrase covers text the custom phrase also
+       matches — the pardon must win (plan 056 precedence) in BOTH the
+       content script and the tester. */
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:tester-overlap-1";
+      const p = document.createElement("p");
+      p.textContent =
+        "Comment CLAUDE and you will hear some good news about the launch.";
+      section.appendChild(p);
+      document.querySelector("main").appendChild(section);
+    });
+    await linkedInPage.waitForTimeout(1500);
+    assert.notEqual(
+      await linkedInPage
+        .locator('[data-id="urn:li:activity:tester-overlap-1"]')
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the allow-phrase to pardon the overlap probe post"
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* Drive the tester on the options page with the same probe texts. */
+    const testerPage = await context.newPage();
+    await testerPage.goto(
+      `chrome-extension://${await getExtensionId(context)}/options/options.html`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await testerPage.locator("#langToggles .lang-tog").first().waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+
+    const spamProbe =
+      'Comment "CLAUDE" and I\'ll send you the complete checklist, ' +
+      "template, and workflow for free today.";
+    await testerPage.locator("#testInput").fill(spamProbe);
+    await testerPage.locator("#testBtn").click();
+    await testerPage.waitForFunction(
+      (sel) => /Matched:|Coincide con:/.test(document.querySelector(sel).textContent),
+      "#testResult",
+      { timeout: 5000 }
+    );
+    assert.match(
+      await testerPage.locator("#testResult").textContent(),
+      /CLAUDE/,
+      "expected the tester hit line to name the custom phrase"
+    );
+
+    const benignProbe =
+      "This ordinary professional update should stay visible because it " +
+      "does not ask anyone to comment a magic word for a download.";
+    await testerPage.locator("#testInput").fill(benignProbe);
+    await testerPage.locator("#testBtn").click();
+    await testerPage.waitForFunction(
+      (sel) => /nothing matched|nada coincide/.test(document.querySelector(sel).textContent),
+      "#testResult",
+      { timeout: 5000 }
+    );
+
+    /* Allowed probe: the pardon verdict names the allow phrase. */
+    await testerPage.locator("#testInput").fill(
+      "Comment CLAUDE and you will hear some good news about the launch."
+    );
+    await testerPage.locator("#testBtn").click();
+    await testerPage.waitForFunction(
+      (sel) => /allowed by|permitida por/.test(document.querySelector(sel).textContent),
+      "#testResult",
+      { timeout: 5000 }
+    );
+    assert.match(
+      await testerPage.locator("#testResult").textContent(),
+      /good news/,
+      "expected the allowed verdict to name the never-hide phrase"
+    );
+
+    await testerPage.close();
+
     console.log("Extension interactions test passed.");
   } finally {
     await context.close();
