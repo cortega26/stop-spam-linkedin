@@ -1,5 +1,17 @@
 # Release Notes
 
+## 1.5.0
+
+Never-hide phrases, a match tester, and broader detection coverage. Key changes:
+
+- **Never-hide phrases**: add a phrase once and no post containing it is ever hidden — even when the post also matches a spam pattern.
+- **Match tester**: the options page now tells you whether a pasted post would be blocked, and by which pattern, before you rely on it.
+- **School and showcase pages**: detection and blocking now also run on school and showcase feeds.
+- **Comment-level blocking**: a bait comment now hides just the comment instead of the whole post — innocent posts stay visible.
+- **First-run walkthrough**: new installs get a one-time guided tour of the options page.
+- **Per-pattern stats**: the popup and options page now show how often each pattern blocks, so you can see which ones do the work.
+- **Persistent suggestions**: dismissed suggestions stay dismissed, and suggestions can be added as contains-match phrases from the options page.
+
 ## 1.4.0
 
 New features, detection fixes, and a reliability pass. Key changes:

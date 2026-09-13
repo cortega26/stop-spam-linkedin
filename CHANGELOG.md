@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.5.0 - Never-hide Phrases, Match Tester, and More
+
+### Features
+
+- Added **never-hide phrases**: a phrase saved once means no post containing that text is ever hidden, even when it also matches a spam pattern (plan 056).
+- Added a **match tester** to the options page: paste any post text and see whether it would be blocked, and by which pattern or custom phrase (plan 051).
+- **School and showcase pages** are now scanned for spam, so detection and blocking cover those feeds too (plan 055).
+- **Comment-level blocking**: when bait text sits in a comment, only the comment is hidden — the post stays visible (plan 059).
+- Added a **first-run walkthrough**: new installs see a one-time guided tour of the options page (plan 058).
+- Added **per-pattern stats**: the popup and options page now show how often each pattern blocks, with a joint reset (plan 053).
+- Suggestions are now **persistent**: dismissed suggestions stay dismissed, and pending suggestions can be added as contains-match phrases from the options page (plan 054).
+
 ## 1.4.0 - Features, Detection Fixes, Reliability
 
 ### Features
