@@ -39,6 +39,13 @@
 
   "settingsTitle": { "message": "LinkedIn Spam Blocker — Settings" },
   "pageSubtitle": { "message": "Manage the phrases that trigger post blocking on LinkedIn." },
+  "welcomeTitle": { "message": "Welcome — you're set up" },
+  "welcomeIntro": { "message": "LinkedIn Spam Blocker is already running. Here's what it does and how to tune it." },
+  "welcomeStepDetect": { "message": "It hides posts that ask you to comment a keyword to get a file — in five languages, each toggleable below." },
+  "welcomeStepTune": { "message": "Add your own phrases, or turn off any built-in pattern that gets it wrong." },
+  "welcomeStepRestore": { "message": "Every hidden post leaves a placeholder: Show it, mark it Not spam, or block its author." },
+  "welcomeStepPrivacy": { "message": "Nothing leaves your browser — no analytics, no network requests, ever." },
+  "welcomeDismiss": { "message": "Got it" },
   "addPlaceholder": { "message": "e.g. \"CLAUDE\", \"send the PDF\", \"DM me the file\"" },
   "addButton": { "message": "Add Phrase" },
   "addPhraseInputLabel": { "message": "Phrase to add" },

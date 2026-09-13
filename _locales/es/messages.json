@@ -39,6 +39,13 @@
 
   "settingsTitle": { "message": "LinkedIn Spam Blocker — Configuración" },
   "pageSubtitle": { "message": "Administra las frases que activan el bloqueo de posts en LinkedIn." },
+  "welcomeTitle": { "message": "Bienvenido — todo listo" },
+  "welcomeIntro": { "message": "LinkedIn Spam Blocker ya está en marcha. Esto es lo que hace y cómo ajustarlo." },
+  "welcomeStepDetect": { "message": "Oculta las publicaciones que te piden comentar una palabra clave para recibir un archivo — en cinco idiomas, cada uno activable abajo." },
+  "welcomeStepTune": { "message": "Añade tus propias frases o desactiva cualquier patrón incorporado que falle." },
+  "welcomeStepRestore": { "message": "Cada publicación oculta deja un marcador: muéstrala, márcala como «No es spam» o bloquea a su autor." },
+  "welcomeStepPrivacy": { "message": "Nada sale de tu navegador — sin analíticas, sin peticiones de red, nunca." },
+  "welcomeDismiss": { "message": "Entendido" },
   "addPlaceholder": { "message": "ej. \"CLAUDE\", \"envía el PDF\", \"DM el archivo\"" },
   "addButton": { "message": "Añadir Frase" },
   "addPhraseInputLabel": { "message": "Frase para añadir" },
