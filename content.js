@@ -722,9 +722,20 @@
      { reason: "author-blocklist", authorId } for the author-blocklist
      pass (plan 008 Decision 2). A null textNode means the block was
      author-driven, not text-driven. */
+  function getPostKey(el) {
+    const own = el.getAttribute("data-id");
+    if (own) return own;
+    const post = el.closest ? el.closest('[data-id*="urn:li:activity:"]') : null;
+    return post ? post.getAttribute("data-id") : null;
+  }
+
   function blockPost(post, textNode, info) {
-    /* Re-block cooldown — skip if user recently clicked "Show". */
-    const postKey = post.getAttribute("data-id");
+    /* Re-block cooldown — skip if user recently clicked "Show". The key
+       is the element's own data-id, or — for non-post targets like a
+       comment element (plan 059) — the parent post's data-id, so a
+       shown comment stays shown across SPA node re-creation. */
+    const postKey = getPostKey(post);
+    const isPostTarget = !!postKey && post.hasAttribute("data-id");
     if (postKey && cooldownStore.has(postKey)) return;
     if (processed.has(post) || forceShow.has(post)) return;
 
@@ -795,13 +806,21 @@
 
     const placeholder = document.createElement("div");
     placeholder.dataset.ssPh = "1";
-    placeholder.style.cssText = [
-      "display:flex; align-items:center; gap:12px;",
-      "padding:16px 24px; margin:8px 0;",
-      "background:#f8f9fa; border:1px solid #e0e0e0; border-radius:8px;",
-      "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;",
-      "font-size:14px; color:#666;",
-    ].join("");
+    placeholder.style.cssText = isPostTarget
+      ? [
+        "display:flex; align-items:center; gap:12px;",
+        "padding:16px 24px; margin:8px 0;",
+        "background:#f8f9fa; border:1px solid #e0e0e0; border-radius:8px;",
+        "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;",
+        "font-size:14px; color:#666;",
+      ].join("")
+      : [
+        "display:flex; align-items:center; gap:8px;",
+        "padding:6px 10px; margin:4px 0;",
+        "background:#f8f9fa; border:1px solid #e0e0e0; border-radius:6px;",
+        "font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;",
+        "font-size:12px; color:#666;",
+      ].join("");
 
     const label = document.createElement("span");
     label.textContent = isAuthorBlock
@@ -1270,7 +1289,9 @@
   function restorePost(post) {
     forceShow.add(post);
     processed.delete(post);
-    const postKey = post.getAttribute("data-id");
+    /* Same parent-post fallback as blockPost (plan 059): a comment
+       element has no data-id, so its cooldown rides on the parent post. */
+    const postKey = getPostKey(post);
     if (postKey) cooldownStore.set(postKey);
     post.style.display = "";
     const ph = post.nextElementSibling;
