@@ -1686,7 +1686,9 @@
     const authorTotal = patternCounts["author"] || 0;
     if (customTotal || authorTotal) {
       const totals = document.createElement("div");
-      totals.className = "pattern-totals";
+      totals.style.fontSize = "12px";
+      totals.style.color = "var(--text-tertiary)";
+      totals.style.padding = "4px 12px";
       totals.textContent = SS_t("patternTotalsLine", [String(customTotal), String(authorTotal)]);
       list.appendChild(totals);
     }
@@ -1768,7 +1770,10 @@
     const patternHit = patternCounts[bp.id] || 0;
     if (patternHit) {
       const hit = document.createElement("span");
-      hit.className = "pattern-hit";
+      hit.style.fontSize = "12px";
+      hit.style.color = "var(--text-tertiary)";
+      hit.style.marginLeft = "6px";
+      hit.style.whiteSpace = "nowrap";
       hit.textContent = "· " + patternHit;
       hit.title = SS_t("patternHitCountTitle", [String(patternHit)]);
       text.appendChild(hit);

@@ -17,6 +17,7 @@ const {
   setLocalStorage,
   getLocalStorage,
   getExtensionId,
+  sendTabMessage,
   assertCount,
 } = require("./helpers");
 
@@ -111,6 +112,22 @@ async function main() {
       await popup.locator("#lifetimeCount").textContent(),
       "1",
       "expected lifetime counter to show one block"
+    );
+
+    /* By-pattern breakdown (plan 053): the single built-in block must
+       render in the popup's pattern section as one EN-1 bucket. */
+    await popup.waitForFunction(
+      () => document.querySelectorAll(".pattern-item").length === 1,
+      null,
+      { timeout: 10000 }
+    );
+    assert.equal(
+      await popup
+        .locator(".pattern-item", { hasText: /comment "WORD"/ })
+        .locator(".pattern-count")
+        .textContent(),
+      "1",
+      "expected popup pattern row to show one EN-1 block"
     );
 
     await linkedInPage.bringToFront();
@@ -407,6 +424,13 @@ async function main() {
       {},
       "expected ss_daily_counts to be exactly {} after reset"
     );
+    assert.deepEqual(
+      await waitForLocalValue(context, "ss_pattern_counts", (v) =>
+        v !== undefined && typeof v === "object" && Object.keys(v).length === 0
+      ),
+      {},
+      "expected ss_pattern_counts to be exactly {} after reset"
+    );
     await linkedInPage.bringToFront();
     await popup.reload({ waitUntil: "domcontentloaded" });
     await popup.waitForFunction(
@@ -429,6 +453,13 @@ async function main() {
       await popup.locator("#lifetimeCount").textContent(),
       "0",
       "expected lifetime counter to show zero after reset"
+    );
+    assert.equal(
+      await popup
+        .locator("#patternSection")
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the by-pattern section to be hidden after reset"
     );
 
     /* ── Placeholder: never block this author + author scoping
@@ -1837,6 +1868,122 @@ async function main() {
       "expected the welcome card to stay hidden when no flag is set"
     );
     await revisitPage.close();
+
+    /* ── Per-pattern stats (plan 053): built-in + custom buckets ─── */
+
+    /* Seed a custom phrase, then load a feed whose two posts match one
+       custom phrase and one built-in pattern (EN-1) respectively. The
+       distinct URL keeps this scenario from disturbing the shared mock
+       feed used by every earlier scenario. */
+    const pstatsUrl = "https://www.linkedin.com/feed/?pstats=1";
+    await context.route(pstatsUrl, (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: `<!doctype html>
+<html lang="en">
+  <head><meta charset="utf-8"><title>Mock LinkedIn Feed</title></head>
+  <body>
+    <main>
+      <section data-id="urn:li:activity:custom-1">
+        <p>I just published my holographic spreadsheets guide covering pivot tables, dashboards, and advanced formulas.</p>
+      </section>
+      <section data-id="urn:li:activity:builtin-1">
+        <p>Comment "CLAUDE" and I'll send you the complete checklist, template, and workflow for free today.</p>
+      </section>
+    </main>
+  </body>
+</html>`,
+      });
+    });
+    await setSyncStorage(context, {
+      ss_phrases: [
+        { id: "pstats-custom", text: "holographic spreadsheets", enabled: true, mode: "contains", created: Date.now() },
+      ],
+    });
+
+    /* Counts are lifetime, so earlier scenarios have already populated
+       ss_pattern_counts (EN-1/author). Zero all three counters before
+       navigating so this scenario can assert exact bucket values. */
+    await setLocalStorage(context, {
+      ss_blocked_count: 0,
+      ss_daily_counts: {},
+      ss_pattern_counts: {},
+    });
+
+    await linkedInPage.goto(pstatsUrl, { waitUntil: "domcontentloaded" });
+    await linkedInPage.waitForFunction(
+      () => document.querySelectorAll("[data-ss-ph]").length === 2,
+      null,
+      { timeout: 10000 }
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+
+    /* Both buckets land in ss_pattern_counts: custom from the phrase
+       match, EN-1 from the built-in match. */
+    assert.deepEqual(
+      await waitForLocalValue(context, "ss_pattern_counts", (v) =>
+        v !== undefined && typeof v === "object" && v.custom === 1 && v["EN-1"] === 1
+      ),
+      { custom: 1, "EN-1": 1 },
+      "expected ss_pattern_counts to hold one custom and one EN-1 block"
+    );
+
+    /* The popup renders both buckets. */
+    const patternPopup = await context.newPage();
+    await patternPopup.goto(
+      `chrome-extension://${await getExtensionId(context)}/popup/popup.html`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await linkedInPage.bringToFront();
+    await patternPopup.reload({ waitUntil: "domcontentloaded" });
+    await patternPopup.waitForFunction(
+      () => document.querySelectorAll(".pattern-item").length === 2,
+      null,
+      { timeout: 10000 }
+    );
+    assert.equal(
+      await patternPopup
+        .locator(".pattern-item", { hasText: /Custom phrases|Frases personalizadas/ })
+        .locator(".pattern-count")
+        .textContent(),
+      "1",
+      "expected popup pattern row to show one custom-phrase block"
+    );
+    assert.equal(
+      await patternPopup
+        .locator(".pattern-item", { hasText: /comment "WORD"/ })
+        .locator(".pattern-count")
+        .textContent(),
+      "1",
+      "expected popup pattern row to show one EN-1 block"
+    );
+    await patternPopup.close();
+
+    /* Reset clears all three counters (lifetime total, daily buckets,
+       per-pattern buckets) together. */
+    await linkedInPage.bringToFront();
+    const resetPatternsResponse = await sendTabMessage(context, { action: "resetCount" });
+    assert.ok(resetPatternsResponse, "expected resetCount message to reach the content script");
+    assert.equal(
+      await waitForLocalValue(context, "ss_blocked_count", (v) => v === 0),
+      0,
+      "expected ss_blocked_count to be 0 after reset"
+    );
+    assert.deepEqual(
+      await waitForLocalValue(context, "ss_daily_counts", (v) =>
+        v !== undefined && typeof v === "object" && Object.keys(v).length === 0
+      ),
+      {},
+      "expected ss_daily_counts to be exactly {} after reset"
+    );
+    assert.deepEqual(
+      await waitForLocalValue(context, "ss_pattern_counts", (v) =>
+        v !== undefined && typeof v === "object" && Object.keys(v).length === 0
+      ),
+      {},
+      "expected ss_pattern_counts to be exactly {} after reset"
+    );
 
     console.log("Extension interactions test passed.");
   } finally {
