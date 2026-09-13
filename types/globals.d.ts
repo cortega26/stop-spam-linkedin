@@ -11,6 +11,7 @@ declare var SS_CONSTANTS: {
     MAX_CUSTOM_PHRASES: number;
     MAX_PHRASE_LENGTH: number;
     MAX_WHITELIST: number;
+    MAX_ALLOW_PHRASES: number;
     MAX_BLOCKED_AUTHORS: number;
     MAX_IMPORT_BYTES: number;
     SNOOZE_DURATION_MS: number;
@@ -30,6 +31,11 @@ declare function SS_buildPatterns(
   disabledPatterns: ReadonlySet<string>,
   maxPhraseLength: number,
 ): Array<{ regex: RegExp; label: string; source: string }>;
+
+declare function SS_buildAllowMatcher(
+  allowPhrases: Array<{ text: string }>,
+  maxPhraseLength: number,
+): Array<{ regex: RegExp; text: string }>;
 
 declare var SS_PROMOTED_LABELS: readonly string[];
 declare var SS_FEATURED_LABELS: readonly string[];

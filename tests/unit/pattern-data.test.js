@@ -9,6 +9,7 @@ const path = require("node:path");
 const {
   escapeRegex,
   buildPatterns,
+  buildAllowMatcher,
   isLinkedInHost,
   parseAuthorId,
   hashString,
@@ -374,4 +375,33 @@ test("buildPatterns escapes regex metacharacters in custom phrases", () => {
   assert.equal(entry.regex.source, "\\ba\\.b\\*c\\b");
   assert.equal(entry.regex.test("value a.b*c here"), true);
   assert.equal(entry.regex.test("xa.b*cy"), false);
+});
+
+test("buildAllowMatcher matches case-insensitive substrings", () => {
+  const [entry] = buildAllowMatcher([{ text: "engagement bait" }], 120);
+  assert.equal(entry.text, "engagement bait");
+  assert.equal(entry.regex.flags, "i");
+  assert.equal(entry.regex.test("a post about ENGAGEMENT BAIT here"), true);
+  assert.equal(entry.regex.test("unrelated post"), false);
+});
+
+test("buildAllowMatcher escapes regex metacharacters in phrases", () => {
+  const [entry] = buildAllowMatcher([{ text: "c++ (free)" }], 120);
+  assert.equal(entry.regex.test("learn c++ (free) today"), true);
+  assert.equal(entry.regex.test("learn cxx free today"), false);
+});
+
+test("buildAllowMatcher drops over-length, empty, and non-string entries", () => {
+  const result = buildAllowMatcher(
+    [{ text: "x".repeat(121) }, { text: "" }, { text: "   " }, { text: 42 }, null, undefined, {}],
+    120
+  );
+  assert.deepEqual(result, []);
+  const kept = buildAllowMatcher([{ text: "  ok  " }], 120);
+  assert.deepEqual(kept.map((e) => e.text), ["ok"]);
+});
+
+test("buildAllowMatcher returns [] for empty or undefined input", () => {
+  assert.deepEqual(buildAllowMatcher([], 120), []);
+  assert.deepEqual(buildAllowMatcher(undefined, 120), []);
 });

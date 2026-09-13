@@ -16,6 +16,7 @@
     DAILY_COUNTS: "ss_daily_counts",
     SNOOZE_UNTIL: "ss_snooze_until",
     EXCLUDED: "ss_excluded",
+    ALLOW_PHRASES: "ss_allow_phrases",
     LANGS: "ss_enabled_langs",
     WHITELIST: "ss_whitelist",
     BLOCKED_AUTHORS: "ss_blocked_authors",
@@ -30,6 +31,7 @@
    * @property {number} MAX_CUSTOM_PHRASES
    * @property {number} MAX_PHRASE_LENGTH
    * @property {number} MAX_WHITELIST
+   * @property {number} MAX_ALLOW_PHRASES
    * @property {number} MAX_BLOCKED_AUTHORS
    * @property {number} MAX_IMPORT_BYTES
    * @property {number} SNOOZE_DURATION_MS
@@ -40,6 +42,8 @@
     MAX_CUSTOM_PHRASES: 200,
     MAX_PHRASE_LENGTH: 120,
     MAX_WHITELIST: 100,
+    /* Cap for never-hide (allow) phrases: mirrors MAX_WHITELIST. */
+    MAX_ALLOW_PHRASES: 100,
     MAX_BLOCKED_AUTHORS: 100,
     MAX_IMPORT_BYTES: 128 * 1024,
     SNOOZE_DURATION_MS: 30 * 60 * 1000,
