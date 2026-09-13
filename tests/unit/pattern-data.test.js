@@ -21,6 +21,7 @@ const {
   matchesLabel,
   PROMOTED_LABELS,
   FEATURED_LABELS,
+  normalizeExcludedEntries,
 } = require(path.join(__dirname, "..", "..", "shared", "pattern-data.js"));
 
 test("escapeRegex escapes every regex-special character", () => {
@@ -404,4 +405,48 @@ test("buildAllowMatcher drops over-length, empty, and non-string entries", () =>
 test("buildAllowMatcher returns [] for empty or undefined input", () => {
   assert.deepEqual(buildAllowMatcher([], 120), []);
   assert.deepEqual(buildAllowMatcher(undefined, 120), []);
+});
+
+/* Match-tester inputs (plan 051): the tester's own first-match loop is
+   local to the options page, so its shared inputs are proven here — a
+   built-in hit attributes to its stable id, a custom hit wins attribution
+   over an overlapping built-in, an excluded text's signature is caught,
+   and an allow-phrase matcher covers text a custom phrase also matches
+   (the allow check runs before the pattern loop in the tester). */
+test("first-match order resolves a built-in hit to its stable id", () => {
+  const patterns = buildPatterns([], ["EN"], new Set(), 120);
+  const text = "comment CLAUDE and I'll send you the PDF";
+  const entry = patterns.find((e) => e.regex.test(text));
+  assert.equal(entry.source, "builtin");
+  assert.equal(entry.id, "EN-1");
+});
+
+test("first-match order attributes an overlapping text to the custom phrase", () => {
+  const patterns = buildPatterns([{ text: "CLAUDE", enabled: true }], ["EN"], new Set(), 120);
+  assert.equal(patterns[0].source, "custom");
+  const text = "comment CLAUDE and I'll send you the PDF";
+  const entry = patterns.find((e) => e.regex.test(text));
+  assert.equal(entry.source, "custom");
+  assert.equal(entry.label, "CLAUDE");
+  assert.equal(patterns[1].regex.test(text), true);
+});
+
+test("an excluded text's normalized signature is caught", () => {
+  const text = "comment CLAUDE and I'll send you the PDF";
+  const sig = getExcludedSignature(text);
+  const excluded = normalizeExcludedEntries(
+    [{ sig, preview: "comment CLAUDE", created: Date.now() }],
+    60
+  );
+  assert.equal(excluded.has(sig), true);
+  assert.equal(excluded.has(getExcludedSignature(text.toUpperCase())), true);
+  assert.equal(excluded.has(getExcludedSignature("some other post")), false);
+});
+
+test("an allow-phrase matcher covers text a custom phrase also matches", () => {
+  const custom = buildPatterns([{ text: "CLAUDE", enabled: true }], [], new Set(), 120);
+  const allow = buildAllowMatcher([{ text: "good news" }], 120);
+  const text = "comment CLAUDE and good news for you";
+  assert.equal(custom[0].regex.test(text), true);
+  assert.equal(allow[0].regex.test(text), true);
 });

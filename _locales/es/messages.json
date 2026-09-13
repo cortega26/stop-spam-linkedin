@@ -147,5 +147,10 @@
   "allowLimitToast": { "message": "Se alcanzó el límite de frases que nunca se ocultan ($1)." },
   "allowConflictToast": { "message": "\"$1\" ya es una frase personalizada — elimínala allí primero." },
   "allowEmpty": { "message": "Aún no hay frases que nunca se ocultan." },
-  "removeAllowPhraseLabel": { "message": "Eliminar frase que nunca se oculta $1" }
+  "removeAllowPhraseLabel": { "message": "Eliminar frase que nunca se oculta $1" },
+  "testerTitle": { "message": "¿Se bloquearía?" },
+  "testerPlaceholder": { "message": "Pega el texto de una publicación para probarlo con tus reglas actuales" },
+  "testerButton": { "message": "Probar" },
+  "testerNoMatch": { "message": "NO se ocultaría — nada coincide." },
+  "testerAllowed": { "message": "NO se ocultaría — permitida por: \"$1\"" }
 }

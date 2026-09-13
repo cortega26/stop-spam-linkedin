@@ -274,6 +274,25 @@
     .action-bar-button:hover { background: var(--bg-hover); }
     .action-bar-button:active { background: var(--bg-active); }
 
+    /* ── Match tester (plan 051) ── */
+    .tester-textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      outline: none;
+      resize: vertical;
+      transition: border-color 0.15s;
+    }
+    .tester-textarea:focus { border-color: var(--primary); }
+    .tester-result {
+      margin-top: 8px;
+      font-size: 13px;
+      color: var(--text-secondary);
+    }
+
     /* ── Toast ── */
     #toast {
       position: fixed;
@@ -514,6 +533,14 @@
 
   <!-- Import hint -->
   <div class="import-hint" id="importHint">__MSG_importHint__</div>
+
+  <!-- Match tester (plan 051) -->
+  <div class="lang-section" id="testerSection">
+    <div class="lang-section-title">__MSG_testerTitle__</div>
+    <textarea id="testInput" class="tester-textarea" placeholder="__MSG_testerPlaceholder__" aria-label="__MSG_testerPlaceholder__" rows="3"></textarea>
+    <button class="action-bar-button" id="testBtn" aria-label="__MSG_testerButton__" title="__MSG_testerButton__">__MSG_testerButton__</button>
+    <div class="tester-result" id="testResult" aria-live="polite"></div>
+  </div>
 
   <!-- Language toggles -->
   <div class="lang-section">

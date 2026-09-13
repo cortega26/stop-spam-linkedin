@@ -147,5 +147,10 @@
   "allowLimitToast": { "message": "Never-hide phrase limit reached ($1)." },
   "allowConflictToast": { "message": "\"$1\" is already a custom phrase — remove it there first." },
   "allowEmpty": { "message": "No never-hide phrases yet." },
-  "removeAllowPhraseLabel": { "message": "Remove never-hide phrase $1" }
+  "removeAllowPhraseLabel": { "message": "Remove never-hide phrase $1" },
+  "testerTitle": { "message": "Would this be blocked?" },
+  "testerPlaceholder": { "message": "Paste a post's text to test it against your current rules" },
+  "testerButton": { "message": "Test" },
+  "testerNoMatch": { "message": "Would NOT be hidden — nothing matched." },
+  "testerAllowed": { "message": "Would NOT be hidden — allowed by: \"$1\"" }
 }

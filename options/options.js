@@ -54,6 +54,9 @@
   const hidePromotedCheckbox = /** @type {HTMLInputElement} */ (document.getElementById("hidePromotedCheckbox"));
   const hideFeaturedCheckbox = /** @type {HTMLInputElement} */ (document.getElementById("hideFeaturedCheckbox"));
   const searchInput = /** @type {HTMLInputElement} */ (document.getElementById("searchInput"));
+  const testInput = /** @type {HTMLTextAreaElement} */ (document.getElementById("testInput"));
+  const testBtn = document.getElementById("testBtn");
+  const testResult = document.getElementById("testResult");
 
   /* ── Bootstrap ──────────────────────────────────────────────── */
   load();
@@ -70,6 +73,7 @@
   exportBtn.addEventListener("click", handleExport);
   starterPackBtn.addEventListener("click", handleStarterPack);
   searchInput.addEventListener("input", SS_debounce(() => render(), 200));
+  testBtn.addEventListener("click", runTester);
   clearExcludedBtn.addEventListener("click", () => {
     if (clearExcludedBtn.dataset.confirming === "1") {
       clearExcludedBtn.dataset.confirming = "";
@@ -1564,6 +1568,67 @@
 
       allowList.appendChild(row);
     }
+  }
+
+  /* ── Match tester (plan 051) ────────────────────────────────── */
+
+  /* Cap on tested text: the built-in regexes are linear, but a
+     multi-megabyte paste shouldn't make the click handler crawl. */
+  const TESTER_MAX_INPUT = 5000;
+
+  /* Mirror of content.js's findMatch (content.js:531-540): exclusion
+     signature check, then allow-phrases (plan 056), then the pattern
+     loop over SS_buildPatterns' custom-first list. If matching semantics
+     change, update this function AND content.js in lockstep — the
+     probe-pair e2e scenario is the tripwire. */
+  function testerFindMatch(text, spamPatterns, allowMatchers, excludedSignatures) {
+    if (excludedSignatures.has(SS_getExcludedSignature(text))) return null;
+    for (const allow of allowMatchers) {
+      if (allow.regex.test(text)) return { allow };
+    }
+    for (const entry of spamPatterns) {
+      if (entry.regex.test(text)) return { entry };
+    }
+    return null;
+  }
+
+  /* Reads LIVE storage on every click (not the page's cached state
+     variables, which can lag a change made in another tab) and assembles
+     the pattern list exactly like content.js's boot path. */
+  function runTester() {
+    const raw = testInput.value.trim();
+    if (!raw) return;
+    const text = raw.slice(0, TESTER_MAX_INPUT);
+    chrome.storage.sync.get(
+      [PHRASES_STORAGE_KEY, STORAGE_KEYS.LANGS, STORAGE_KEYS.DISABLED_PATTERNS, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.ALLOW_PHRASES],
+      /** @param {{ [key: string]: any }} result */
+      (result) => {
+        const spamPatterns = SS_buildPatterns(
+          result[PHRASES_STORAGE_KEY],
+          result[STORAGE_KEYS.LANGS] || [...DEFAULT_ENABLED_LANGS],
+          new Set(result[STORAGE_KEYS.DISABLED_PATTERNS] || []),
+          LIMITS.MAX_PHRASE_LENGTH
+        );
+        const allowMatchers = SS_buildAllowMatcher(
+          result[STORAGE_KEYS.ALLOW_PHRASES] || [],
+          LIMITS.MAX_PHRASE_LENGTH
+        );
+        const excludedSignatures = new Set(
+          normalizeExcludedEntries(result[STORAGE_KEYS.EXCLUDED] || []).map((e) => e.sig)
+        );
+        const verdict = testerFindMatch(text, spamPatterns, allowMatchers, excludedSignatures);
+        if (verdict && verdict.allow) {
+          testResult.textContent = SS_t("testerAllowed", verdict.allow.text);
+        } else if (verdict && verdict.entry) {
+          /* Built-ins attribute by stable pattern id (EN-1…); custom
+             phrases attribute by their text. */
+          const source = verdict.entry.source === "builtin" ? " (" + verdict.entry.id + ")" : "";
+          testResult.textContent = SS_t("matchedLabel") + " " + verdict.entry.label + source;
+        } else {
+          testResult.textContent = SS_t("testerNoMatch");
+        }
+      }
+    );
   }
 
   /* ── Render ─────────────────────────────────────────────────── */
