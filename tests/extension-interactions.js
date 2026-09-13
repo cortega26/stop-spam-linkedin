@@ -14,6 +14,7 @@ const {
   resolveExtensionPath,
   setSyncStorage,
   getSyncStorage,
+  setLocalStorage,
   getLocalStorage,
   getExtensionId,
   assertCount,
@@ -1777,6 +1778,65 @@ async function main() {
       { timeout: 4000 }
     );
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* ── Plan 058: first-run walkthrough card on the options page ── */
+
+    /* 1. Fresh install shows the card: flag true → card visible. */
+    await setLocalStorage(context, { ss_welcome_pending: true });
+    const welcomePage = await context.newPage();
+    await welcomePage.goto(
+      `chrome-extension://${await getExtensionId(context)}/options/options.html`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await welcomePage.locator("#welcomeCard").waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+
+    /* 2. Dismiss persists: hide, clear the flag, survive a reload. */
+    await welcomePage.locator("#welcomeDismissBtn").click();
+    await welcomePage.waitForFunction(
+      () => getComputedStyle(document.getElementById("welcomeCard")).display === "none",
+      null,
+      { timeout: 5000 }
+    );
+    await waitForLocalValue(context, "ss_welcome_pending", (v) => v === false);
+    await welcomePage.reload({ waitUntil: "domcontentloaded" });
+    await welcomePage.locator("#langToggles .lang-tog").first().waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    assert.equal(
+      await welcomePage
+        .locator("#welcomeCard")
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the welcome card to stay hidden after dismissal"
+    );
+    await welcomePage.close();
+
+    /* 3. No flag, no card: the every-subsequent-visit case. */
+    const welcomeWorker = context.serviceWorkers()[0];
+    await welcomeWorker.evaluate(() => new Promise((resolve) => {
+      chrome.storage.local.remove("ss_welcome_pending", resolve);
+    }));
+    const revisitPage = await context.newPage();
+    await revisitPage.goto(
+      `chrome-extension://${await getExtensionId(context)}/options/options.html`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await revisitPage.locator("#langToggles .lang-tog").first().waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    assert.equal(
+      await revisitPage
+        .locator("#welcomeCard")
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the welcome card to stay hidden when no flag is set"
+    );
+    await revisitPage.close();
 
     console.log("Extension interactions test passed.");
   } finally {
