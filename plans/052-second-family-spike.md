@@ -7,7 +7,7 @@
 > in `plans/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
-> **Drift check (run first)**: `git diff --stat ffdffab..HEAD -- shared/pattern-data.js tests/unit/pattern-data.test.js options/options.js content.js`
+> **Drift check (run first)**: `git diff --stat 4f80330..HEAD -- shared/pattern-data.js tests/unit/pattern-data.test.js options/options.js content.js`
 > If any in-scope file changed since this plan was written, compare the
 > "Current state" excerpts against the live code before proceeding; on a
 > mismatch, treat it as a STOP condition.
@@ -19,7 +19,9 @@
 - **Risk**: MED (new regexes are the highest-FP-risk change this product can make; this plan ships none — it measures)
 - **Depends on**: none
 - **Category**: direction (design/spike — corpus + measured candidates + default-off decision, not shipped patterns)
-- **Planned at**: commit `ffdffab`, 2026-09-07
+- **Planned at**: commit `ffdffab`, 2026-09-07; refreshed in place at
+  `4f80330` (2026-09-13) after the plan-048 merge — line citations
+  re-verified, unit count 63→64
 
 ## Why this matters
 
@@ -36,15 +38,16 @@ committing a single live regex before the false-positive cost is known.
 
 The facts the executor needs, inlined:
 
-- Built-in shape (`shared/pattern-data.js:19-80`): a
+- Built-in shape (`shared/pattern-data.js:21-82`, JSDoc just above): a
   `Record<lang, Array<{id, regex, label}>>` with ids `EN-1…DE-2`; every
   label is comment-gated (e.g. `EN-1: 'comment "WORD" and I'll send /
   share ...'`, `FR-2: 'commentez "WORD" pour recevoir / télécharger ...'`).
-  Assembly via `SS_buildPatterns` (`shared/pattern-data.js:105-150`, read
+  Assembly via `SS_buildPatterns` (`shared/pattern-data.js:98-150`, read
   it in Step 1) honors enabled langs, per-pattern disables (plan 011,
   `ss_disabled_patterns`), and custom phrases.
 - Corpus-test precedent: plan 025 added per-language positive/negative unit
-  tests in `tests/unit/pattern-data.test.js` (63 tests total) and fixed
+  tests in `tests/unit/pattern-data.test.js` (50 tests in that file; 64
+  across `tests/unit/` at `4f80330`) and fixed
   three real detection bugs with them. **That file is the structural pattern
   for this spike's corpora.**
 - The missed-spam issue template (`.github/ISSUE_TEMPLATE/missed_spam_pattern.yml`)
@@ -68,7 +71,7 @@ The facts the executor needs, inlined:
 | Smoke     | `npm run smoke`          | executed   | exit 0              |
 | Lint      | `npm run lint`           | executed   | exit 0              |
 | Typecheck | `npm run typecheck`      | executed   | exit 0              |
-| Unit      | `npm run test:unit`      | executed   | 63/63 pass (higher with corpus tests) |
+| Unit      | `npm run test:unit`      | executed   | 64/64 pass (higher with corpus tests) |
 
 ## Scope
 
@@ -97,11 +100,11 @@ The facts the executor needs, inlined:
 
 Run all four executed commands unmodified; confirm tabled results.
 
-**Verify**: smoke/lint/typecheck exit 0; unit 63/63 pass.
+**Verify**: smoke/lint/typecheck exit 0; unit 64/64 pass.
 
 ### Step 1: Assemble the corpora (read first)
 
-Read `shared/pattern-data.js:19-110` (entry shape + assembly) and the
+Read `shared/pattern-data.js:21-150` (entry shape + assembly) and the
 corpus-test blocks in `tests/unit/pattern-data.test.js` (mirror their
 structure). Collect: (a) positives — like/repost-gated and DM-gated bait
 examples from filed missed-spam issues, the maintainer's feed, and the
@@ -113,7 +116,7 @@ per example (issue # / observed / constructed-from-real). If the positives
 can't reach the minimum, STOP — that is a finding, not a failure: record
 "family not yet evidenced" and skip to Step 3.
 
-**Verify**: `npm run test:unit` → still 63/63 (corpora not yet added) or
+**Verify**: `npm run test:unit` → still 64/64 (corpora not yet added) or
 list the collected counts in the commit message.
 
 ### Step 2: Draft candidates and measure

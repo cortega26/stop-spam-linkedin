@@ -6,6 +6,32 @@ drift) reconciled the queue and added plans 013–019. Execute in the order
 below unless dependencies say otherwise. Each executor: read the plan fully
 before starting, honor its STOP conditions, and update your row when done.
 
+### Direction pass (2026-09-13, `next` variant at `4f80330`)
+
+A second `next`/direction-only survey (no other category audited), run on
+branch `advisor/b1-stopspam-lock` — 3 commits ahead of `main`, which is the
+baseline every 055–058 drift check resolves against. Seven ideas were
+surveyed; four became plans (055–058) and three are recorded under
+"Findings considered and rejected". The session was non-interactive, so the
+skill's documented default applies: the top findings by leverage were
+planned without a selection round. Recon baselines, all **executed** at
+`4f80330`: `npm run smoke` exit 0, `npm run lint` exit 0, `npm run
+typecheck` exit 0, `npm run test:unit` 64/64 pass. Browser suites
+(`test:extension`, `test:package`, `test:firefox`) are `declared` in every
+new plan — the advisor may not install Playwright's Chromium.
+
+Note: `npm run test:unit` is now 64 tests; `AGENTS.md`'s Verification table
+still says 16. Minor doc drift, not planned separately — fold it into the
+next AGENTS.md refresh.
+
+Same day, the open queue was reconciled: plans 051–054 (written at
+`ffdffab`, before the plan-048 merge rewrote ~650 lines of their in-scope
+files) were refreshed in place at `4f80330` — every citation re-verified,
+051's extract-vs-mirror question resolved, 053/054's archived-design line
+numbers mapped to live symbols — and a single execution order for all nine
+open plans was recorded below. Plan 056's own export/eslint instructions
+were corrected in the same pass.
+
 ### Direction pass (2026-09-07, `next` variant at `ffdffab`)
 
 A `next`/direction-only survey (no other category audited) with all prior
@@ -83,6 +109,29 @@ implementation-ready plans:
    sent by the extension) and opens the pre-filled `missed_spam_pattern`
    GitHub issue form, closing the README's issue-form feedback loop.
 
+## Current execution order — open plans (reconciled 2026-09-13 at `4f80330`)
+
+| Order | Plan | Why here |
+|-------|------|----------|
+| 1 | 055 School/showcase coverage | P2, S, near-zero file overlap (only e2e harness files shared with 058) |
+| 2 | 057 Comment-bait spike · 052 Second-family spike | Cheap, ship no behavior; 057 before 056 because a CONFIRMED verdict's fix edits `content.js` next to 056's `findMatch` change |
+| 3 | 056 Allow-phrases | Highest user value of the P2s |
+| 4 | 051 Match tester | After 056 so it reports "allowed by <phrase>" (its Step 2b) |
+| 5 | 058 First-run onboarding | Before 053/054: it opens an options tab on every e2e install, so later plans should write their scenarios against that harness |
+| 6 | 053 Per-pattern stats | Design decided (041); nothing later depends on it |
+| 7 | 054 Suggestion loop | Same files as 053 — strictly after it |
+| 8 | 050 UI localization | LAST — after every plan that adds EN/ES-only locale keys (051, 053, 054, 056, 058). Its Step 3 sourcing decision may be taken any time; Step 4 must wait |
+
+**Parallelism**: 056 → 051 → 058 → 053 → 054 → 050 are strictly serial
+(they share `content.js`, `options/options.js`, `shared/constants.js`,
+`tests/extension-interactions.js`, and the locale files — parallel worktrees
+would conflict on merge). 052 and 057 can run alongside anything. 055 can
+run alongside anything before 058 starts.
+
+**Locale-ordering guards** are enforced inside the plans, both directions:
+050 STOPs if any of 051/053/054/056/058 is still open; each of those STOPs
+if `_locales/{fr,pt,de}` already exist.
+
 ## Execution order & status
 
 | Plan | Title | Priority | Effort | Depends on | Status |
@@ -133,13 +182,17 @@ implementation-ready plans:
 | 045 | [Version bump 1.4.0](045-version-1.4.0.md) | P1 | S | — | DONE (2026-08-15, branch advisor/045-version-1.4.0 @ c2da0e1 in /tmp/opencode/wt-045, reviewed + verified; 5 lockstep files + badges + privacy date; Firefox badge intentionally kept at v1.2.4 — AMO last published 1.2.4, bumping would be false; zip 1.4.0 verified) |
 | 046 | [Firefox submit fix](046-firefox-submit-fix.md) | P1 | S | — | DONE (2026-08-15, branch advisor/046-firefox-submit-fix @ 4544e7f in /tmp/opencode/wt-046, reviewed + verified; root cause: upload-only, never created version; fix polls/validates/creates version — 1.4.0 LIVE on AMO id 6417108, listed, unreviewed; deviation: v5 endpoint is /versions/ POST with upload uuid in body — plan's /versions/{uuid}/ is 405; submitChrome untouched) |
 | 047 | [Docs + store copy sync](047-docs-store-sync.md) | P2 | S–M | — | DONE (2026-08-15, branch advisor/047-docs-store-sync @ 8de62b9 in /tmp/opencode/wt-047, reviewed + verified; README + 4 translations gain Block-this-author/pattern-language/full-settings; store copy EN+ES rewritten must-have; 3 plan-grep inconsistencies adjudicated — copy intent satisfied) |
-| 048 | [Shared helper consolidation](archive/048-shared-helpers-consolidation.md) | P3 | M | — (soft: 029) | DONE (2026-09-07, branch advisor/048-shared-helpers @ cf4698b in /tmp/opencode/wt-048, reviewed + verified; unmerged) |
+| 048 | [Shared helper consolidation](archive/048-shared-helpers-consolidation.md) | P3 | M | — (soft: 029) | DONE (2026-09-07, branch advisor/048-shared-helpers @ cf4698b in /tmp/opencode/wt-048, reviewed + verified; merged — merge commit 4f80330) |
 | 049 | [Missed-spam report (design/spike)](archive/049-missed-spam-report.md) | P2 | M | — | DONE (2026-09-07, spike branch advisor/049-missed-spam-report-spike @ df33bda in /tmp/opencode/wt-049, reviewed + verified; design deliverable merged into the plan; prototype unmerged — build plan is the natural follow-up) |
-| 050 | [UI localization FR/PT/DE (audit+process)](050-ui-localization.md) | P3 | M + validation | — | TODO |
-| 051 | [Match tester in options](051-match-tester.md) | P2 | S–M | — (soft: 048) | TODO |
-| 052 | [Second detection family (corpus+spike)](052-second-family-spike.md) | P3 | M | — | TODO |
-| 053 | [Per-pattern stats build (from 041 design)](053-per-pattern-stats-build.md) | P3 | M | 041 design (read-only, committed) | TODO |
-| 054 | [Suggestion-loop build (from 043 design)](054-suggestion-loop-build.md) | P3 | M | 043 design (read-only, committed) | TODO |
+| 050 | [UI localization FR/PT/DE (audit+process)](050-ui-localization.md) | P3 | M + validation | — (soft: LAST — after 051, 053, 054, 056, 058) | TODO |
+| 051 | [Match tester in options](051-match-tester.md) | P2 | S–M | — (soft: after 056; before 050) | TODO (refreshed at 4f80330) |
+| 052 | [Second detection family (corpus+spike)](052-second-family-spike.md) | P3 | M | — | TODO (refreshed at 4f80330) |
+| 053 | [Per-pattern stats build (from 041 design)](053-per-pattern-stats-build.md) | P3 | M | 041 design (read-only, committed); before 050, 054 | TODO (refreshed at 4f80330) |
+| 054 | [Suggestion-loop build (from 043 design)](054-suggestion-loop-build.md) | P3 | M | 043 design (read-only, committed); after 053; before 050 | TODO (refreshed at 4f80330) |
+| 055 | [School/showcase page coverage](055-school-showcase-coverage.md) | P2 | S | — | TODO |
+| 056 | [Allow-phrases (never-hide text)](archive/056-allow-phrases.md) | P2 | M | — (before 051, 054, 050; after 057) | DONE (2026-09-13, branch advisor/056-allow-phrases @ f1f90b7 in /tmp/opencode/wt-056, reviewed + verified; 12 locale keys, 68 unit tests, 4 e2e scenarios incl. overlap precedence proven non-vacuous, full gate green; unmerged) |
+| 057 | [Comment-bait container measurement (spike)](057-comment-bait-spike.md) | P3 | S–M | — (before 056) | TODO |
+| 058 | [First-run onboarding walkthrough](058-first-run-onboarding.md) | P3 | M | — (before 053, 054, 050) | TODO |
 
 Status values: TODO | IN PROGRESS | DONE (→ move the file to `plans/archive/` and relink the index row) | BLOCKED (with one-line reason) | REJECTED (with one-line rationale — finding fixed independently or approach abandoned)
 
@@ -266,12 +319,10 @@ Status values: TODO | IN PROGRESS | DONE (→ move the file to `plans/archive/` 
 
 ### Batch 049–054 (2026-09-07, `next` direction pass) — dependency notes
 
-- **051 soft-couples with 048**: 048 is DONE (merged state pending —
-  branch `advisor/048-shared-helpers` @ cf4698b, unmerged), so when 051
-  runs it must reuse the landed `SS_*` match helpers rather than writing
-  its own extraction. If 051 runs before 048 merges, rebase onto it first;
-  the findMatch-mirror fallback in plan 051 applies only if 048 is
-  REVERTED, not merely unmerged.
+- **051 no longer waits on 048** (resolved 2026-09-13): 048 merged at
+  `4f80330` and added NO shared match helper, so plan 051's Step 1 resolves
+  to mirroring `findMatch` locally in the options page. 051 now soft-depends
+  on 056 instead (see the current execution order).
 - **053/054 depend on their archived designs read-only**
   (`archive/041-per-pattern-stats-design.md`,
   `archive/043-suggestion-loop-design.md` — both committed, plus throwaway
@@ -284,6 +335,40 @@ Status values: TODO | IN PROGRESS | DONE (→ move the file to `plans/archive/` 
 - **050 gates on a sourcing decision** (Step 3): native-speaker vs
   approved-MT vs defer-locales. Do not start Step 4 file creation without
   the recorded decision.
+- **050 runs LAST** (added 2026-09-13): after 051, 053, 054, 056 and 058 —
+  see "Current execution order" above and the Batch 055–058 notes below.
+
+### Batch 055–058 (2026-09-13, `next` direction pass) — dependency notes
+
+- **No hard dependencies among 055–058**, but merge-level file sharing and
+  the locale rule impose an order — see "Current execution order" above
+  (055 → 057 → 056 → 058, with 051 slotted after 056 and 053/054 after
+  058).
+- **056 soft-couples with 051** (match tester, TODO): once allow-phrases
+  exist, the tester must report "allowed by <phrase>" rather than "no
+  match", or it misleads exactly the users allow-phrases serve.
+  `SS_buildAllowMatcher` returns the phrase text for that reason. Either
+  order works; whichever lands second wires the two together.
+- **050 must run LAST** (reconciled 2026-09-13). Five open plans add
+  EN/ES-only locale keys: 051, 053, 054, 056 (+10) and 058 (+7). 050's Step
+  4 adds a parity check across every shipped locale, so if 050 lands first,
+  those plans could only pass it by committing unvalidated FR/PT/DE strings.
+  In the other order, 050's live Step 1 inventory just counts more keys.
+  Enforced both ways: 050 STOPs if any of the five is still open; each of
+  the five STOPs if `_locales/{fr,pt,de}` exist. 050's key count and scope
+  check were also loosened (count may exceed 136; scope check is
+  `main...HEAD`) so an earlier-merged plan doesn't read as drift.
+- **054 interacts with 056**: once allow-phrases land, `handleAdd` refuses a
+  custom phrase equal to an allow-phrase; 054's Suggestions Add actions
+  mirror `handleAdd` and must apply the same guard (noted in 054).
+- **057 is self-sealing**: its deliverable is a verdict appended to its own
+  file. CONFIRMED → a build plan follows; BENIGN → document the behavior;
+  NOT REPRODUCED → close the thread and record it as rejected. It ships no
+  behavior change either way, which is why it carries no dependency.
+- **055 establishes a single-host invariant check** on
+  `content_scripts[].matches`. Any later plan that touches that array should
+  carry the same check in its done criteria — it is the guard against
+  silently widening the permission warning and forcing re-consent.
 
 ## Recommended execution order rationale
 
@@ -383,6 +468,32 @@ from 005 landing first.
   became plan 013 (removes the dead branch and implements the documented
   15-minute protection keyed by post identity). Recorded here so no future
   audit reports it as new.
+
+### Added by the 2026-09-13 `next` pass
+
+- **Placeholder display modes** (collapse-to-one-line, or remove blocked
+  posts entirely instead of leaving a `data-ss-ph` card): surveyed and
+  deliberately not planned. The reversible placeholder is core product
+  identity, not a default — README's "Reversible" pillar, the Show / Not
+  spam / Block author / Report affordances, and the undo window all hang off
+  it, and a remove-entirely mode would silently delete the only path back
+  from a false positive. Same class of tension as remote pattern sync vs.
+  local-only: it needs a product decision to change course first, not an
+  implementation plan. Recorded so it isn't reinvented.
+- **Firefox for Android support** (`browser_specific_settings.gecko`,
+  `strict_min_version: "142.0"`, `manifest.json:60-68`): surveyed as a
+  distribution lever and not selected. Grounding is real (Gecko already
+  ships the add-on; Firefox Android runs extensions) but the unknowns are
+  the expensive part — LinkedIn's mobile-web DOM is a different document,
+  so the container heuristic and `AUTHOR_BLOCK_SELECTORS` would need
+  re-validation, and the popup/options pages are desktop-sized. If it is
+  ever picked up, it should be a spike in the 052 mold (measure detection
+  on mobile DOM first, decide second), not a build plan.
+- **Keyboard shortcuts via `chrome.commands`** (no `commands` key in
+  `manifest.json` today): considered and not proposed. Toggle and "Show
+  all" are both one click away in the popup; a shortcut saves a click for a
+  user who is already using a mouse to scroll a feed. Low leverage, and it
+  adds a manifest surface for no measured demand.
 
 ## Notes for future audit runs
 

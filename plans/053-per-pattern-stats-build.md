@@ -7,7 +7,7 @@
 > in `plans/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
-> **Drift check (run first)**: `git diff --stat ffdffab..HEAD -- content.js popup/popup.js popup/popup.html options/options.js shared/constants.js plans/archive/041-per-pattern-stats-design.md`
+> **Drift check (run first)**: `git diff --stat 4f80330..HEAD -- content.js popup/popup.js popup/popup.html options/options.js shared/constants.js plans/archive/041-per-pattern-stats-design.md`
 > If any in-scope file changed since this plan was written, compare the
 > "Current state" excerpts against the live code before proceeding; on a
 > mismatch, treat it as a STOP condition. (Also re-read the archived 041
@@ -18,9 +18,13 @@
 - **Priority**: P3
 - **Effort**: M
 - **Risk**: MED (touches the counting path + two UI surfaces; storage shape is pre-decided)
-- **Depends on**: `plans/archive/041-per-pattern-stats-design.md` (read-only — the design is committed, so no ordering constraint; do NOT re-derive what it decided)
+- **Depends on**: `plans/archive/041-per-pattern-stats-design.md` (read-only — the design is committed, so no ordering constraint; do NOT re-derive what it decided). **Run BEFORE plan 050** — this plan adds EN/ES-only locale keys (see STOP conditions)
 - **Category**: direction (build — implements a finished spike design)
-- **Planned at**: commit `ffdffab`, 2026-09-07
+- **Planned at**: commit `ffdffab`, 2026-09-07; refreshed in place at
+  `4f80330` (2026-09-13) after the plan-048 merge — line citations
+  re-verified, unit count 63→64, design-doc
+  line numbers mapped to live symbols, scope check switched to
+  `main...HEAD`, locale-ordering STOP added
 
 ## Why this matters
 
@@ -39,6 +43,22 @@ Decisions inherited from the archived design (Step 1: read the full
 `## Design deliverable` + `**Open questions**` + `**Recommendation**`
 sections — the summary below does not replace them):
 
+- **Line numbers in the archived 041 design predate the plan-048 merge**
+  (e.g. it cites `content.js:803-814` for the counting block). Locate every
+  design-cited site by SYMBOL, never by line. Live anchors at `4f80330`:
+  - counting block `if (!isLabelBlock && !counted.has(post))` —
+    `content.js:742` (`isLabelBlock` defined at `:727`)
+  - the persisted counter write (`[STORAGE_KEYS.COUNT]: blockedCount,`
+    `[STORAGE_KEYS.DAILY_COUNTS]: dailyCounts`) — `content.js:993-994`
+  - `migrateRuntimeStorage` — `content.js:119`
+  - content `case "resetCount"` — `content.js:343` (clears COUNT and
+    DAILY_COUNTS at `:347-348`); content `case "getState"` — `content.js:301`
+  - popup `getStoredState` — `popup/popup.js:76`; `setExtensionState` —
+    `popup/popup.js:126`; popup reset send — `popup/popup.js:328`
+  - options `createBuiltinRow` — `options/options.js:1402`
+  - plan 035's stats e2e (the structural pattern for Step 4) —
+    `tests/extension-smoke.js:119-126` and `:167`,
+    `tests/extension-interactions.js:88-96` and `:403-407`
 - **Key/shape**: `ss_pattern_counts` in `chrome.storage.local`, added to
   `STORAGE_KEYS` in `shared/constants.js` as `PATTERN_COUNTS` (repo rule:
   every key `ss_`-prefixed, defined once). Flat map bucket → lifetime
@@ -83,7 +103,7 @@ sections — the summary below does not replace them):
 | Smoke     | `npm run smoke`          | executed   | exit 0              |
 | Lint      | `npm run lint`           | executed   | exit 0              |
 | Typecheck | `npm run typecheck`      | executed   | exit 0              |
-| Unit      | `npm run test:unit`      | executed   | 63/63 pass          |
+| Unit      | `npm run test:unit`      | executed   | 64/64 pass          |
 | Ext e2e   | `npm run test:extension` | declared   | exit 0              |
 | Pkg e2e   | `npm run test:package`   | declared   | exit 0              |
 
@@ -115,7 +135,7 @@ sections — the summary below does not replace them):
 Run the four executed commands unmodified; confirm tabled results. A
 `declared` failure is a broken baseline — STOP and report.
 
-**Verify**: smoke/lint/typecheck exit 0; unit 63/63 pass.
+**Verify**: smoke/lint/typecheck exit 0; unit 64/64 pass.
 
 ### Step 1: Read the design doc end to end
 
@@ -148,7 +168,8 @@ strings (verify each key exists in both files).
 
 ### Step 4: e2e + full verification
 
-Extend the stats-pipeline e2e (plan 035's scenario is the pattern): block a
+Extend the stats-pipeline e2e (plan 035's scenario is the pattern —
+`tests/extension-interactions.js:88-96` and `:403-407`): block a
 built-in hit + a custom-phrase hit, assert popup shows both buckets;
 reset, assert all three counters (total + buckets) clear. Then:
 
@@ -177,14 +198,20 @@ Machine-checkable. ALL must hold:
 - [ ] New locale keys present in BOTH `_locales/en` and `_locales/es`
 - [ ] `grep -rn PATTERN_COUNTS options/options.js` (export/import) → no matches (not in backup)
 - [ ] `grep -n PATTERN_COUNTS content.js` shows no addition to the migration key list
-- [ ] `git diff --name-only ffdffab..HEAD` lists only in-scope files
+- [ ] `git diff --name-only main...HEAD` (three dots — merge base) lists only in-scope files
+- [ ] Locale key sets in `_locales/en` and `_locales/es` are equal (symmetric difference empty)
 - [ ] `plans/README.md` status row updated
 
 ## STOP conditions
 
 Stop and report back (do not improvise) if:
 
-- The design doc's cited code (increment block, reset paths, popup state functions) doesn't match live code (drift since the spike).
+- `_locales/fr/`, `_locales/pt/`, or `_locales/de/` exists (check with
+  `ls _locales`). Plan 050 landed first and its parity check requires every
+  new key in all shipped locales. Do NOT add FR/PT/DE strings yourself —
+  unvalidated translations are what plan 050 forbids. Report it so the
+  maintainer can source translations or resequence.
+- A design-cited SYMBOL (increment block, reset paths, popup state functions) is missing or behaves differently from what the design describes. Shifted line numbers alone are expected (see "Current state") and are NOT a STOP.
 - The spike branch is gone AND the design doc is ambiguous on a load-bearing point (one missing source is fine; both is not).
 - The popup offline path cannot serve the new key without restructuring `getStoredState` (decide stale/hidden instead — don't restructure).
 - A step's verification fails twice after a reasonable fix attempt.

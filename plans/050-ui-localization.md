@@ -7,7 +7,7 @@
 > in `plans/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
-> **Drift check (run first)**: `git diff --stat ffdffab..HEAD -- _locales options popup content.js background.js i18n.js package.json eslint.config.js AGENTS.md`
+> **Drift check (run first)**: `git diff --stat 4f80330..HEAD -- _locales options popup content.js background.js i18n.js package.json eslint.config.js AGENTS.md`
 > If any in-scope file changed since this plan was written, compare the
 > "Current state" excerpts against the live code before proceeding; on a
 > mismatch, treat it as a STOP condition.
@@ -17,9 +17,13 @@
 - **Priority**: P3
 - **Effort**: M for the audit + scaffolding; translation validation itself is unbounded (see Step 3)
 - **Risk**: LOW (this plan ships no user-facing strings; it produces an audit + translator packet + harness updates)
-- **Depends on**: none
+- **Depends on**: none hard; **soft: run LAST — after plans 051, 053, 054,
+  056 and 058** (see the ordering bullet at the top of "Current state")
 - **Category**: direction (process plan — like archived plan 012, it documents a validation-gated process rather than shipping unverified translations)
-- **Planned at**: commit `ffdffab`, 2026-09-07
+- **Planned at**: commit `ffdffab`, 2026-09-07; refreshed in place at
+  `4f80330` (2026-09-07) after the plan-048 merge renamed every
+  `t(...)` call to `SS_t(...)` in content/popup/options — key inventory
+  below updated accordingly; finding re-verified (still en/es only).
 
 ## Why this matters
 
@@ -36,21 +40,37 @@ must not pre-answer with machine output.
 
 The facts the executor needs, inlined:
 
+- **Ordering (added 2026-09-13)**: five open plans add EN/ES-only locale
+  keys — 051 (match tester), 053 (per-pattern stats), 054 (suggestion
+  loop), 056 (allow-phrases, +10 keys), 058 (first-run onboarding, +7
+  keys). Step 4 of THIS plan adds a parity check across all shipped
+  locales, so if this plan lands first, those plans can only pass it by
+  committing unvalidated FR/PT/DE strings — exactly what this plan
+  forbids. Before starting, check `plans/README.md`: if any of 051, 053,
+  054, 056 or 058 is still TODO or IN PROGRESS, STOP and report so the
+  maintainer can resequence. REJECTED plans don't block. Step 3's sourcing
+  decision may be taken earlier; only Step 4 must wait.
 - `_locales/en/messages.json` and `_locales/es/messages.json`: 136 keys
-  each (verified 2026-09-07). Key shape is standard Chrome i18n:
+  each at `4f80330` (verified 2026-09-07). **Expect a higher count** — 056 adds
+  10, 058 adds 7, and 051/053/054 each add a few. Do NOT treat a count above
+  136 as drift; Step 1's live inventory is authoritative. Only an en/es
+  MISMATCH is a STOP condition. Key shape is standard Chrome i18n:
   `"snooze30": { "message": "Snooze 30 min" }`,
   `"removeWhitelistedAuthorLabel": { "message": "... $1 ...", ... }` —
-  substitutions via `$1` placeholders filled through the local `t(key,
-  subs)` helper in each file, with `|| key` fallback when a locale key is
-  missing.
-- UI strings reach the page two ways: JS `t("key")` calls (content.js,
-  background.js, popup/popup.js, options/options.js) and `__MSG_key__`
-  tokens in `popup/popup.html` / `options/options.html`, substituted at
-  load by `i18n.js`. **Read `i18n.js` fully in Step 1** — this plan does
-  not excerpt it.
+  substitutions via `$1` placeholders filled through the shared
+  `SS_t(key, subs)` helper (content.js, popup/popup.js, options/options.js
+  — plan 048 moved the former local `t` copies there) or the local `t(key,
+  subs)` retained in background.js (plan 048 deliberately left the service
+  worker untouched), with `|| key` fallback when a locale key is missing.
+- UI strings reach the page two ways: JS `SS_t("key")` calls in
+  content.js, popup/popup.js and options/options.js, JS `t("key")` calls in
+  background.js (local copy — the ONLY file still using bare `t`), and
+  `__MSG_key__` tokens in `popup/popup.html` / `options/options.html`,
+  substituted at load by `i18n.js`. **Read `i18n.js` fully in Step 1** —
+  this plan does not excerpt it.
 - Known audit pitfall (from `plans/README.md`): `countMessage()` in
   options.js builds locale keys dynamically (`oneKey`/`manyKey` args), so a
-  naive `grep -o 't("[a-zA-Z0-9_]*"'` undercounts. The audit must resolve
+  naive `grep -o 'SS_t("[a-zA-Z0-9_]*"'` undercounts. The audit must resolve
   call sites by reading, not regex alone.
 - `npm run smoke` validates only `manifest.json`,
   `_locales/en/messages.json`, `_locales/es/messages.json` (jq) plus
@@ -76,7 +96,7 @@ The facts the executor needs, inlined:
 | Smoke     | `npm run smoke`          | executed   | exit 0              |
 | Lint      | `npm run lint`           | executed   | exit 0              |
 | Typecheck | `npm run typecheck`      | executed   | exit 0              |
-| Unit      | `npm run test:unit`      | executed   | 63/63 pass          |
+| Unit      | `npm run test:unit`      | executed   | 64/64 pass          |
 
 ## Scope
 
@@ -112,11 +132,12 @@ The facts the executor needs, inlined:
 Run all four executed commands on the unmodified checkout; confirm the
 tabled results.
 
-**Verify**: smoke/lint/typecheck exit 0; unit 63/63 pass.
+**Verify**: smoke/lint/typecheck exit 0; unit 64/64 pass.
 
 ### Step 1: Build the complete key inventory
 
-Extract every `t("...")` call site (all four JS files + background.js),
+Extract every `SS_t("...")` call site (content.js, popup/popup.js,
+options/options.js) plus every bare `t("...")` in background.js,
 every `__MSG_...__` token (both HTML files), and resolve `countMessage()`'s
 dynamic args by reading its call sites. For each key record: en text, es
 text, `$`-placeholders, UI location (popup/options/placeholder/toast/menu),
@@ -166,8 +187,9 @@ copy (remove one key) and confirm the check fails; restore.
 npm run smoke && npm run lint && npm run typecheck && npm run test:unit
 ```
 
-**Verify**: all exit 0 / 63+ pass; `git diff --name-only ffdffab..HEAD`
-lists only in-scope files.
+**Verify**: all exit 0 / 64+ pass; `git diff --name-only main...HEAD`
+(three dots — compares against the merge base, so files other plans
+merged meanwhile do not show up) lists only in-scope files.
 
 ## Test plan
 
@@ -193,6 +215,9 @@ Machine-checkable. ALL must hold:
 
 Stop and report back (do not improvise) if:
 
+- Any of plans 051, 053, 054, 056 or 058 is still TODO or IN PROGRESS in
+  `plans/README.md` — run this plan after them (see "Current state"
+  ordering bullet). Step 3's decision alone may proceed; Step 4 may not.
 - The en↔es key sets are NOT at parity (the assumed baseline is wrong —
   report the drift first).
 - Chrome does not auto-load new `_locales/<lang>/` dirs without a manifest

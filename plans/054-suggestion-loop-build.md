@@ -7,7 +7,7 @@
 > in `plans/README.md` — unless a reviewer dispatched you and told you they
 > maintain the index.
 >
-> **Drift check (run first)**: `git diff --stat ffdffab..HEAD -- content.js popup/popup.js options/options.js options/options.html shared/constants.js plans/archive/043-suggestion-loop-design.md`
+> **Drift check (run first)**: `git diff --stat 4f80330..HEAD -- content.js popup/popup.js options/options.js options/options.html shared/constants.js plans/archive/043-suggestion-loop-design.md`
 > If any in-scope file changed since this plan was written, compare the
 > "Current state" excerpts against the live code before proceeding; on a
 > mismatch, treat it as a STOP condition. (Also re-read the archived 043
@@ -18,9 +18,13 @@
 - **Priority**: P3
 - **Effort**: M
 - **Risk**: MED (state moves from memory to storage across three surfaces; design is pre-proven)
-- **Depends on**: `plans/archive/043-suggestion-loop-design.md` (read-only — committed, so no ordering constraint)
+- **Depends on**: `plans/archive/043-suggestion-loop-design.md` (read-only — committed, so no ordering constraint). **Run BEFORE plan 050** — this plan adds EN/ES-only locale keys (see STOP conditions). Shares popup/options/content/constants files with plan 053: run the two serially, not in parallel worktrees
 - **Category**: direction (build — implements a finished spike design)
-- **Planned at**: commit `ffdffab`, 2026-09-07
+- **Planned at**: commit `ffdffab`, 2026-09-07; refreshed in place at
+  `4f80330` (2026-09-13) after the plan-048 merge — line citations
+  re-verified, unit count 63→64, design-doc
+  line numbers mapped to live symbols, 056 conflict-guard interaction
+  added, scope check switched to `main...HEAD`, locale-ordering STOP added
 
 ## Why this matters
 
@@ -39,11 +43,35 @@ contains-mode one click away at suggestion time.
 Decisions inherited from the archived design (Step 1: read §§1–6, the open
 questions, and the verdict — the summary below does not replace them):
 
+- **Line numbers in the archived 043 design predate the plan-048 merge**
+  (e.g. it cites `content.js:816-826`, `popup/popup.js:128`,
+  `options/options.js:258-299`). Locate every design-cited site by SYMBOL,
+  never by line. Live anchors at `4f80330`:
+  - suggestion state `pendingSuggestions` / `dismissedSuggestions` —
+    `content.js:101-102`
+  - `getState` returning suggestions — `content.js:316`
+  - `case "addSuggestion"` — `content.js:400` (hardcoded `mode: "exact"` at
+    `:419`); dismiss handling — `content.js:434-441`
+  - suggestion derivation + dedupe guards — `content.js:772-774`
+  - popup offline fallback `suggestions: []` — `popup/popup.js:118`; popup
+    suggestion render — `popup/popup.js:242-245`
+  - options `handleAdd` — `options/options.js:249-290`; `renderExcluded` —
+    `options/options.js:1265`; `handleStarterPack` — `options/options.js:407`
+  - excluded-section markup — `options/options.html:552-557`
+  - the `:741` expectation is still at `tests/extension-interactions.js:741-745`
+    (asserts `.suggestion-item` count is `0` for the custom-phrase overlap
+    case), matching the design's description at
+    `plans/archive/043-suggestion-loop-design.md:390`
+- **If plan 056 (allow-phrases) has landed**, `handleAdd` also refuses a
+  custom phrase whose text equals an existing allow-phrase
+  (`allowConflictToast`). The Suggestions section's Add actions mirror
+  `handleAdd`'s validation, so they must apply that same guard. Check with
+  `grep -n "allowConflictToast" options/options.js`.
 - **Problem** (verified on the base tree by the spike): in-memory
   `pendingSuggestions`/`dismissedSuggestions`; popup-only surface gated on
   live state with `suggestions: []` hardcoded in the fallback
-  (`popup/popup.js:128`); Add always exact-mode (`content.js` addSuggestion
-  handler); dismissals evaporate on reload.
+  (`popup/popup.js:118` at `4f80330`); Add always exact-mode (`content.js`
+  addSuggestion handler, `content.js:400`/`:419`); dismissals evaporate on reload.
 - **Storage (decided)**: two keys in `chrome.storage.local`, written
   together — `ss_pending_suggestions` (array of `{word, timestamp}`,
   capped at 3, FIFO) and `ss_dismissed_suggestions` (array of strings,
@@ -84,7 +112,7 @@ questions, and the verdict — the summary below does not replace them):
 | Smoke     | `npm run smoke`          | executed   | exit 0              |
 | Lint      | `npm run lint`           | executed   | exit 0              |
 | Typecheck | `npm run typecheck`      | executed   | exit 0              |
-| Unit      | `npm run test:unit`      | executed   | 63/63 pass          |
+| Unit      | `npm run test:unit`      | executed   | 64/64 pass          |
 | Ext e2e   | `npm run test:extension` | declared   | exit 0              |
 | Pkg e2e   | `npm run test:package`   | declared   | exit 0              |
 
@@ -116,7 +144,7 @@ questions, and the verdict — the summary below does not replace them):
 Run the four executed commands unmodified; confirm tabled results. A
 `declared` failure is a broken baseline — STOP and report.
 
-**Verify**: smoke/lint/typecheck exit 0; unit 63/63 pass.
+**Verify**: smoke/lint/typecheck exit 0; unit 64/64 pass.
 
 ### Step 1: Read the design doc end to end
 
@@ -180,14 +208,21 @@ Machine-checkable. ALL must hold:
 - [ ] `npm run test:extension` + `npm run test:package` exit 0 with the new scenarios
 - [ ] Dismiss-then-reload e2e proves the dismissal persisted (fails on pre-build code by re-suggesting)
 - [ ] No exact-mode-only path remains for suggestions (options offers contains; popup behavior per the §5 decision, documented)
-- [ ] `git diff --name-only ffdffab..HEAD` lists only in-scope files
+- [ ] `git diff --name-only main...HEAD` (three dots — merge base) lists only in-scope files
+- [ ] Locale key sets in `_locales/en` and `_locales/es` are equal (symmetric difference empty)
+- [ ] If plan 056 landed: the Suggestions Add actions refuse a word equal to an existing allow-phrase (assert in the e2e)
 - [ ] `plans/README.md` status row updated
 
 ## STOP conditions
 
 Stop and report back (do not improvise) if:
 
-- The design doc's cited code (suggestion state lines, popup fallback, handleAdd) doesn't match live code.
+- `_locales/fr/`, `_locales/pt/`, or `_locales/de/` exists (check with
+  `ls _locales`). Plan 050 landed first and its parity check requires every
+  new key in all shipped locales. Do NOT add FR/PT/DE strings yourself —
+  unvalidated translations are what plan 050 forbids. Report it so the
+  maintainer can source translations or resequence.
+- A design-cited SYMBOL (suggestion state, popup fallback, handleAdd) is missing or behaves differently from what the design describes. Shifted line numbers alone are expected (see "Current state") and are NOT a STOP.
 - The :741 expectation change is not explained by the design — understand before editing; a surprising diff means drift.
 - Persisted state and in-memory state disagree after reload in a way the mirror model doesn't explain.
 - A step's verification fails twice after a reasonable fix attempt.
