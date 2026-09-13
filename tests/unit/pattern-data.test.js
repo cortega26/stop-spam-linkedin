@@ -9,6 +9,7 @@ const path = require("node:path");
 const {
   escapeRegex,
   buildPatterns,
+  buildAllowMatcher,
   isLinkedInHost,
   parseAuthorId,
   hashString,
@@ -20,6 +21,7 @@ const {
   matchesLabel,
   PROMOTED_LABELS,
   FEATURED_LABELS,
+  normalizeExcludedEntries,
 } = require(path.join(__dirname, "..", "..", "shared", "pattern-data.js"));
 
 test("escapeRegex escapes every regex-special character", () => {
@@ -284,6 +286,15 @@ test("estimateEntriesBytes counts key length plus serialized entries", () => {
   assert.equal(estimateEntriesBytes(map, "ss_excluded"), 62);
 });
 
+test("estimateEntriesBytes counts UTF-8 bytes, not UTF-16 units", () => {
+  /* "café" is 4 UTF-16 code units but 5 UTF-8 bytes (é = 2 bytes), so
+     the serialized form is one byte longer than .length reports. */
+  const map = new Map([["sig:abc", { preview: "café", created: 123 }]]);
+  const serialized = JSON.stringify([{ sig: "sig:abc", preview: "café", created: 123 }]);
+  assert.equal(serialized.length + 1, Buffer.byteLength(serialized, "utf8"));
+  assert.equal(estimateEntriesBytes(map, "ss_excluded"), "ss_excluded".length + Buffer.byteLength(serialized, "utf8"));
+});
+
 /* buildPatterns assembly branches (plan 034). `[]` langs means no
    built-ins, isolating the custom-phrase branches; EN/ES ids exercise the
    built-in filtering branches against the current pattern data. */
@@ -365,4 +376,77 @@ test("buildPatterns escapes regex metacharacters in custom phrases", () => {
   assert.equal(entry.regex.source, "\\ba\\.b\\*c\\b");
   assert.equal(entry.regex.test("value a.b*c here"), true);
   assert.equal(entry.regex.test("xa.b*cy"), false);
+});
+
+test("buildAllowMatcher matches case-insensitive substrings", () => {
+  const [entry] = buildAllowMatcher([{ text: "engagement bait" }], 120);
+  assert.equal(entry.text, "engagement bait");
+  assert.equal(entry.regex.flags, "i");
+  assert.equal(entry.regex.test("a post about ENGAGEMENT BAIT here"), true);
+  assert.equal(entry.regex.test("unrelated post"), false);
+});
+
+test("buildAllowMatcher escapes regex metacharacters in phrases", () => {
+  const [entry] = buildAllowMatcher([{ text: "c++ (free)" }], 120);
+  assert.equal(entry.regex.test("learn c++ (free) today"), true);
+  assert.equal(entry.regex.test("learn cxx free today"), false);
+});
+
+test("buildAllowMatcher drops over-length, empty, and non-string entries", () => {
+  const result = buildAllowMatcher(
+    [{ text: "x".repeat(121) }, { text: "" }, { text: "   " }, { text: 42 }, null, undefined, {}],
+    120
+  );
+  assert.deepEqual(result, []);
+  const kept = buildAllowMatcher([{ text: "  ok  " }], 120);
+  assert.deepEqual(kept.map((e) => e.text), ["ok"]);
+});
+
+test("buildAllowMatcher returns [] for empty or undefined input", () => {
+  assert.deepEqual(buildAllowMatcher([], 120), []);
+  assert.deepEqual(buildAllowMatcher(undefined, 120), []);
+});
+
+/* Match-tester inputs (plan 051): the tester's own first-match loop is
+   local to the options page, so its shared inputs are proven here — a
+   built-in hit attributes to its stable id, a custom hit wins attribution
+   over an overlapping built-in, an excluded text's signature is caught,
+   and an allow-phrase matcher covers text a custom phrase also matches
+   (the allow check runs before the pattern loop in the tester). */
+test("first-match order resolves a built-in hit to its stable id", () => {
+  const patterns = buildPatterns([], ["EN"], new Set(), 120);
+  const text = "comment CLAUDE and I'll send you the PDF";
+  const entry = patterns.find((e) => e.regex.test(text));
+  assert.equal(entry.source, "builtin");
+  assert.equal(entry.id, "EN-1");
+});
+
+test("first-match order attributes an overlapping text to the custom phrase", () => {
+  const patterns = buildPatterns([{ text: "CLAUDE", enabled: true }], ["EN"], new Set(), 120);
+  assert.equal(patterns[0].source, "custom");
+  const text = "comment CLAUDE and I'll send you the PDF";
+  const entry = patterns.find((e) => e.regex.test(text));
+  assert.equal(entry.source, "custom");
+  assert.equal(entry.label, "CLAUDE");
+  assert.equal(patterns[1].regex.test(text), true);
+});
+
+test("an excluded text's normalized signature is caught", () => {
+  const text = "comment CLAUDE and I'll send you the PDF";
+  const sig = getExcludedSignature(text);
+  const excluded = normalizeExcludedEntries(
+    [{ sig, preview: "comment CLAUDE", created: Date.now() }],
+    60
+  );
+  assert.equal(excluded.has(sig), true);
+  assert.equal(excluded.has(getExcludedSignature(text.toUpperCase())), true);
+  assert.equal(excluded.has(getExcludedSignature("some other post")), false);
+});
+
+test("an allow-phrase matcher covers text a custom phrase also matches", () => {
+  const custom = buildPatterns([{ text: "CLAUDE", enabled: true }], [], new Set(), 120);
+  const allow = buildAllowMatcher([{ text: "good news" }], 120);
+  const text = "comment CLAUDE and good news for you";
+  assert.equal(custom[0].regex.test(text), true);
+  assert.equal(allow[0].regex.test(text), true);
 });

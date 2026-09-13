@@ -64,7 +64,7 @@ La deteccion es heuristica, no magia. Puede pasar por alto nuevos formatos de sp
 
 **Estadisticas y cobertura**
 - Conteos de hoy, esta semana y de por vida en el popup
-- Paginas compatibles: feed, perfiles, publicaciones, paginas de empresa, grupos, busqueda, Mi red, notificaciones, empleos, newsletters y articulos
+- Paginas compatibles: feed, perfiles, publicaciones, paginas de empresa, paginas de escuela, paginas de showcase, grupos, busqueda, Mi red, notificaciones, empleos, newsletters y articulos
 
 ## Limites
 

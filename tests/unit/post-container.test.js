@@ -49,6 +49,36 @@ function postSection(id, body) {
     </section>`;
 }
 
+/* Plan 057 spike fixtures: the first comment-section coverage in the
+   suite. A post with a comments section beneath its body; the comment
+   list carries the given comment texts. `noKnownSelector` drops the
+   data-id (a surface where only the sibling heuristic can fire). */
+const COMMENT_TEXT = "comment CLAUDE and I'll send you the framework";
+const LONG_BODY = "y".repeat(320); /* > CONTENT_LENGTH_THRESHOLD (300) */
+
+function postWithComments(id, body, commentTexts, noKnownSelector) {
+  const dataId = noKnownSelector ? "" : `data-id="urn:li:activity:${id}"`;
+  const comments = commentTexts
+    .map((c) => `<div class="comment"><p class="comment-body">${c}</p></div>`)
+    .join("\n");
+  return `<section ${dataId}>
+      <div class="actor"><a href="/in/jane"><span>Jane Doe</span></a></div>
+      <p class="post-body">${body}</p>
+      <div class="comments">
+        <div class="comments-list">
+          ${comments}
+        </div>
+      </div>
+    </section>`;
+}
+
+function describeElement(el) {
+  if (!el) return "null";
+  const dataId = el.getAttribute("data-id") || "(none)";
+  const classes = el.className || "(none)";
+  return `<${el.tagName.toLowerCase()} data-id="${dataId}" class="${classes}">`;
+}
+
 test("findPostContainer returns the post section (data-id), not an inner element or body", () => {
   const { doc } = buildDom(`<main>
       <div id="feed">
@@ -239,4 +269,74 @@ test("findPostContainer survives throwing strategies", () => {
     findPostContainer(throwingTextNode, CONFIG, POST_SELECTORS, doc),
     null
   );
+});
+
+/* ── Plan 057 spike: what does a bait comment block? ────────────────
+   Characterization tests pinning the OBSERVED (not assumed) resolution
+   of findPostContainer for a text node inside a comment. They pin the
+   current behavior whatever it is; a later plan that deliberately
+   changes it must update them and say so. */
+
+test("spike: a lone bait comment under a post resolves to the POST (light thread)", () => {
+  const { doc } = buildDom(`<main>
+      <div id="feed">
+        ${postWithComments(1, LONG_BODY, [COMMENT_TEXT])}
+      </div>
+    </main>`);
+  const section = doc.querySelector("section");
+  const postBody = doc.querySelector(".post-body");
+  const baitComment = doc.querySelector(".comment");
+  const baitText = doc.querySelector(".comment-body").firstChild;
+
+  const result = findPostContainer(baitText, CONFIG, POST_SELECTORS, doc);
+  assert.equal(result, section, "resolved " + describeElement(result));
+  assert.equal(
+    result.contains(postBody),
+    true,
+    "post body would be hidden by the resolved container"
+  );
+  assert.notEqual(result, baitComment);
+});
+
+test("spike: a bait comment among heavy sibling comments resolves to the COMMENT (heavy thread)", () => {
+  const { doc } = buildDom(`<main>
+      <div id="feed">
+        ${postWithComments(2, LONG_BODY, [COMMENT_TEXT, LONG, LONG, LONG])}
+      </div>
+    </main>`);
+  const section = doc.querySelector("section");
+  const postBody = doc.querySelector(".post-body");
+  const baitComment = doc.querySelector(".comment");
+  const baitText = doc.querySelector(".comment-body").firstChild;
+
+  const result = findPostContainer(baitText, CONFIG, POST_SELECTORS, doc);
+  assert.equal(result, baitComment, "resolved " + describeElement(result));
+  assert.equal(
+    result.contains(postBody),
+    false,
+    "post body must not be hidden by the resolved container"
+  );
+  assert.notEqual(result, section);
+});
+
+test("spike: without a known post selector, a heavy thread still resolves to the COMMENT", () => {
+  const { doc } = buildDom(`<main>
+      <div id="feed">
+        ${postWithComments(3, LONG_BODY, [COMMENT_TEXT, LONG, LONG, LONG], true)}
+      </div>
+    </main>`);
+  const section = doc.querySelector("section");
+  const postBody = doc.querySelector(".post-body");
+  const baitComment = doc.querySelector(".comment");
+  const baitText = doc.querySelector(".comment-body").firstChild;
+
+  assert.equal(section.hasAttribute("data-id"), false, "fixture precondition");
+  const result = findPostContainer(baitText, CONFIG, POST_SELECTORS, doc);
+  assert.equal(result, baitComment, "resolved " + describeElement(result));
+  assert.equal(
+    result.contains(postBody),
+    false,
+    "post body must not be hidden by the resolved container"
+  );
+  assert.notEqual(result, section);
 });

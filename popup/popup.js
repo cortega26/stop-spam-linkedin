@@ -3,10 +3,6 @@
 
   const { STORAGE_KEYS, LIMITS } = globalThis.SS_CONSTANTS;
 
-  function t(key, subs) {
-    return chrome.i18n.getMessage(key, subs) || key;
-  }
-
   const toggleEl = /** @type {HTMLInputElement} */ (document.getElementById("toggleEnabled"));
   const countEl = document.getElementById("blockedCount");
   const resetBtn = document.getElementById("resetBtn");
@@ -48,12 +44,6 @@
         if (cb) cb(response);
       });
     });
-  }
-
-  function readRuntimeValue(localResult, syncResult, key, fallback) {
-    if (localResult[key] !== undefined) return localResult[key];
-    if (syncResult[key] !== undefined) return syncResult[key];
-    return fallback;
   }
 
   function migrateRuntimeState(syncResult, localResult) {
@@ -101,7 +91,7 @@
           (localResult) => {
             migrateRuntimeState(syncResult, localResult);
 
-            const snoozeUntil = readRuntimeValue(
+            const snoozeUntil = SS_readRuntimeValue(
               localResult,
               syncResult,
               STORAGE_KEYS.SNOOZE_UNTIL,
@@ -110,13 +100,13 @@
 
             cb({
               enabled: syncResult[STORAGE_KEYS.ENABLED] !== false,
-              blockedCount: readRuntimeValue(
+              blockedCount: SS_readRuntimeValue(
                 localResult,
                 syncResult,
                 STORAGE_KEYS.COUNT,
                 0
               ),
-              dailyCounts: readRuntimeValue(
+              dailyCounts: SS_readRuntimeValue(
                 localResult,
                 syncResult,
                 STORAGE_KEYS.DAILY_COUNTS,
@@ -180,7 +170,7 @@
 
   function renderState(response, hasLiveState) {
     showConnectionState(true);
-    connectionNotice.textContent = t("noLiveTabNotice");
+    connectionNotice.textContent = SS_t("noLiveTabNotice");
     connectionNotice.style.display = hasLiveState ? "none" : "block";
     showAllBtn.style.display = hasLiveState ? "" : "none";
     toggleEl.checked = response.enabled;
@@ -221,7 +211,7 @@
         if (item.label) {
           const match = document.createElement("span");
           match.className = "lb-match";
-          match.textContent = t("matchedLabel") + " " + item.label;
+          match.textContent = SS_t("matchedLabel") + " " + item.label;
           main.appendChild(match);
         }
         row.appendChild(main);
@@ -229,12 +219,12 @@
         const time = document.createElement("span");
         time.className = "lb-time";
         const ago = Math.round((Date.now() - item.timestamp) / 60000);
-        time.textContent = ago < 1 ? t("justNow") : ago + t("mAgo");
+        time.textContent = ago < 1 ? SS_t("justNow") : ago + SS_t("mAgo");
         row.appendChild(time);
 
         const undoBtn = document.createElement("button");
         undoBtn.className = "lb-undo";
-        undoBtn.textContent = t("undo");
+        undoBtn.textContent = SS_t("undo");
         undoBtn.addEventListener("click", () => {
           send({ action: "undoBlock", id: item.id }, (resp) => {
             if (resp && resp.ok) refreshState();
@@ -258,12 +248,12 @@
 
         const text = document.createElement("span");
         text.className = "suggestion-text";
-        text.textContent = t("add") + ' "' + s.word + '"?';
+        text.textContent = SS_t("add") + ' "' + s.word + '"?';
         row.appendChild(text);
 
         const addBtn = document.createElement("button");
         addBtn.className = "suggestion-add";
-        addBtn.textContent = t("add");
+        addBtn.textContent = SS_t("add");
         addBtn.addEventListener("click", () => {
           send({ action: "addSuggestion", word: s.word }, (resp) => {
             if (resp && resp.ok) refreshState();
@@ -274,8 +264,8 @@
         const dismissBtn = document.createElement("button");
         dismissBtn.className = "suggestion-dismiss";
         dismissBtn.textContent = "×";
-        dismissBtn.title = t("suggestionDismiss");
-        dismissBtn.setAttribute("aria-label", t("suggestionDismiss"));
+        dismissBtn.title = SS_t("suggestionDismiss");
+        dismissBtn.setAttribute("aria-label", SS_t("suggestionDismiss"));
         dismissBtn.addEventListener("click", () => {
           send({ action: "dismissSuggestion", word: s.word }, () => refreshState());
         });
@@ -290,12 +280,12 @@
     if (response.snoozed) {
       const until = new Date(response.snoozeUntil);
       snoozeStatus.textContent =
-        t("snoozedUntil") + " " + until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-      snoozeBtn.textContent = t("cancelSnooze");
+        SS_t("snoozedUntil") + " " + until.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+      snoozeBtn.textContent = SS_t("cancelSnooze");
       snoozeBtn.dataset.snoozing = "1";
     } else {
       snoozeStatus.textContent = "";
-      snoozeBtn.textContent = t("snooze30");
+      snoozeBtn.textContent = SS_t("snooze30");
       snoozeBtn.dataset.snoozing = "";
     }
   }
@@ -352,14 +342,14 @@
         );
       });
       resetBtn.dataset.confirming = "";
-      resetBtn.textContent = t("resetCount");
+      resetBtn.textContent = SS_t("resetCount");
     } else {
       resetBtn.dataset.confirming = "1";
-      resetBtn.textContent = t("clickToConfirm");
+      resetBtn.textContent = SS_t("clickToConfirm");
       setTimeout(() => {
         if (resetBtn.dataset.confirming === "1") {
           resetBtn.dataset.confirming = "";
-          resetBtn.textContent = t("resetCount");
+          resetBtn.textContent = SS_t("resetCount");
         }
       }, 3000);
     }

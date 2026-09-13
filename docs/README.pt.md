@@ -64,7 +64,7 @@ A deteccao e heuristica, nao magia. Ela pode perder novos formatos de spam e, oc
 
 **Estatisticas e cobertura**
 - Contagens de hoje, desta semana e de todo o periodo no popup
-- Paginas compativeis: feed, perfis, publicacoes, paginas de empresa, grupos, busca, Minha rede, notificacoes, vagas, newsletters e artigos
+- Paginas compativeis: feed, perfis, publicacoes, paginas de empresa, paginas de escola, paginas de showcase, grupos, busca, Minha rede, notificacoes, vagas, newsletters e artigos
 
 ## Limites
 

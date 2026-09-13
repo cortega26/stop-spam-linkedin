@@ -69,7 +69,7 @@ Detection is heuristic, not magic. It can miss new spam formats, and it can occa
 
 **Stats & coverage**
 - Today, this week, and lifetime blocked counts in the popup
-- Supported pages: feed, profiles, posts, company pages, groups, search, My Network, notifications, jobs, newsletters, and articles
+- Supported pages: feed, profiles, posts, company pages, school pages, showcase pages, groups, search, My Network, notifications, jobs, newsletters, and articles
 
 ## Limits
 

@@ -830,6 +830,71 @@ async function main() {
       "expected the page URL in the report payload"
     );
 
+    /* ── School page coverage (plan 055) ── */
+
+    /* The school surface was already a first-class author identity in
+       SS_parseAuthorId and the context menu, but the content script never
+       ran there. Navigate a school URL to the same mock feed and assert
+       the same blocking behavior as the feed scenario. */
+    await context.route("https://www.linkedin.com/school/**", (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: mockLinkedInFeed,
+      });
+    });
+
+    await page.goto("https://www.linkedin.com/school/example-university/", {
+      waitUntil: "domcontentloaded",
+    });
+
+    const schoolPlaceholder = page.locator("[data-ss-ph]");
+    await schoolPlaceholder.waitFor({ state: "visible", timeout: 10000 });
+
+    await assertCount(page.locator("[data-ss-ph]"), 1);
+    await assert.equal(
+      await page.locator('[data-id="urn:li:activity:spam-1"]').evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected spam post to be hidden on the school page"
+    );
+    await assert.notEqual(
+      await page.locator('[data-id="urn:li:activity:clean-1"]').evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected clean post to remain visible on the school page"
+    );
+
+    /* ── Showcase page coverage (plan 055) ── */
+
+    /* Same gap and same shape as the school scenario: the showcase
+       surface is a first-class author identity in SS_parseAuthorId and
+       the context menu, so the content script must scan it too. */
+    await context.route("https://www.linkedin.com/showcase/**", (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: mockLinkedInFeed,
+      });
+    });
+
+    await page.goto("https://www.linkedin.com/showcase/example-product/", {
+      waitUntil: "domcontentloaded",
+    });
+
+    const showcasePlaceholder = page.locator("[data-ss-ph]");
+    await showcasePlaceholder.waitFor({ state: "visible", timeout: 10000 });
+
+    await assertCount(page.locator("[data-ss-ph]"), 1);
+    await assert.equal(
+      await page.locator('[data-id="urn:li:activity:spam-1"]').evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected spam post to be hidden on the showcase page"
+    );
+    await assert.notEqual(
+      await page.locator('[data-id="urn:li:activity:clean-1"]').evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected clean post to remain visible on the showcase page"
+    );
+
     console.log("Extension smoke test passed.");
   } finally {
     await context.close();
