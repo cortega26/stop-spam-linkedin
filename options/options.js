@@ -57,9 +57,13 @@
   const testInput = /** @type {HTMLTextAreaElement} */ (document.getElementById("testInput"));
   const testBtn = document.getElementById("testBtn");
   const testResult = document.getElementById("testResult");
+  const welcomeCard = document.getElementById("welcomeCard");
+  const welcomeDismissBtn = document.getElementById("welcomeDismissBtn");
 
   /* ── Bootstrap ──────────────────────────────────────────────── */
   load();
+  loadWelcomeState();
+  welcomeDismissBtn.addEventListener("click", dismissWelcome);
   addBtn.addEventListener("click", handleAdd);
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") handleAdd();
@@ -125,6 +129,25 @@
   window.addEventListener("beforeunload", () => clearTimeout(toastTimer));
 
   /* ── Storage ────────────────────────────────────────────────── */
+
+  function loadWelcomeState() {
+    chrome.storage.local.get([STORAGE_KEYS.WELCOME_PENDING],
+      /** @param {{ [key: string]: any }} result */
+      (result) => {
+      if (result[STORAGE_KEYS.WELCOME_PENDING] === true) {
+        welcomeCard.style.display = "block";
+      }
+    });
+  }
+
+  function dismissWelcome() {
+    welcomeCard.style.display = "none";
+    chrome.storage.local.set({ [STORAGE_KEYS.WELCOME_PENDING]: false }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Failed to clear welcome flag (local.set):", chrome.runtime.lastError.message);
+      }
+    });
+  }
 
   function load() {
     chrome.storage.sync.get([PHRASES_STORAGE_KEY, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.DISABLED_PATTERNS, STORAGE_KEYS.HIDE_PROMOTED, STORAGE_KEYS.HIDE_FEATURED, STORAGE_KEYS.ALLOW_PHRASES],

@@ -322,6 +322,7 @@
       color: var(--text-secondary);
       margin-bottom: 8px;
     }
+    .welcome-body { font-size: 13px; color: var(--text-secondary); margin-bottom: 6px; }
     .lang-toggles {
       display: flex;
       flex-wrap: wrap;
@@ -516,6 +517,17 @@
     __MSG_settingsTitle__
   </h1>
   <div class="subtitle">__MSG_pageSubtitle__</div>
+
+  <!-- First-run welcome (plan 058) -->
+  <div class="lang-section" id="welcomeCard" style="display:none">
+    <div class="lang-section-title">__MSG_welcomeTitle__</div>
+    <div class="welcome-body">__MSG_welcomeIntro__</div>
+    <div class="welcome-body">__MSG_welcomeStepDetect__</div>
+    <div class="welcome-body">__MSG_welcomeStepTune__</div>
+    <div class="welcome-body">__MSG_welcomeStepRestore__</div>
+    <div class="welcome-body">__MSG_welcomeStepPrivacy__</div>
+    <button class="action-bar-button" id="welcomeDismissBtn">__MSG_welcomeDismiss__</button>
+  </div>
 
   <!-- Add -->
   <div class="add-row">
