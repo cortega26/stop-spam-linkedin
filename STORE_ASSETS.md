@@ -12,9 +12,8 @@ Stop LinkedIn engagement-bait spam and clean up your feed — automatically, pri
 
 LinkedIn's feed is full of "comment CLAUDE and I'll send you the
 framework" posts — low-effort engagement bait that clogs your feed,
-wastes your time, and adds nothing. LinkedIn's own reporting often
-leaves them up, because empty comments are exactly what the algorithm
-rewards.
+wastes your time, and adds nothing. Reporting them barely helps: empty
+comments are exactly what the algorithm rewards.
 
 LinkedIn Spam Blocker removes them for you — automatically, locally,
 and with zero effort on your part. Install it, open LinkedIn, and the
@@ -24,44 +23,50 @@ spam disappears while real professional content stays.
 
 - **It does the work for you** — 10 built-in detection patterns across
   5 languages (English, Spanish, French, Portuguese, German) catch the
-  most common spam structures as you scroll. No setup, no lists to
-  maintain.
+  most common spam structures as you scroll, including school and
+  showcase feeds. No setup, no lists to maintain.
 - **It learns and adapts** — add your own phrases, block authors you
   don't want to see, whitelist the ones you do, and teach it what's
   spam in your feed.
-- **You stay in control** — every hidden post shows a subtle
-  placeholder: restore it, mark it as "not spam", report a missed one
-  to the developer, or hide an author entirely — all from the feed
-  itself.
+- **It makes mistakes easy to fix** — every hidden post leaves a subtle
+  placeholder: restore it, mark it "Not spam", block its author, or
+  report it to the developer. Bait in a comment hides just the comment,
+  never the innocent post underneath.
+- **It shows its work** — see which patterns actually block for you,
+  test any post text against your rules before you rely on them, and
+  tune every pattern individually.
 - **It respects you** — zero analytics, zero telemetry, zero network
   requests. Everything runs in your browser. Nothing leaves your
   machine, ever.
-- **It just works** — Manifest V3 for Chrome and Firefox, works across
-  feed, profiles, posts, company pages, groups, search, and more.
+- **It just works** — Manifest V3 for Chrome and Firefox, across feed,
+  profiles, posts, company, school, and showcase pages.
 
 ### Features
 
 - **Automatic detection** — 10 built-in patterns across 5 languages
-- **"Block this author"** — from any blocked post's placeholder or a
-  profile-link right-click, hide every post from that author feed-wide
+- **"Never-hide phrases"** — name text once and no post containing it
+  is ever hidden, even when a pattern matches
+- **Match tester** — paste a post and see exactly which pattern or
+  phrase would block it
+- **Per-pattern stats** — see how often each pattern earns its keep
+- **Comment-level blocking** — bait in a comment hides the comment,
+  not the post
+- **"Block this author"** — hide every post from that author, from any
+  placeholder or profile-link right-click
 - **Author whitelist** — never block the people you actually want to see
 - **Custom phrases** — exact or contains matching; right-click any text
   to add it instantly
+- **Persistent suggestions** — one-click "add as exact" or "add as
+  contains" for suggested trigger words; dismissals are remembered
 - **Full settings backup** — export and import phrases, whitelist,
   blocklist, disabled patterns, and hide toggles
-- **Per-pattern toggles** — disable a single pattern, not a whole
-  language
-- **Match attribution** — see which pattern or phrase triggered each
-  block
 - **"Report missed spam"** — placeholders copy the post text to your
   clipboard and open a pre-filled GitHub issue (reports include which
   language matched); nothing is sent automatically
-- **"Show all"** — restore everything hidden this session with one
-  click
-- **Snooze** — pause blocking for 30 minutes
-- **Hide Promoted & Featured** — optional feed-hygiene toggles
-- **Undo and false-positive controls** — "Show", "Not spam", and
-  exclusion review from the settings page
+- **First-run walkthrough** — new installs get a guided tour of what
+  the extension does and how to tune it
+- **Snooze, "Show all", hide Promoted & Featured** — pause, restore,
+  and tune your feed
 - **Privacy-first** — local-only, zero data collection
 - **Chrome & Firefox** — fully compatible (Manifest V3)
 
@@ -90,9 +95,8 @@ Detén el spam de engagement de LinkedIn y limpia tu feed — automáticamente, 
 
 El feed de LinkedIn está lleno de publicaciones de "comenta CLAUDE y te
 enviaré el framework" — engagement bait de bajo esfuerzo que satura tu
-feed, pierde tu tiempo y no aporta nada. Los reportes de LinkedIn a
-menudo dejan estas publicaciones intactas, porque los comentarios vacíos
-son exactamente lo que el algoritmo recompensa.
+feed, pierde tu tiempo y no aporta nada. Reportarlas apenas ayuda: los
+comentarios vacíos son exactamente lo que el algoritmo recompensa.
 
 LinkedIn Spam Blocker las elimina por ti — automáticamente, de forma
 local y con cero esfuerzo de tu parte. Instálalo, abre LinkedIn y el
@@ -102,53 +106,67 @@ spam desaparece mientras el contenido profesional real se queda.
 
 - **Hace el trabajo por ti** — 10 patrones de detección integrados en
   5 idiomas (inglés, español, francés, portugués y alemán) detectan las
-  estructuras de spam más comunes mientras te desplazas. Sin configuración,
-  sin listas que mantener.
-- **Aprende y se adapta** — agrega tus propias frases, bloquea autores que
-  no quieres ver, permite a los que sí y enséñale qué es spam en tu feed.
-- **Tú mantienes el control** — cada publicación oculta muestra un marcador
-  sutil: restáurala, márcala como "No es spam", reporta una no detectada al
-  desarrollador u oculta un autor por completo — todo desde el feed mismo.
-- **Te respeta** — cero analíticas, cero telemetría, cero solicitudes de red.
-  Todo se ejecuta en tu navegador. Nada sale de tu máquina, nunca.
-- **Simplemente funciona** — Manifest V3 para Chrome y Firefox, funciona en
-  feed, perfiles, publicaciones, páginas de empresa, grupos, búsqueda y más.
+  estructuras de spam más comunes mientras te desplazas, también en
+  feeds de escuelas y de showcase. Sin configuración, sin listas que
+  mantener.
+- **Aprende y se adapta** — agrega tus propias frases, bloquea autores
+  que no quieres ver, permite a los que sí y enséñale qué es spam en tu
+  feed.
+- **Es fácil corregir sus errores** — cada publicación oculta deja un
+  marcador sutil: restáurala, márcala como "No es spam", bloquea a su
+  autor o repórtala al desarrollador. El spam en un comentario oculta
+  solo el comentario, nunca la publicación inocente.
+- **Muestra su trabajo** — mira qué patrones bloquean de verdad, prueba
+  cualquier texto contra tus reglas antes de confiar en ellas y ajusta
+  cada patrón por separado.
+- **Te respeta** — cero analíticas, cero telemetría, cero solicitudes de
+  red. Todo se ejecuta en tu navegador. Nada sale de tu máquina, nunca.
+- **Simplemente funciona** — Manifest V3 para Chrome y Firefox, en
+  feed, perfiles, publicaciones, páginas de empresa, de escuela y de
+  showcase.
 
 ### Funciones
 
 - **Detección automática** — 10 patrones integrados en 5 idiomas
-- **"Bloquear a este autor"** — desde el marcador de cualquier publicación
-  bloqueada o con clic derecho en un enlace de perfil, oculta todas las
-  publicaciones de ese autor en todo el feed
-- **Lista de autores permitidos** — nunca bloquees a las personas que sí
-  quieres ver
-- **Frases personalizadas** — coincidencia exacta o "contiene"; haz clic
+- **"Frases que nunca se ocultan"** — nombra un texto una vez y ninguna
+  publicación que lo contenga se ocultará jamás, aunque coincida con un
+  patrón
+- **Probador de coincidencias** — pega una publicación y mira
+  exactamente qué patrón o frase la bloquearía
+- **Estadísticas por patrón** — mira cuánto bloquea cada patrón
+- **Bloqueo a nivel de comentario** — el spam en un comentario oculta
+  el comentario, no la publicación
+- **"Bloquear a este autor"** — oculta todas las publicaciones de un
+  autor, desde cualquier marcador o clic derecho en un enlace de perfil
+- **Lista de autores permitidos** — nunca bloquees a las personas que
+  sí quieres ver
+- **Frases personalizadas** — coincidencia exacta o "contiene"; clic
   derecho en cualquier texto para agregarla al instante
+- **Sugerencias persistentes** — agrega palabras sugeridas con un clic
+  como "exacta" o "contiene"; los descartes se recuerdan
 - **Copia de seguridad completa** — exporta e importa frases, autores
-  permitidos, lista de autores bloqueados, patrones desactivados y toggles
-  de ocultar
-- **Toggles por patrón** — desactiva un solo patrón, no un idioma completo
-- **Atribución de coincidencia** — mira qué patrón o frase disparó cada
-  bloqueo
-- **"Reportar spam no detectado"** — los marcadores copian el texto de la
-  publicación al portapapeles y abren un issue de GitHub prellenado (los
-  reportes incluyen qué idioma coincidió); no se envía nada automáticamente
-- **"Mostrar todas"** — restaura todo lo oculto en la sesión con un clic
-- **Pausa (Snooze)** — pausa el bloqueo durante 30 minutos
-- **Ocultar promocionadas y destacadas** — toggles opcionales de higiene del
-  feed
-- **Deshacer y controles de falsos positivos** — "Mostrar", "No es spam" y
-  revisión de exclusiones desde la página de ajustes
+  permitidos, autores bloqueados, patrones desactivados y toggles de
+  ocultar
+- **"Reportar spam no detectado"** — los marcadores copian el texto de
+  la publicación al portapapeles y abren un issue de GitHub prellenado
+  (los reportes incluyen qué idioma coincidió); no se envía nada
+  automáticamente
+- **Guía de bienvenida** — las instalaciones nuevas reciben un
+  recorrido guiado por lo que hace la extensión y cómo ajustarla
+- **Pausa, "Mostrar todas", ocultar promocionadas y destacadas** —
+  pausa, restaura y ajusta tu feed
 - **Privacidad primero** — solo local, cero recopilación de datos
 - **Chrome y Firefox** — totalmente compatible (Manifest V3)
 
 ### Lo que no hace
 
-- No reporta publicaciones a LinkedIn ni interactúa con los servidores de LinkedIn
+- No reporta publicaciones a LinkedIn ni interactúa con los servidores
+  de LinkedIn
 - No elimina publicaciones para nadie más
 - No bloquea cuentas globalmente
 - No usa IA, APIs externas ni listas remotas
-- No recopila analíticas, telemetría, historial de navegación ni datos de cuenta de LinkedIn
+- No recopila analíticas, telemetría, historial de navegación ni datos
+  de cuenta de LinkedIn
 
 ### Instálalo una vez. Olvídate de que está. Vuelve a disfrutar tu feed.
 
