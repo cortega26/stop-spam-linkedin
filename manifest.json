@@ -35,6 +35,8 @@
         "https://www.linkedin.com/in/*",
         "https://www.linkedin.com/posts/*",
         "https://www.linkedin.com/company/*",
+        "https://www.linkedin.com/school/*",
+        "https://www.linkedin.com/showcase/*",
         "https://www.linkedin.com/groups/*",
         "https://www.linkedin.com/search/*",
         "https://www.linkedin.com/mynetwork/*",

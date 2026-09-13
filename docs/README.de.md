@@ -64,7 +64,7 @@ Die Erkennung ist heuristisch, nicht magisch. Sie kann neue Spam-Formate verpass
 
 **Statistiken und Abdeckung**
 - Zaehler fuer heute, diese Woche und insgesamt im Popup
-- Unterstuetzte Seiten: Feed, Profile, Beitraege, Unternehmensseiten, Gruppen, Suche, Mein Netzwerk, Benachrichtigungen, Jobs, Newsletter und Artikel
+- Unterstuetzte Seiten: Feed, Profile, Beitraege, Unternehmensseiten, Schulseiten, Showcase-Seiten, Gruppen, Suche, Mein Netzwerk, Benachrichtigungen, Jobs, Newsletter und Artikel
 
 ## Grenzen
 
