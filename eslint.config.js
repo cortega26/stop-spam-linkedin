@@ -29,6 +29,7 @@ const browserExtensionGlobals = {
   clearInterval: "readonly",
   SS_PATTERN_DATA: "readonly",
   SS_buildPatterns: "readonly",
+  SS_buildAllowMatcher: "readonly",
   SS_escapeRegex: "readonly",
   SS_isLinkedInHost: "readonly",
   SS_parseAuthorId: "readonly",

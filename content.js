@@ -97,6 +97,9 @@
   /* User phrases (for checking if a match was built-in or custom). */
   let userPhrases = [];
 
+  /* Compiled allow-phrases — text the user never wants hidden. */
+  let allowMatchers = [];
+
   /* Pending suggestions (trigger words from built-in matches). */
   let pendingSuggestions = [];
   let dismissedSuggestions = new Set();
@@ -158,7 +161,7 @@
   document.head.appendChild(style);
 
   chrome.storage.sync.get(
-    [STORAGE_KEYS.ENABLED, STORAGE_KEYS.COUNT, STORAGE_KEYS.ONBOARDED, STORAGE_KEYS.DAILY_COUNTS, STORAGE_KEYS.SNOOZE_UNTIL, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.DISABLED_PATTERNS, STORAGE_KEYS.HIDE_PROMOTED, STORAGE_KEYS.HIDE_FEATURED, PHRASES_STORAGE_KEY],
+    [STORAGE_KEYS.ENABLED, STORAGE_KEYS.COUNT, STORAGE_KEYS.ONBOARDED, STORAGE_KEYS.DAILY_COUNTS, STORAGE_KEYS.SNOOZE_UNTIL, STORAGE_KEYS.EXCLUDED, STORAGE_KEYS.ALLOW_PHRASES, STORAGE_KEYS.LANGS, STORAGE_KEYS.WHITELIST, STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.DISABLED_PATTERNS, STORAGE_KEYS.HIDE_PROMOTED, STORAGE_KEYS.HIDE_FEATURED, PHRASES_STORAGE_KEY],
     /** @param {{ [key: string]: any }} syncResult */
     (syncResult) => {
       chrome.storage.local.get(
@@ -206,6 +209,7 @@
           hideFeatured = syncResult[STORAGE_KEYS.HIDE_FEATURED] === true;
           spamPatterns = SS_buildPatterns(syncResult[PHRASES_STORAGE_KEY], enabledLangs, disabledPatterns, LIMITS.MAX_PHRASE_LENGTH);
           userPhrases = syncResult[PHRASES_STORAGE_KEY] || [];
+          allowMatchers = SS_buildAllowMatcher(syncResult[STORAGE_KEYS.ALLOW_PHRASES] || [], LIMITS.MAX_PHRASE_LENGTH);
           if (!enabled) return;
           if (Date.now() < snoozeUntil) {
             syncSnoozeState(snoozeUntil);
@@ -261,6 +265,10 @@
       }
       if (changes[STORAGE_KEYS.EXCLUDED]) {
         excludedSignatures = SS_normalizeExcludedEntries(changes[STORAGE_KEYS.EXCLUDED].newValue || [], CONFIG.EXCLUSION_PREVIEW_LENGTH);
+      }
+      if (changes[STORAGE_KEYS.ALLOW_PHRASES]) {
+        allowMatchers = SS_buildAllowMatcher(changes[STORAGE_KEYS.ALLOW_PHRASES].newValue || [], LIMITS.MAX_PHRASE_LENGTH);
+        restoreAllowedPosts();
       }
       if (changes[STORAGE_KEYS.LANGS]) {
         enabledLangs = changes[STORAGE_KEYS.LANGS].newValue || [...DEFAULT_ENABLED_LANGS];
@@ -517,9 +525,14 @@
   /* Returns the matched pattern entry ({ regex, label, source }) or null.
      Because SS_buildPatterns orders custom phrases first, a text covered by
      both a custom phrase and a built-in pattern attributes to the custom
-     phrase. */
+     phrase. Allow-phrases short-circuit before any pattern: a post
+     containing user-named never-hide text is never hidden, even when a
+     custom phrase or built-in pattern also matches (plan 056 Decision 1). */
   function findMatch(text) {
     if (excludedSignatures.has(SS_getExcludedSignature(text))) return null;
+    for (const allow of allowMatchers) {
+      if (allow.regex.test(text)) return null;
+    }
     for (const entry of spamPatterns) {
       if (entry.regex.test(text)) return entry;
     }
@@ -1039,6 +1052,24 @@
     for (const post of blockedPosts) {
       if (labelBlockedPosts.has(post)) continue;
       if (getAuthorId(post) === authorId) restorePost(post);
+    }
+  }
+
+  /* Un-hide posts an allow-phrase now pardons. Mirrors
+     restoreAuthorPosts, including the labelBlockedPosts guard: posts
+     hidden by the Promoted/Featured toggles are not text-blocked and
+     must never be un-hidden by a text pardon. */
+  function restoreAllowedPosts() {
+    if (allowMatchers.length === 0) return;
+    for (const post of blockedPosts) {
+      if (labelBlockedPosts.has(post)) continue;
+      const text = post.textContent || "";
+      for (const allow of allowMatchers) {
+        if (allow.regex.test(text)) {
+          restorePost(post);
+          break;
+        }
+      }
     }
   }
 

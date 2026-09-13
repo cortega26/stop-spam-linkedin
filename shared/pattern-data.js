@@ -151,6 +151,28 @@
   }
 
   /**
+   * Compiles allow-phrases ("never hide a post containing this text") into
+   * case-insensitive substring matchers. Allow-phrases have no exact mode
+   * by design: a pardon should be forgiving (plan 056 Decision 2).
+   * @param {Array<{text: string}>} allowPhrases
+   * @param {number} maxPhraseLength Phrase length cap (LIMITS.MAX_PHRASE_LENGTH).
+   * @returns {Array<{regex: RegExp, text: string}>}
+   */
+  function buildAllowMatcher(allowPhrases, maxPhraseLength) {
+    return (allowPhrases || [])
+      .filter((p) => (
+        p &&
+        typeof p.text === "string" &&
+        p.text.trim().length > 0 &&
+        p.text.trim().length <= maxPhraseLength
+      ))
+      .map((p) => {
+        const text = p.text.trim();
+        return { regex: new RegExp(escapeRegex(text), "i"), text };
+      });
+  }
+
+  /**
    * True when hostname is linkedin.com or a subdomain of it.
    * @param {string} hostname Hostname without protocol.
    * @returns {boolean}
@@ -516,6 +538,7 @@
   root.SS_matchesLabel = matchesLabel;
   root.SS_escapeRegex = escapeRegex;
   root.SS_buildPatterns = buildPatterns;
+  root.SS_buildAllowMatcher = buildAllowMatcher;
   root.SS_isLinkedInHost = isLinkedInHost;
   root.SS_parseAuthorId = parseAuthorId;
   root.SS_hashString = hashString;
@@ -541,6 +564,7 @@
       matchesLabel,
       escapeRegex,
       buildPatterns,
+      buildAllowMatcher,
       isLinkedInHost,
       parseAuthorId,
       hashString,
