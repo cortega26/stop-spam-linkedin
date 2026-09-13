@@ -309,3 +309,118 @@ Stop and report back (do not improvise) if:
   side effect). Unblocked by: a BENIGN or CONFIRMED verdict here — under
   BENIGN it is already happening and only needs documenting; under CONFIRMED
   it becomes candidate fix (b).
+
+## Spike deliverable
+
+Measured on 2026-09-13 at commit `9007f0a` by plan 057's executor (unit
+suite: 72/72 baseline → 75/75 with the three spike fixtures).
+
+### Result: NO SINGLE VERDICT — the outcome depends on thread weight
+
+Per this plan's STOP condition ("The three fixtures disagree with each
+other in a way that makes a single verdict dishonest"), a single
+CONFIRMED / BENIGN verdict would be an overclaim: the light-thread shape
+is post-level, the heavy-thread shape is comment-level. All three
+measurements are reported; the representative shape is recommended below.
+Nothing was averaged.
+
+### Step 2 measurement table (jsdom, `findPostContainer(baitTextNode, CONFIG, POST_SELECTORS, doc)`)
+
+| Fixture | Resolved element | Is it the post? | Is it the comment? | Post text hidden? |
+|---|---|---|---|---|
+| A — light thread (post body >300 chars + ONE bait comment, no other heavy siblings) | `<section data-id="urn:li:activity:1">` | **yes** (the post section itself) | no (it merely contains the comment) | **YES — the innocent post's body would be hidden** |
+| B — heavy thread (same post + bait comment among 3 sibling comments, each >100 chars) | `<div class="comment">` (the bait comment itself) | no | **yes** (the comment element) | no |
+| C — no `data-id` / no known selector (same as B, post element bare) | `<div class="comment">` (the bait comment itself) | no | **yes** (the comment element) | no |
+
+Mechanism, from the observed resolutions:
+
+- **A**: the sibling heuristic walks up and never finds ≥2 heavy siblings at
+  any level below the post (the single comment is lightweight), then the
+  depth ≥ 4 + `CONTENT_LENGTH_THRESHOLD` branch (or the known-selectors
+  walk) lands on the post section → `blockPost` hides the whole post.
+- **B/C**: the comment list carries 3 siblings > 100 chars, so the sibling
+  heuristic accepts the comment level (`heavySiblings ≥ 2`, grandparent
+  check fails → return the comment element) → only the comment is hidden.
+
+### Step 3 browser observation (Playwright Chromium, real content script)
+
+Probe: the mock feed in `tests/helpers.js` was extended (working-tree
+only, then dropped) with a clean post + one bait comment beneath it
+(light-thread shape = fixture A), and the extension ran against it.
+
+- `npm run test:extension` did NOT run to completion: the smoke suite
+  failed at `tests/extension-smoke.js:54` with **"strict mode violation:
+  locator('[data-ss-ph]') resolved to 2 elements"** — i.e. a second
+  placeholder existed beyond the known spam post (the smoke suite asserts
+  exactly one blocked element, so the probe structurally breaks it).
+- A temporary observation script then dumped the DOM state (with no
+  whitelist set, so 3 blocks occurred — spam, whitelisted-author post,
+  probe post): the probe post section
+  `[data-id="urn:li:activity:probe-1"]` was `display: none` with a
+  placeholder inserted after it, while the post's comment element itself
+  was NOT individually hidden. The clean control post stayed visible.
+- **Observed: the innocent post was hidden by its bait comment** — the
+  jsdom fixture A result was confirmed end-to-end in a real browser. The
+  probe was dropped (`git checkout tests/helpers.js`); it is NOT kept as a
+  reproduction case because no single verdict was reached (the decision on
+  which shape to pin belongs to the maintainer).
+
+### Which outcome holds
+
+**None of the three alone.** The evidence is a conditional:
+
+- **CONFIRMED — post-level, in the light-thread shape** (a bait comment
+  as the only/first comment under a post hides the whole innocent post).
+  This is the false-positive class this spike was created to find, and it
+  exists.
+- **BENIGN — comment-level, in the heavy-thread shape** (bait comment
+  among several substantial sibling comments → only the comment is
+  hidden).
+
+**Representativeness recommendation**: fixture A's light-thread shape is
+the one that demonstrates the false-positive class (the harm case), and a
+bait comment being the first/only comment on a fresh post is a common
+placement strategy. Fixture B/C's heavy-thread shape is already benign and
+should stay pinned as-is. If the maintainer wants a single direction, the
+recommendation is to treat the light-thread shape as the danger case and
+have a build plan address it — but the heavy-thread shape must be
+preserved as the baseline behavior. This is a recommendation, not a
+verdict: which shape dominates real feeds is unmeasured (see confidence
+line), so the build decision belongs to the maintainer.
+
+Since the post-level outcome IS observed in fixture A, the two candidate
+fixes from the plan are sketched here for the build decision (NOT
+implemented — this spike ships no behavior change):
+
+- (a) Reject text nodes inside comment subtrees in `makeTextFilter`
+  (content.js). Cost: needs a comment-subtree signal that survives
+  LinkedIn class churn — LinkedIn's comment markup classes change; a
+  class-based guard is brittle, and there is no stable DOM signal
+  verified here (no real markup captured). Higher structural risk than
+  (b).
+- (b) Block the comment element rather than the post when the matched
+  text resolves below the post level. Cost: `blockPost` must accept a
+  non-post element (it currently assumes a post container for
+  author-id/cooldown/undo bookkeeping) and the placeholder must read
+  sensibly inline. Lower structural risk; reuses the existing
+  post-container resolution.
+- Recommended: **(b)**, because it needs no new comment-markup signal and
+  works regardless of thread weight; (a) additionally requires a
+  comment-subtree detector that this spike could not verify.
+- Regression test any build plan must include: the three fixtures in
+  `tests/unit/post-container.test.js` added here, updated to the intended
+  behavior — under a fix, fixture A must resolve to the comment (or the
+  comment must be skipped), and B/C must continue resolving to the
+  comment.
+
+### Confidence line
+
+Synthetic fixtures only — no access to real LinkedIn comment markup; that
+gap is bounded by the plan's deferred "capture real comment DOM" task. Two
+assumptions worth stating: the fixtures use `<div>` for comment elements —
+if real LinkedIn comment markup uses `<article>`, the known-selectors walk
+(`article` is in `POST_SELECTORS`) would resolve a bait comment to the
+comment element even in the light-thread shape, flipping fixture A to
+benign; and real comment-section class names were not verified. The
+verdict travels as far as those assumptions hold; a real-DOM capture turns
+it definitive.
