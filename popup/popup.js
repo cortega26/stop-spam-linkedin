@@ -90,7 +90,9 @@
             STORAGE_KEYS.DAILY_COUNTS,
             STORAGE_KEYS.PATTERN_COUNTS,
             STORAGE_KEYS.SNOOZE_UNTIL,
+            STORAGE_KEYS.PENDING_SUGGESTIONS,
           ],
+          /** @param {{ [key: string]: any }} localResult */
           (localResult) => {
             migrateRuntimeState(syncResult, localResult);
 
@@ -119,7 +121,15 @@
               snoozeUntil,
               snoozed: Date.now() < snoozeUntil,
               lastBlocked: [],
-              suggestions: [],
+              /* Plan 054 §5 decision (read-only fallback): with no live
+                 tab, render the persisted queue so suggestions survive
+                 reload; Add/Dismiss stay on the live path (or options)
+                 to avoid duplicating the content-script validation. */
+              suggestions: SS_normalizePendingSuggestions(
+                localResult[STORAGE_KEYS.PENDING_SUGGESTIONS] || [],
+                LIMITS.MAX_PHRASE_LENGTH,
+                LIMITS.MAX_PENDING_SUGGESTIONS
+              ),
             });
           }
         );
@@ -281,10 +291,20 @@
       lastBlockedSection.style.display = "none";
     }
 
-    /* Suggestions */
-    if (hasLiveState && response.suggestions && response.suggestions.length > 0) {
+    /* Suggestions: rendered whenever the list is non-empty (design §5
+       drops the hasLiveState gate). Add/Dismiss buttons only exist on the
+       live path — the fallback is read-only (see §5 decision in
+       getStoredState) and shows a hint pointing to a LinkedIn tab. */
+    if (response.suggestions && response.suggestions.length > 0) {
       suggestionSection.style.display = "block";
       suggestionList.innerHTML = "";
+      if (!hasLiveState) {
+        const hint = document.createElement("div");
+        hint.className = "suggestion-fallback-hint connection-notice";
+        hint.style.display = "block";
+        hint.textContent = SS_t("suggestionsFallbackHint");
+        suggestionList.appendChild(hint);
+      }
       response.suggestions.forEach((s) => {
         const row = document.createElement("div");
         row.className = "suggestion-item";
@@ -294,25 +314,27 @@
         text.textContent = SS_t("add") + ' "' + s.word + '"?';
         row.appendChild(text);
 
-        const addBtn = document.createElement("button");
-        addBtn.className = "suggestion-add";
-        addBtn.textContent = SS_t("add");
-        addBtn.addEventListener("click", () => {
-          send({ action: "addSuggestion", word: s.word }, (resp) => {
-            if (resp && resp.ok) refreshState();
+        if (hasLiveState) {
+          const addBtn = document.createElement("button");
+          addBtn.className = "suggestion-add";
+          addBtn.textContent = SS_t("add");
+          addBtn.addEventListener("click", () => {
+            send({ action: "addSuggestion", word: s.word }, (resp) => {
+              if (resp && resp.ok) refreshState();
+            });
           });
-        });
-        row.appendChild(addBtn);
+          row.appendChild(addBtn);
 
-        const dismissBtn = document.createElement("button");
-        dismissBtn.className = "suggestion-dismiss";
-        dismissBtn.textContent = "×";
-        dismissBtn.title = SS_t("suggestionDismiss");
-        dismissBtn.setAttribute("aria-label", SS_t("suggestionDismiss"));
-        dismissBtn.addEventListener("click", () => {
-          send({ action: "dismissSuggestion", word: s.word }, () => refreshState());
-        });
-        row.appendChild(dismissBtn);
+          const dismissBtn = document.createElement("button");
+          dismissBtn.className = "suggestion-dismiss";
+          dismissBtn.textContent = "×";
+          dismissBtn.title = SS_t("suggestionDismiss");
+          dismissBtn.setAttribute("aria-label", SS_t("suggestionDismiss"));
+          dismissBtn.addEventListener("click", () => {
+            send({ action: "dismissSuggestion", word: s.word }, () => refreshState());
+          });
+          row.appendChild(dismissBtn);
+        }
 
         suggestionList.appendChild(row);
       });

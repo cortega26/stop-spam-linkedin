@@ -177,6 +177,8 @@
           STORAGE_KEYS.DAILY_COUNTS,
           STORAGE_KEYS.PATTERN_COUNTS,
           STORAGE_KEYS.SNOOZE_UNTIL,
+          STORAGE_KEYS.PENDING_SUGGESTIONS,
+          STORAGE_KEYS.DISMISSED_SUGGESTIONS,
         ],
         /** @param {{ [key: string]: any }} localResult */
         (localResult) => {
@@ -218,6 +220,8 @@
           spamPatterns = SS_buildPatterns(syncResult[PHRASES_STORAGE_KEY], enabledLangs, disabledPatterns, LIMITS.MAX_PHRASE_LENGTH);
           userPhrases = syncResult[PHRASES_STORAGE_KEY] || [];
           allowMatchers = SS_buildAllowMatcher(syncResult[STORAGE_KEYS.ALLOW_PHRASES] || [], LIMITS.MAX_PHRASE_LENGTH);
+          pendingSuggestions = SS_normalizePendingSuggestions(localResult[STORAGE_KEYS.PENDING_SUGGESTIONS] || [], LIMITS.MAX_PHRASE_LENGTH, LIMITS.MAX_PENDING_SUGGESTIONS);
+          dismissedSuggestions = new Set(SS_normalizeDismissedSuggestions(localResult[STORAGE_KEYS.DISMISSED_SUGGESTIONS] || [], LIMITS.MAX_PHRASE_LENGTH));
           if (!enabled) return;
           if (Date.now() < snoozeUntil) {
             syncSnoozeState(snoozeUntil);
@@ -250,6 +254,12 @@
       }
       if (changes[STORAGE_KEYS.SNOOZE_UNTIL]) {
         syncSnoozeState(changes[STORAGE_KEYS.SNOOZE_UNTIL].newValue || 0);
+      }
+      if (changes[STORAGE_KEYS.PENDING_SUGGESTIONS]) {
+        pendingSuggestions = SS_normalizePendingSuggestions(changes[STORAGE_KEYS.PENDING_SUGGESTIONS].newValue || [], LIMITS.MAX_PHRASE_LENGTH, LIMITS.MAX_PENDING_SUGGESTIONS);
+      }
+      if (changes[STORAGE_KEYS.DISMISSED_SUGGESTIONS]) {
+        dismissedSuggestions = new Set(SS_normalizeDismissedSuggestions(changes[STORAGE_KEYS.DISMISSED_SUGGESTIONS].newValue || [], LIMITS.MAX_PHRASE_LENGTH));
       }
       return;
     }
@@ -313,6 +323,21 @@
       }
     }
   });
+
+  /* Mirror the in-memory suggestion queue + dismissal set to
+     storage.local. Written together in one set for atomicity (plan 054
+     §2): the in-memory state stays authoritative at runtime; storage is
+     the mirror the popup fallback and options surface read. */
+  function persistSuggestions() {
+    chrome.storage.local.set({
+      [STORAGE_KEYS.PENDING_SUGGESTIONS]: pendingSuggestions,
+      [STORAGE_KEYS.DISMISSED_SUGGESTIONS]: [...dismissedSuggestions],
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Failed to save suggestions (local.set):", chrome.runtime.lastError.message);
+      }
+    });
+  }
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (sender.id !== chrome.runtime.id) return false;
@@ -454,6 +479,7 @@
             }
           });
           pendingSuggestions = pendingSuggestions.filter(s => s.word !== msg.word);
+          persistSuggestions();
           sendResponse({ ok: true });
         }
         break;
@@ -461,6 +487,7 @@
       case "dismissSuggestion":
         pendingSuggestions = pendingSuggestions.filter(s => s.word !== msg.word);
         if (msg.word) dismissedSuggestions.add(msg.word);
+        persistSuggestions();
         sendResponse({ ok: true });
         break;
 
@@ -823,7 +850,8 @@
           !userPhrases.some(p => p.text.toLowerCase() === word.toLowerCase()) &&
           !pendingSuggestions.some(s => s.word === word)) {
         pendingSuggestions.push({ word, timestamp: Date.now() });
-        if (pendingSuggestions.length > 3) pendingSuggestions.shift();
+        if (pendingSuggestions.length > LIMITS.MAX_PENDING_SUGGESTIONS) pendingSuggestions.shift();
+        persistSuggestions();
       }
     }
 

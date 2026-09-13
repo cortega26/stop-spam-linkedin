@@ -504,6 +504,53 @@
   }
 
   /**
+   * Sanitizer for the persisted pending-suggestion queue (plan 054):
+   * drops entries that are not { word, timestamp } objects with a
+   * non-empty word string within maxWordLength, keeps order, and re-caps
+   * to the maxItems most recent — matching the runtime FIFO shift that
+   * evicts the oldest when the in-memory queue exceeds the cap.
+   * @param {Array<any>} entries Raw stored entries.
+   * @param {number} maxWordLength Maximum accepted word length.
+   * @param {number} maxItems Maximum queue length.
+   * @returns {Array<{word: string, timestamp: number}>}
+   */
+  function normalizePendingSuggestions(entries, maxWordLength, maxItems) {
+    const out = [];
+    for (const entry of entries || []) {
+      if (
+        entry &&
+        typeof entry === "object" &&
+        typeof entry.word === "string" &&
+        entry.word.trim() !== "" &&
+        entry.word.length <= maxWordLength &&
+        typeof entry.timestamp === "number"
+      ) {
+        out.push({ word: entry.word, timestamp: entry.timestamp });
+      }
+    }
+    return out.slice(-maxItems);
+  }
+
+  /**
+   * Sanitizer for the persisted dismissed-suggestion list (plan 054):
+   * keeps only non-empty string words within maxWordLength. The list is
+   * intentionally uncapped — dismissals are permanent, and words are
+   * tiny against the storage.local quota.
+   * @param {Array<any>} entries Raw stored entries.
+   * @param {number} maxWordLength Maximum accepted word length.
+   * @returns {Array<string>}
+   */
+  function normalizeDismissedSuggestions(entries, maxWordLength) {
+    const out = [];
+    for (const entry of entries || []) {
+      if (typeof entry === "string" && entry.trim() !== "" && entry.length <= maxWordLength) {
+        out.push(entry);
+      }
+    }
+    return out;
+  }
+
+  /**
    * Trailing-edge debounce: invokes fn ms after the last call.
    * @param {(...args: any[]) => void} fn Function to debounce.
    * @param {number} ms Delay in milliseconds.
@@ -553,6 +600,8 @@
   root.SS_truncateForPreview = truncateForPreview;
   root.SS_normalizeExcludedEntries = normalizeExcludedEntries;
   root.SS_serializeExcluded = serializeExcluded;
+  root.SS_normalizePendingSuggestions = normalizePendingSuggestions;
+  root.SS_normalizeDismissedSuggestions = normalizeDismissedSuggestions;
   root.SS_debounce = debounce;
   root.SS_readRuntimeValue = readRuntimeValue;
 
@@ -579,6 +628,8 @@
       truncateForPreview,
       normalizeExcludedEntries,
       serializeExcluded,
+      normalizePendingSuggestions,
+      normalizeDismissedSuggestions,
       debounce,
       readRuntimeValue,
     };

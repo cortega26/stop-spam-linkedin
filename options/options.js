@@ -33,6 +33,11 @@
      builtin rows render at load time — matching the section's load-time
      render instead of adding a local-area listener. */
   let patternCounts = {};
+  /* Pending suggestion queue + dismissed words (plan 054): mirrors the
+     content script's storage.local keys so this page can render and
+     act on suggestions with no live LinkedIn tab. */
+  let pendingSuggestions = [];
+  let dismissedSuggestions = [];
 
   /* ── DOM refs ───────────────────────────────────────────────── */
   const input = /** @type {HTMLInputElement} */ (document.getElementById("phraseInput"));
@@ -54,6 +59,8 @@
   const excludedList = document.getElementById("excludedList");
   const excludedCountLabel = document.getElementById("excludedCountLabel");
   const clearExcludedBtn = document.getElementById("clearExcludedBtn");
+  const suggestionSection = document.getElementById("suggestionSection");
+  const suggestionList = document.getElementById("suggestionList");
   const allowInput = /** @type {HTMLInputElement} */ (document.getElementById("allowInput"));
   const allowAddBtn = document.getElementById("allowAddBtn");
   const allowList = document.getElementById("allowList");
@@ -175,10 +182,12 @@
           }
         });
       }
-      chrome.storage.local.get([STORAGE_KEYS.PATTERN_COUNTS],
+      chrome.storage.local.get([STORAGE_KEYS.PATTERN_COUNTS, STORAGE_KEYS.PENDING_SUGGESTIONS, STORAGE_KEYS.DISMISSED_SUGGESTIONS],
         /** @param {{ [key: string]: any }} localResult */
         (localResult) => {
         patternCounts = localResult[STORAGE_KEYS.PATTERN_COUNTS] || {};
+        pendingSuggestions = SS_normalizePendingSuggestions(localResult[STORAGE_KEYS.PENDING_SUGGESTIONS] || [], LIMITS.MAX_PHRASE_LENGTH, LIMITS.MAX_PENDING_SUGGESTIONS);
+        dismissedSuggestions = SS_normalizeDismissedSuggestions(localResult[STORAGE_KEYS.DISMISSED_SUGGESTIONS] || [], LIMITS.MAX_PHRASE_LENGTH);
         render();
       });
     });
@@ -188,6 +197,19 @@
   chrome.storage.onChanged.addListener(
     /** @param {{ [key: string]: { newValue?: any; oldValue?: any } }} changes */
     (changes, area) => {
+    if (area === "local") {
+      /* Suggestions live in storage.local (plan 054): re-render the
+         section when the queue changes, so a push from a live tab (or
+         this page's own writes) stays in sync. */
+      if (changes[STORAGE_KEYS.PENDING_SUGGESTIONS]) {
+        pendingSuggestions = SS_normalizePendingSuggestions(changes[STORAGE_KEYS.PENDING_SUGGESTIONS].newValue || [], LIMITS.MAX_PHRASE_LENGTH, LIMITS.MAX_PENDING_SUGGESTIONS);
+        renderSuggestions();
+      }
+      if (changes[STORAGE_KEYS.DISMISSED_SUGGESTIONS]) {
+        dismissedSuggestions = SS_normalizeDismissedSuggestions(changes[STORAGE_KEYS.DISMISSED_SUGGESTIONS].newValue || [], LIMITS.MAX_PHRASE_LENGTH);
+      }
+      return;
+    }
     if (area !== "sync") return;
     if (changes[STORAGE_KEYS.WHITELIST]) {
       whitelist = changes[STORAGE_KEYS.WHITELIST].newValue || [];
@@ -1547,6 +1569,129 @@
     }
   }
 
+  /* ── Suggestions (plan 054) ─────────────────────────────────── */
+
+  /* Persist the mirror of the content script's local suggestion state.
+     Both keys are written together for atomicity (design §2); the
+     content script picks up the change via its onChanged handler. */
+  function persistSuggestions() {
+    chrome.storage.local.set({
+      [STORAGE_KEYS.PENDING_SUGGESTIONS]: pendingSuggestions,
+      [STORAGE_KEYS.DISMISSED_SUGGESTIONS]: dismissedSuggestions,
+    }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Failed to save suggestions (local.set):", chrome.runtime.lastError.message);
+      }
+    });
+  }
+
+  /* Hidden when the queue is empty; one row per pending suggestion with
+     the three actions (Add as exact / Add as contains / Dismiss). */
+  function renderSuggestions() {
+    if (pendingSuggestions.length === 0) {
+      suggestionSection.style.display = "none";
+      suggestionList.innerHTML = "";
+      return;
+    }
+    suggestionSection.style.display = "block";
+    suggestionList.innerHTML = "";
+    for (const s of pendingSuggestions) {
+      const row = document.createElement("div");
+      row.className = "whitelist-row";
+
+      const label = document.createElement("span");
+      label.className = "wl-id";
+      label.textContent = s.word;
+      row.appendChild(label);
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      const addExactBtn = document.createElement("button");
+      addExactBtn.textContent = SS_t("suggestionAddExact");
+      addExactBtn.setAttribute("aria-label", SS_t("suggestionAddExactLabel", s.word));
+      addExactBtn.title = SS_t("suggestionAddExactLabel", s.word);
+      addExactBtn.addEventListener("click", () => handleSuggestionAdd(s.word, "exact"));
+      actions.appendChild(addExactBtn);
+
+      const addContainsBtn = document.createElement("button");
+      addContainsBtn.textContent = SS_t("suggestionAddContains");
+      addContainsBtn.setAttribute("aria-label", SS_t("suggestionAddContainsLabel", s.word));
+      addContainsBtn.title = SS_t("suggestionAddContainsLabel", s.word);
+      addContainsBtn.addEventListener("click", () => handleSuggestionAdd(s.word, "contains"));
+      actions.appendChild(addContainsBtn);
+
+      const dismissBtn = document.createElement("button");
+      dismissBtn.textContent = SS_t("suggestionDismiss");
+      dismissBtn.setAttribute("aria-label", SS_t("suggestionDismissLabel", s.word));
+      dismissBtn.title = SS_t("suggestionDismissLabel", s.word);
+      dismissBtn.addEventListener("click", () => handleSuggestionDismiss(s.word));
+      actions.appendChild(dismissBtn);
+
+      row.appendChild(actions);
+      suggestionList.appendChild(row);
+    }
+  }
+
+  /* Mirrors handleAdd's validation (length, case-insensitive duplicate,
+     plan 056 allow-phrase conflict guard, phrase cap, byte quota) then
+     writes the phrase with the chosen mode and removes the word from the
+     pending queue. The popup surface is exact-only; the options surface
+     is where the safer contains-mode choice lives (design §4, A + C). */
+  function handleSuggestionAdd(word, mode) {
+    const text = word.trim();
+    if (!text) return;
+    if (text.length > LIMITS.MAX_PHRASE_LENGTH) {
+      showToast(SS_t("phraseTooLongToast", LIMITS.MAX_PHRASE_LENGTH), true);
+      return;
+    }
+    const dup = phrases.findIndex(
+      (p) => p.text.toLowerCase() === text.toLowerCase()
+    );
+    if (dup !== -1) {
+      showToast(SS_t("duplicatePhraseToast", text), true);
+      highlightDuplicate(text);
+      return;
+    }
+    if (allowPhrases.some((p) => p.text.toLowerCase() === text.toLowerCase())) {
+      showToast(SS_t("allowConflictToast", text), true);
+      return;
+    }
+    if (phrases.length >= LIMITS.MAX_CUSTOM_PHRASES) {
+      showToast(SS_t("phraseLimitToast", LIMITS.MAX_CUSTOM_PHRASES), true);
+      return;
+    }
+    const candidate = phrases.concat([{
+      id: SS_uid(),
+      text,
+      enabled: true,
+      created: Date.now(),
+      mode,
+    }]);
+    const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
+    if (SS_estimatePhraseBytes(candidate, PHRASES_STORAGE_KEY) > limit) {
+      showToast(SS_t("phraseStorageFullToast"), true);
+      return;
+    }
+    phrases = candidate;
+    pendingSuggestions = pendingSuggestions.filter((s) => s.word !== word);
+    save();
+    persistSuggestions();
+    renderSuggestions();
+    showToast(SS_t("addedPhraseToast", text));
+  }
+
+  /* Moves the word to the persisted dismissal set so it is never
+     re-suggested, and drops it from the pending queue. */
+  function handleSuggestionDismiss(word) {
+    pendingSuggestions = pendingSuggestions.filter((s) => s.word !== word);
+    if (word && !dismissedSuggestions.includes(word)) {
+      dismissedSuggestions.push(word);
+    }
+    persistSuggestions();
+    renderSuggestions();
+  }
+
   /* ── Never-hide phrases (plan 056) ───────────────────────────── */
 
   /* Mirrors renderWhitelist's confirm-click remove, but the section stays
@@ -1676,6 +1821,7 @@
     renderBlockedAuthors();
     renderExcluded();
     renderAllowPhrases();
+    renderSuggestions();
 
     const query = searchInput.value.trim().toLowerCase();
 

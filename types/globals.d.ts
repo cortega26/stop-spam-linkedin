@@ -16,6 +16,7 @@ declare var SS_CONSTANTS: {
     MAX_IMPORT_BYTES: number;
     SNOOZE_DURATION_MS: number;
     MAX_EXCLUDED_ITEMS: number;
+    MAX_PENDING_SUGGESTIONS: number;
   };
   DEFAULT_ENABLED_LANGS: readonly string[];
 };
@@ -86,6 +87,15 @@ declare function SS_normalizeExcludedEntries(
 declare function SS_serializeExcluded(
   map: Map<string, { preview: string | null; created: number | null }>,
 ): Array<{ sig: string; preview: string | null; created: number | null }>;
+declare function SS_normalizePendingSuggestions(
+  entries: Array<any>,
+  maxWordLength: number,
+  maxItems: number,
+): Array<{ word: string; timestamp: number }>;
+declare function SS_normalizeDismissedSuggestions(
+  entries: Array<any>,
+  maxWordLength: number,
+): string[];
 declare function SS_debounce(
   fn: (...args: any[]) => void,
   ms: number,

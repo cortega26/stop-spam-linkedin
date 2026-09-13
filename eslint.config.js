@@ -45,6 +45,8 @@ const browserExtensionGlobals = {
   SS_truncateForPreview: "readonly",
   SS_normalizeExcludedEntries: "readonly",
   SS_serializeExcluded: "readonly",
+  SS_normalizePendingSuggestions: "readonly",
+  SS_normalizeDismissedSuggestions: "readonly",
   SS_debounce: "readonly",
   SS_readRuntimeValue: "readonly",
   SS_PROMOTED_LABELS: "readonly",

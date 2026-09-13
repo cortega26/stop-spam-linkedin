@@ -21,6 +21,8 @@
     ALLOW_PHRASES: "ss_allow_phrases",
     LANGS: "ss_enabled_langs",
     WHITELIST: "ss_whitelist",
+    PENDING_SUGGESTIONS: "ss_pending_suggestions",
+    DISMISSED_SUGGESTIONS: "ss_dismissed_suggestions",
     BLOCKED_AUTHORS: "ss_blocked_authors",
     DISABLED_PATTERNS: "ss_disabled_patterns",
     HIDE_PROMOTED: "ss_hide_promoted",
@@ -38,6 +40,7 @@
    * @property {number} MAX_IMPORT_BYTES
    * @property {number} SNOOZE_DURATION_MS
    * @property {number} MAX_EXCLUDED_ITEMS
+   * @property {number} MAX_PENDING_SUGGESTIONS
    */
   /** @type {SSLimits} */
   const LIMITS = Object.freeze({
@@ -54,6 +57,10 @@
        byte budget (plan 007), not item count, so this only bounds memory/sync
        limits — it is not a product cap. */
     MAX_EXCLUDED_ITEMS: 512,
+    /* Cap for the pending-suggestion queue (plan 054): matches the
+       pre-existing in-memory FIFO cap. Dismissals are intentionally
+       uncapped — a word is kilobytes against the 10 MB local quota. */
+    MAX_PENDING_SUGGESTIONS: 3,
   });
 
   /** Languages enabled by default (built-in pattern coverage). @type {readonly string[]} */
