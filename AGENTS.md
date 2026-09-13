@@ -21,7 +21,7 @@ ships.
 
 | Command | What it does |
 |---------|--------------|
-| `npm run smoke` | `jq` JSON validation of `manifest.json` + both locale files, then `node --check` on every shipped and test JS file (`content.js`, `background.js`, `popup/popup.js`, `options/options.js`, `i18n.js`, `shared/constants.js`, `shared/pattern-data.js`, `shared/post-container.js`, `tests/extension-smoke.js`, `tests/extension-interactions.js`, `tests/firefox-smoke.js`, `tests/helpers.js`, `tests/unit/pattern-data.test.js`, `tests/unit/post-container.test.js`, `tests/unit/cooldown-store.test.js`, `scripts/package-extension.js`, `scripts/submit-stores.js`) |
+| `npm run smoke` | `jq` JSON validation of `manifest.json` + both locale files, an en↔es key/placeholder parity check, then `node --check` on every shipped and test JS file (`content.js`, `background.js`, `popup/popup.js`, `options/options.js`, `i18n.js`, `shared/constants.js`, `shared/pattern-data.js`, `shared/post-container.js`, `tests/extension-smoke.js`, `tests/extension-interactions.js`, `tests/firefox-smoke.js`, `tests/helpers.js`, `tests/unit/pattern-data.test.js`, `tests/unit/post-container.test.js`, `tests/unit/cooldown-store.test.js`, `scripts/package-extension.js`, `scripts/submit-stores.js`) |
 | `npm run lint` | ESLint 9 flat config — recommended rules per execution context (`eslint.config.js`) |
 | `npm run typecheck` | TypeScript checkJs — JSDoc type-checking of runtime files with zero build step (`tsconfig.json`) |
 | `npm run test:unit` | Node's built-in test runner over `tests/unit/*.test.js` (glob form — needs Node ≥ 24); currently 16 tests |
@@ -70,10 +70,14 @@ the test suite that covers the change.
   duplicated as `migrateRuntimeStorage` (`content.js`) and
   `migrateRuntimeState` (`popup.js`). `ss_excluded` entries are `{sig,
   preview, created}` objects.
-- **i18n**: user-facing strings use `t("key")` in JS or `__MSG_key__` in
-  HTML; a new key must be added to BOTH `_locales/en/messages.json` and
-  `_locales/es/messages.json`. Detection-language coverage (5 languages,
-  toggleable) is separate from UI localization.
+- **i18n**: user-facing strings use `SS_t("key")` (or bare `t("key")` in
+  `background.js`) in JS or `__MSG_key__` in HTML; a new key must be added
+  to BOTH `_locales/en/messages.json` and `_locales/es/messages.json` —
+  `npm run smoke` enforces en↔es key + `$N`-placeholder parity.
+  FR/PT/DE locales are deferred by decision (see `docs/i18n-audit.md`,
+  the key inventory + translator packet, and the no-manifest-change
+  verification). Detection-language coverage (5 languages, toggleable) is
+  separate from UI localization.
 - **Content-script details**: placeholder elements use `data-ss-ph`;
   blocked posts are tracked via `processed`/`forceShow` WeakSets; badge
   relay is `chrome.runtime.sendMessage({ action: "updateBadge", text })`
