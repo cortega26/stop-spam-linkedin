@@ -13,6 +13,7 @@
     ENABLED: "ss_enabled",
     COUNT: "ss_blocked_count",
     ONBOARDED: "ss_onboarded",
+    WELCOME_PENDING: "ss_welcome_pending",
     DAILY_COUNTS: "ss_daily_counts",
     SNOOZE_UNTIL: "ss_snooze_until",
     EXCLUDED: "ss_excluded",

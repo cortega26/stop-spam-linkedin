@@ -46,6 +46,15 @@
         ],
       });
     });
+
+    if (details.reason === "install") {
+      chrome.storage.local.set({ [STORAGE_KEYS.WELCOME_PENDING]: true }, () => {
+        if (chrome.runtime.lastError) {
+          console.warn("Failed to set welcome flag (local.set):", chrome.runtime.lastError.message);
+        }
+        chrome.runtime.openOptionsPage();
+      });
+    }
   });
 
   /* ── Badge relay (called from content script) ──────────────── */
