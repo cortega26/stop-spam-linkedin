@@ -22,6 +22,8 @@ const {
   PROMOTED_LABELS,
   FEATURED_LABELS,
   normalizeExcludedEntries,
+  normalizePendingSuggestions,
+  normalizeDismissedSuggestions,
 } = require(path.join(__dirname, "..", "..", "shared", "pattern-data.js"));
 
 test("escapeRegex escapes every regex-special character", () => {
@@ -449,4 +451,55 @@ test("an allow-phrase matcher covers text a custom phrase also matches", () => {
   const text = "comment CLAUDE and good news for you";
   assert.equal(custom[0].regex.test(text), true);
   assert.equal(allow[0].regex.test(text), true);
+});
+
+/* Pending-suggestion sanitizer (plan 054): shape validation + re-cap.
+   The persisted queue mirrors the content script's in-memory FIFO, so a
+   malformed or oversized entry must never surface in options/popup. */
+test("normalizePendingSuggestions keeps valid word/timestamp entries", () => {
+  const out = normalizePendingSuggestions([
+    { word: "CLAUDE", timestamp: 1 },
+    { word: "PDF", timestamp: 2 },
+  ], 120, 3);
+  assert.deepEqual(out, [
+    { word: "CLAUDE", timestamp: 1 },
+    { word: "PDF", timestamp: 2 },
+  ]);
+});
+
+test("normalizePendingSuggestions drops malformed and out-of-range entries", () => {
+  const out = normalizePendingSuggestions([
+    { word: "CLAUDE", timestamp: 1 },
+    { word: "", timestamp: 2 },
+    { word: "   ", timestamp: 3 },
+    { word: 42, timestamp: 4 },
+    { word: "X".repeat(121), timestamp: 5 },
+    { word: "PDF" },
+    { word: null, timestamp: 6 },
+    "CLAUDE",
+    null,
+  ], 120, 3);
+  assert.deepEqual(out, [{ word: "CLAUDE", timestamp: 1 }]);
+});
+
+test("normalizePendingSuggestions re-caps to maxItems keeping the most recent", () => {
+  const out = normalizePendingSuggestions([
+    { word: "A", timestamp: 1 },
+    { word: "B", timestamp: 2 },
+    { word: "C", timestamp: 3 },
+    { word: "D", timestamp: 4 },
+  ], 120, 3);
+  assert.deepEqual(out, [
+    { word: "B", timestamp: 2 },
+    { word: "C", timestamp: 3 },
+    { word: "D", timestamp: 4 },
+  ]);
+});
+
+test("normalizeDismissedSuggestions keeps only non-empty in-range string words", () => {
+  const out = normalizeDismissedSuggestions(
+    ["CLAUDE", "PDF", "", "   ", 42, null, "X".repeat(121)],
+    120
+  );
+  assert.deepEqual(out, ["CLAUDE", "PDF"]);
 });

@@ -746,6 +746,16 @@ async function main() {
     await setSyncStorage(context, {
       ss_phrases: [{ text: "CLAUDE", enabled: true, mode: "exact" }],
     });
+    /* Plan 054: restore-on-boot now survives reloads, so the CLAUDE
+       suggestion pushed earlier in this scenario legitimately persists
+       into this reload (the design's prototype finding — the original
+       assertion encoded wipe-on-reload semantics). Reset the persisted
+       queue so this scenario keeps asserting its real invariant: a
+       custom-covered match never pushes a suggestion. */
+    await setLocalStorage(context, {
+      ss_pending_suggestions: [],
+      ss_dismissed_suggestions: [],
+    });
     await linkedInPage.reload({ waitUntil: "domcontentloaded" });
     await placeholder.waitFor({ state: "visible", timeout: 10000 });
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
@@ -778,6 +788,192 @@ async function main() {
 
     /* Restore a clean custom-phrase state for any future scenarios. */
     await setSyncStorage(context, { ss_phrases: [] });
+
+    /* ── Suggestion persistence (plan 054) ─────────────────────── */
+
+    /* Dismiss-then-reload: a dismissed word must NOT be re-suggested
+       after the feed reloads. On pre-build code this scenario fails —
+       dismissals were in-memory, so the reload re-suggests the word. */
+    await setSyncStorage(context, { ss_phrases: [] });
+    await setLocalStorage(context, { ss_pending_suggestions: [], ss_dismissed_suggestions: [] });
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* The single built-in match offers exactly one suggestion (CLAUDE). */
+    await linkedInPage.bringToFront();
+    await popup.reload({ waitUntil: "domcontentloaded" });
+    await popup.locator(".suggestion-item").first().waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    assert.equal(
+      await popup.locator(".suggestion-item").count(),
+      1,
+      "expected exactly one pending suggestion from the single built-in match"
+    );
+
+    /* Dismiss from the live popup; the dismissal must reach storage. */
+    await popup.locator(".suggestion-dismiss").first().click();
+    await popup.waitForFunction(
+      () => document.querySelectorAll(".suggestion-item").length === 0,
+      null,
+      { timeout: 10000 }
+    );
+    await waitForLocalValue(context, "ss_dismissed_suggestions", (v) =>
+      Array.isArray(v) && v.includes("CLAUDE")
+    );
+
+    /* Reload: the same built-in match must NOT re-suggest CLAUDE. */
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+    await linkedInPage.bringToFront();
+    await popup.reload({ waitUntil: "domcontentloaded" });
+    await popup.locator(".last-blocked-item").first().waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    assert.equal(
+      await popup.locator(".suggestion-item").count(),
+      0,
+      "expected the dismissed word NOT to be re-suggested after reload"
+    );
+
+    /* Clean the persisted dismissals for the scenarios that follow. */
+    await setLocalStorage(context, { ss_pending_suggestions: [], ss_dismissed_suggestions: [] });
+
+    /* Options surface: Add as contains writes a contains-mode phrase,
+       Add as exact writes an exact-mode phrase, and the plan 056 guard
+       refuses a suggestion equal to an existing never-hide phrase. */
+    await setSyncStorage(context, { ss_phrases: [], ss_allow_phrases: [] });
+    await setLocalStorage(context, {
+      ss_pending_suggestions: [
+        { word: "CLAUDE", timestamp: Date.now() },
+        { word: "PDF", timestamp: Date.now() },
+      ],
+      ss_dismissed_suggestions: [],
+    });
+    await optionsPage.reload({ waitUntil: "domcontentloaded" });
+    await optionsPage.locator("#suggestionSection").waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    assert.equal(
+      await optionsPage.locator("#suggestionList .whitelist-row").count(),
+      2,
+      "expected the options section to list every pending suggestion"
+    );
+
+    /* Add as contains: the safer mode the popup cannot offer. */
+    await optionsPage
+      .locator("#suggestionList .whitelist-row", { hasText: "PDF" })
+      .locator("button", { hasText: /contains|contiene/i })
+      .click();
+    await waitForSyncValue(context, "ss_phrases", (v) =>
+      Array.isArray(v) && v.some((p) => p.text === "PDF" && p.mode === "contains")
+    );
+    await waitForLocalValue(context, "ss_pending_suggestions", (v) =>
+      Array.isArray(v) && !v.some((s) => s.word === "PDF")
+    );
+
+    /* Add as exact: the popup's default mode, available here too. */
+    await optionsPage
+      .locator("#suggestionList .whitelist-row", { hasText: "CLAUDE" })
+      .locator("button", { hasText: /exact|exacta/i })
+      .click();
+    await waitForSyncValue(context, "ss_phrases", (v) =>
+      Array.isArray(v) && v.some((p) => p.text === "CLAUDE" && p.mode === "exact")
+    );
+    await optionsPage.waitForFunction(
+      () => getComputedStyle(document.getElementById("suggestionSection")).display === "none",
+      null,
+      { timeout: 10000 }
+    );
+
+    /* Plan 056 conflict guard: a suggestion equal to an existing
+       never-hide phrase must be refused without writing anything. */
+    await setSyncStorage(context, {
+      ss_phrases: [],
+      ss_allow_phrases: [{ id: "allow-claude", text: "CLAUDE", created: Date.now() }],
+    });
+    await setLocalStorage(context, {
+      ss_pending_suggestions: [{ word: "CLAUDE", timestamp: Date.now() }],
+    });
+    await optionsPage.reload({ waitUntil: "domcontentloaded" });
+    await optionsPage.locator("#suggestionSection").waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    await optionsPage
+      .locator("#suggestionList .whitelist-row", { hasText: "CLAUDE" })
+      .locator("button", { hasText: /exact|exacta/i })
+      .click();
+    await optionsPage.waitForFunction(
+      () => document.getElementById("toast").textContent.length > 0,
+      null,
+      { timeout: 10000 }
+    );
+    assert.match(
+      await optionsPage.locator("#toast").textContent(),
+      /already a custom phrase|ya es una frase personalizada/,
+      "expected the allow-conflict toast for a suggestion matching a never-hide phrase"
+    );
+    await waitForLocalValue(context, "ss_pending_suggestions", (v) =>
+      Array.isArray(v) && v.some((s) => s.word === "CLAUDE")
+    );
+    assert.deepEqual(
+      await getSyncStorage(context, "ss_phrases"),
+      [],
+      "expected no phrase to be written for a conflicting suggestion add"
+    );
+
+    /* Clean up for the scenarios that follow. */
+    await setSyncStorage(context, { ss_phrases: [], ss_allow_phrases: [] });
+    await setLocalStorage(context, { ss_pending_suggestions: [], ss_dismissed_suggestions: [] });
+
+    /* Popup fallback (plan 054 §5 decision — read-only): with no live
+       LinkedIn tab responding, the popup renders the persisted queue
+       instead of the old hardcoded empty list. Add/Dismiss stay on the
+       live path, so the fallback shows a hint instead of buttons. */
+    await setLocalStorage(context, {
+      ss_pending_suggestions: [{ word: "FALLBACKWORD", timestamp: Date.now() }],
+    });
+    await popup.bringToFront();
+    await popup.reload({ waitUntil: "domcontentloaded" });
+    await popup.locator(".suggestion-item").first().waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    assert.match(
+      await popup.locator(".suggestion-item .suggestion-text").first().textContent(),
+      /FALLBACKWORD/,
+      "expected the persisted queue to render in the popup fallback"
+    );
+    assert.equal(
+      await popup.locator(".suggestion-item .suggestion-add").count(),
+      0,
+      "expected no Add button in the read-only popup fallback"
+    );
+    assert.equal(
+      await popup.locator(".suggestion-item .suggestion-dismiss").count(),
+      0,
+      "expected no Dismiss button in the read-only popup fallback"
+    );
+    assert.equal(
+      await popup.locator(".suggestion-fallback-hint").count(),
+      1,
+      "expected the fallback hint pointing to a LinkedIn tab"
+    );
+    assert.equal(
+      await popup.locator("#connectionNotice").evaluate((el) => getComputedStyle(el).display),
+      "block",
+      "expected the no-live-tab notice in the popup fallback"
+    );
+
+    /* Restore focus to the feed and clear the seeded queue. */
+    await linkedInPage.bringToFront();
+    await setLocalStorage(context, { ss_pending_suggestions: [], ss_dismissed_suggestions: [] });
 
     /* ── Per-pattern disable (plan 011) ─────────────────────────── */
 
