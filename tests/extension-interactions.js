@@ -1688,6 +1688,96 @@ async function main() {
 
     await testerPage.close();
 
+    /* ── Plan 059: bait text in a comment hides the comment, not the post ── */
+
+    /* Reset to stock settings and reload for a deterministic page:
+       spam-1 hidden, clean-1 visible, one placeholder. */
+    await setSyncStorage(context, {
+      ss_whitelist: ["trusted"],
+      ss_blocked_authors: [],
+      ss_phrases: [],
+      ss_allow_phrases: [],
+      ss_excluded: [],
+    });
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* Inject a post whose ONLY bait text sits in a comment — the
+       light-thread shape 057 proved resolves to the POST today. */
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:comment-post-1";
+      section.innerHTML =
+        '<div class="actor"><a href="/in/jane"><span>Jane Doe</span></a></div>' +
+        '<p class="post-body">' + "y".repeat(320) + "</p>" +
+        '<div class="comments"><div class="comments-list">' +
+        '<div class="comment"><p class="comment-body">comment CLAUDE and I\'ll send you the framework</p></div>' +
+        "</div></div>";
+      document.querySelector("main").appendChild(section);
+    });
+
+    /* The debounced observer scan must hide the COMMENT (with an inline
+       placeholder as its next sibling) and leave the post visible. */
+    await linkedInPage.waitForFunction(
+      () => document.querySelectorAll("[data-ss-ph]").length === 2,
+      null,
+      { timeout: 10000 }
+    );
+
+    const commentPostDisplay = await linkedInPage
+      .locator('[data-id="urn:li:activity:comment-post-1"]')
+      .evaluate((el) => getComputedStyle(el).display);
+    assert.notEqual(
+      commentPostDisplay,
+      "none",
+      "the post must stay visible when bait text sits in a comment"
+    );
+    await linkedInPage.waitForFunction(
+      () => {
+        const section = document.querySelector(
+          '[data-id="urn:li:activity:comment-post-1"]'
+        );
+        if (!section) return false;
+        const comment = section.querySelector(".comment");
+        if (!comment) return false;
+        const ph = comment.nextElementSibling;
+        return (
+          getComputedStyle(comment).display === "none" &&
+          ph && ph.dataset && ph.dataset.ssPh === "1"
+        );
+      },
+      null,
+      { timeout: 10000 }
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+
+    const cleanDisplay = await linkedInPage
+      .locator('[data-id="urn:li:activity:clean-1"]')
+      .evaluate((el) => getComputedStyle(el).display);
+    const spamDisplay = await linkedInPage
+      .locator('[data-id="urn:li:activity:spam-1"]')
+      .evaluate((el) => getComputedStyle(el).display);
+    assert.notEqual(cleanDisplay, "none", "clean-1 must stay visible");
+    assert.equal(spamDisplay, "none", "spam-1 must stay hidden");
+
+    /* The placeholder's Show button (SS_t("show")) must restore the
+       comment — restorePost keys the cooldown on the parent post. */
+    await linkedInPage
+      .locator(".comment + [data-ss-ph] button", { hasText: /Show|Mostrar/ })
+      .click();
+    await linkedInPage.waitForFunction(
+      () => {
+        const comment = document.querySelector(
+          '[data-id="urn:li:activity:comment-post-1"] .comment'
+        );
+        return comment && getComputedStyle(comment).display !== "none";
+      },
+      null,
+      { timeout: 4000 }
+    );
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
     console.log("Extension interactions test passed.");
   } finally {
     await context.close();
