@@ -123,6 +123,8 @@
   "settingsPartLangsMany": { "message": "$1 idiomas" },
   "settingsPartBlockedAuthorsOne": { "message": "1 autor bloqueado" },
   "settingsPartBlockedAuthorsMany": { "message": "$1 autores bloqueados" },
+  "settingsPartAllowOne": { "message": "1 frase que nunca se oculta" },
+  "settingsPartAllowMany": { "message": "$1 frases que nunca se ocultan" },
   "patternCountOne": { "message": "1 patrón" },
   "patternCountMany": { "message": "$1 patrones" },
   "customPhraseStatusOne": { "message": "$1 de $2 frase personalizada activa" },
@@ -135,5 +137,15 @@
   "phraseToggleLabel": { "message": "Activar o desactivar la frase $1" },
   "modeToggleLabel": { "message": "Cambiar modo de coincidencia para $1, actualmente $2" },
   "editPhraseLabel": { "message": "Editar frase $1" },
-  "deletePhraseLabel": { "message": "Eliminar frase $1" }
+  "deletePhraseLabel": { "message": "Eliminar frase $1" },
+  "allowTitle": { "message": "Frases que nunca se ocultan" },
+  "allowHint": { "message": "Las publicaciones que contengan este texto nunca se ocultan, incluso si coincide una frase personalizada o un patrón." },
+  "allowPlaceholder": { "message": "p. ej. engagement bait" },
+  "allowInputLabel": { "message": "Añadir una frase que nunca se oculta" },
+  "allowAddLabel": { "message": "Añadir frase que nunca se oculta" },
+  "allowAddedToast": { "message": "No se ocultarán las publicaciones con: \"$1\"" },
+  "allowLimitToast": { "message": "Se alcanzó el límite de frases que nunca se ocultan ($1)." },
+  "allowConflictToast": { "message": "\"$1\" ya es una frase personalizada — elimínala allí primero." },
+  "allowEmpty": { "message": "Aún no hay frases que nunca se ocultan." },
+  "removeAllowPhraseLabel": { "message": "Eliminar frase que nunca se oculta $1" }
 }
