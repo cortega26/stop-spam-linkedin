@@ -189,7 +189,7 @@ if `_locales/{fr,pt,de}` already exist.
 | 052 | [Second detection family (corpus+spike)](052-second-family-spike.md) | P3 | M | — | TODO (refreshed at 4f80330) |
 | 053 | [Per-pattern stats build (from 041 design)](053-per-pattern-stats-build.md) | P3 | M | 041 design (read-only, committed); before 050, 054 | TODO (refreshed at 4f80330) |
 | 054 | [Suggestion-loop build (from 043 design)](054-suggestion-loop-build.md) | P3 | M | 043 design (read-only, committed); after 053; before 050 | TODO (refreshed at 4f80330) |
-| 055 | [School/showcase page coverage](055-school-showcase-coverage.md) | P2 | S | — | TODO |
+| 055 | [School/showcase page coverage](archive/055-school-showcase-coverage.md) | P2 | S | — | DONE (2026-09-13, branch advisor/055-school-showcase-coverage @ f13e81d in /tmp/opencode/wt-055, reviewed + verified; 13 matches, single host, no permission widening, failing-first proven, docs ×5 synced; unmerged) |
 | 056 | [Allow-phrases (never-hide text)](archive/056-allow-phrases.md) | P2 | M | — (before 051, 054, 050; after 057) | DONE (2026-09-13, branch advisor/056-allow-phrases @ f1f90b7 in /tmp/opencode/wt-056, reviewed + verified; 12 locale keys, 68 unit tests, 4 e2e scenarios incl. overlap precedence proven non-vacuous, full gate green; unmerged) |
 | 057 | [Comment-bait container measurement (spike)](057-comment-bait-spike.md) | P3 | S–M | — (before 056) | TODO |
 | 058 | [First-run onboarding walkthrough](058-first-run-onboarding.md) | P3 | M | — (before 053, 054, 050) | TODO |
