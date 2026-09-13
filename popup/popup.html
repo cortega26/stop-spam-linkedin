@@ -168,6 +168,28 @@
     }
     .last-blocked-item .lb-undo:hover { background: var(--bg-hover); }
     .last-blocked-heading { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+    .pattern-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding: 6px 8px;
+      font-size: 12px;
+      color: var(--text-secondary);
+      border-radius: 6px;
+      background: var(--bg-secondary);
+      margin-bottom: 2px;
+    }
+    .pattern-item .pattern-name {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .pattern-item .pattern-count {
+      font-weight: 600;
+      color: var(--text);
+      flex-shrink: 0;
+    }
     .suggestion-heading { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
     .suggestion-item {
       display: flex;
@@ -318,6 +340,12 @@
     <span>__MSG_weekLabel__: <strong id="weekCount">0</strong></span>
     <span class="sep">|</span>
     <span>__MSG_totalLabel__: <strong id="lifetimeCount">0</strong></span>
+  </div>
+
+  <div id="patternSection" style="display:none">
+    <hr />
+    <div class="last-blocked-heading">__MSG_byPatternLabel__</div>
+    <div id="patternList"></div>
   </div>
 
   <div id="lastBlockedSection" style="display:none">

@@ -27,6 +27,12 @@
   let pendingAllowRemove = null;
   let hidePromoted = false;
   let hideFeatured = false;
+  /* Per-pattern lifetime block counts (ss_pattern_counts), read once from
+     storage.local at load. Stale-until-reload by design (plan 053): this
+     page's onChanged handler returns early for the local area, and the
+     builtin rows render at load time — matching the section's load-time
+     render instead of adding a local-area listener. */
+  let patternCounts = {};
 
   /* ── DOM refs ───────────────────────────────────────────────── */
   const input = /** @type {HTMLInputElement} */ (document.getElementById("phraseInput"));
@@ -169,7 +175,12 @@
           }
         });
       }
-      render();
+      chrome.storage.local.get([STORAGE_KEYS.PATTERN_COUNTS],
+        /** @param {{ [key: string]: any }} localResult */
+        (localResult) => {
+        patternCounts = localResult[STORAGE_KEYS.PATTERN_COUNTS] || {};
+        render();
+      });
     });
   }
 
@@ -1668,6 +1679,18 @@
 
     const query = searchInput.value.trim().toLowerCase();
 
+    /* Per-pattern totals (plan 053): one small line for the custom-phrase
+       and author-blocklist aggregates from the same local key that
+       annotates the builtin rows. Hidden when both are zero. */
+    const customTotal = patternCounts["custom"] || 0;
+    const authorTotal = patternCounts["author"] || 0;
+    if (customTotal || authorTotal) {
+      const totals = document.createElement("div");
+      totals.className = "pattern-totals";
+      totals.textContent = SS_t("patternTotalsLine", [String(customTotal), String(authorTotal)]);
+      list.appendChild(totals);
+    }
+
     /* Built-in patterns — only for enabled languages, filtered by query */
     for (const bp of BUILTIN) {
       if (!enabledLangs.includes(bp.lang)) continue;
@@ -1742,6 +1765,14 @@
     bl.className = "builtin-label";
     bl.textContent = SS_t("builtinLabel");
     text.appendChild(bl);
+    const patternHit = patternCounts[bp.id] || 0;
+    if (patternHit) {
+      const hit = document.createElement("span");
+      hit.className = "pattern-hit";
+      hit.textContent = "· " + patternHit;
+      hit.title = SS_t("patternHitCountTitle", [String(patternHit)]);
+      text.appendChild(hit);
+    }
     div.appendChild(text);
     div.appendChild(document.createElement("div")).className = "actions";
     return div;

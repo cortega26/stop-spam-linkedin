@@ -21,6 +21,8 @@
   const mainContent = document.getElementById("mainContent");
   const loadingState = document.getElementById("loadingState");
   const connectionNotice = document.getElementById("connectionNotice");
+  const patternSection = document.getElementById("patternSection");
+  const patternList = document.getElementById("patternList");
 
   /* --- Get current tab --- */
   function getTab(cb) {
@@ -86,6 +88,7 @@
           [
             STORAGE_KEYS.COUNT,
             STORAGE_KEYS.DAILY_COUNTS,
+            STORAGE_KEYS.PATTERN_COUNTS,
             STORAGE_KEYS.SNOOZE_UNTIL,
           ],
           (localResult) => {
@@ -112,6 +115,7 @@
                 STORAGE_KEYS.DAILY_COUNTS,
                 {}
               ),
+              patternCounts: localResult[STORAGE_KEYS.PATTERN_COUNTS] || {},
               snoozeUntil,
               snoozed: Date.now() < snoozeUntil,
               lastBlocked: [],
@@ -168,6 +172,20 @@
     mainContent.style.display = connected ? "block" : "none";
   }
 
+  /* Resolve a pattern-counts bucket to a display label: built-in ids map
+     to their pattern label (SS_PATTERN_DATA), custom/author buckets to
+     their i18n names, and any unknown bucket renders raw (defensive). */
+  function patternBucketLabel(bucket) {
+    for (const lang of Object.keys(SS_PATTERN_DATA)) {
+      for (const entry of SS_PATTERN_DATA[lang]) {
+        if (entry.id === bucket) return entry.label;
+      }
+    }
+    if (bucket === "custom") return SS_t("byPatternCustom");
+    if (bucket === "author") return SS_t("byPatternAuthor");
+    return bucket;
+  }
+
   function renderState(response, hasLiveState) {
     showConnectionState(true);
     connectionNotice.textContent = SS_t("noLiveTabNotice");
@@ -190,6 +208,31 @@
       todayCountEl.textContent = todayVal;
       weekCountEl.textContent = String(weekVal);
       lifetimeCountEl.textContent = response.blockedCount;
+    }
+
+    /* By-pattern breakdown (plan 053): top 5 buckets sorted desc, live
+       via getState or offline via getStoredState — same shape. */
+    if (response.patternCounts && Object.keys(response.patternCounts).length > 0) {
+      patternSection.style.display = "block";
+      patternList.innerHTML = "";
+      Object.entries(response.patternCounts)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .forEach(([bucket, count]) => {
+          const row = document.createElement("div");
+          row.className = "pattern-item";
+          const name = document.createElement("span");
+          name.className = "pattern-name";
+          name.textContent = patternBucketLabel(bucket);
+          row.appendChild(name);
+          const value = document.createElement("span");
+          value.className = "pattern-count";
+          value.textContent = String(count);
+          row.appendChild(value);
+          patternList.appendChild(row);
+        });
+    } else {
+      patternSection.style.display = "none";
     }
 
     /* Last blocked */
@@ -337,6 +380,7 @@
           {
             [STORAGE_KEYS.COUNT]: 0,
             [STORAGE_KEYS.DAILY_COUNTS]: {},
+            [STORAGE_KEYS.PATTERN_COUNTS]: {},
           },
           refreshState
         );
