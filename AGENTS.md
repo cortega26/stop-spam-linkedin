@@ -69,7 +69,8 @@ the test suite that covers the change.
   preferences in `chrome.storage.sync`, with a sync→local migration helper
   duplicated as `migrateRuntimeStorage` (`content.js`) and
   `migrateRuntimeState` (`popup.js`). `ss_excluded` entries are `{sig,
-  preview, created}` objects.
+  preview, created}` objects. `ss_seen_release` holds the last version
+  whose what's-new card was dismissed (local, per-device).
 - **i18n**: user-facing strings use `SS_t("key")` (or bare `t("key")` in
   `background.js`) in JS or `__MSG_key__` in HTML; a new key must be added
   to BOTH `_locales/en/messages.json` and `_locales/es/messages.json` —
