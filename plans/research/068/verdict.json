@@ -1,0 +1,65 @@
+{
+  "plan": "068",
+  "verdict": "insufficient-data",
+  "decidedAt": "2026-09-14",
+  "branch": "advisor/068-suggested-post-filter",
+  "baseSha": "991e5de",
+  "supportedMetadataLocales": ["en"],
+  "realSampleCount": 0,
+  "negativeFalsePositives": 0,
+  "unresolvedCases": [
+    "representative real Suggested label/layout samples with legitimate provenance (no feed scraping performed; all 10 fixtures synthetic)",
+    "supported-metadata-locale list beyond English (candidate is English-label-only; es/fr/pt/de labels unmeasured and fail open)",
+    "production semantics for repost-inner vs outer post (prototype targets inner only — proposed, not integrated)",
+    "feed vs profile and layout-variant coverage on real LinkedIn DOM",
+    "Firefox probe equivalents (probe is Chromium-only)"
+  ],
+  "checks": [
+    {
+      "command": "node -e 'const a=require(\"./plans/research/068/cases.json\"); if(a.length<9||a.some(x=>!x.id||!x.provenance||!(\"expectedTarget\" in x)))process.exit(1)'",
+      "expected": "exit 0",
+      "actual": "exit 0 (10 cases, all with id/provenance/expectedTarget)"
+    },
+    {
+      "command": "node --test plans/research/068/detector.test.cjs",
+      "expected": "exit 0",
+      "actual": "exit 0 (17/17 pass: 10 case targets, dedupe, outer-preservation, disabled/snooze-closed, 3 proposed-state-model, 067-rules summary)"
+    },
+    {
+      "command": "xvfb-run -a node plans/research/068/browser-probe.cjs",
+      "expected": "exit 0",
+      "actual": "exit 0 (inserted/dynamicAppend/replacedHeader/restoreRescan pass, zero collateral hides)"
+    },
+    {
+      "command": "npm run smoke && npm run lint && npm run typecheck && npm run test:unit",
+      "expected": "exit 0 on all four",
+      "actual": "exit 0 on all four (unit: 81 pass, 0 fail)"
+    }
+  ],
+  "measuredResults": {
+    "syntheticPositivesTargeted": ["header-label-en", "header-label-with-sponsor", "repost-inner", "duplicate-label", "mutation-root-is-post"],
+    "syntheticNegativesWithZeroHides": ["body-word", "body-paragraph-only", "nested-comment", "unrecognized-layout", "non-english-label"],
+    "falseNegatives": [],
+    "note": "Synthetic-only observations under 067 denominator/provenance rules (provenance=synthetic is metric-excluded); no precision/recall/FPR claimed."
+  },
+  "proposedStorageKeys": ["ss_hide_suggested"],
+  "storageSemantics": "Absent key implies false (off by default); compatible with older backup files; independent of text spam rules; category hides never increment spam counts.",
+  "productionFiles": [
+    "content.js",
+    "shared/pattern-data.js",
+    "shared/constants.js",
+    "options/options.js",
+    "options/options.html",
+    "_locales/en/messages.json",
+    "_locales/es/messages.json",
+    "tests/extension-interactions.js",
+    "types/globals.d.ts",
+    "AGENTS.md"
+  ],
+  "missingEvidence": [
+    "correctly targeted real Suggested label examples (proceed gate)",
+    "explicit supported-layout/locale boundary beyond English header metadata",
+    "representative layout samples and negative controls from legitimate sources"
+  ],
+  "notes": "An insufficient-data verdict is the honest successful outcome this plan defined: the prototype meets every synthetic boundary with zero fixed-negative collateral hides, and every gap is recorded instead of filled with fabricated provenance."
+}
