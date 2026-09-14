@@ -1,0 +1,74 @@
+{
+  "plan": "070",
+  "verdict": "insufficient-data",
+  "decidedAt": "2026-09-14",
+  "branch": "advisor/070-holdout-corpus",
+  "baseSha": "3aef7b9",
+  "representativeHoldoutAvailable": false,
+  "productionFiles": [],
+  "checks": [
+    {
+      "command": "node plans/research/067/evaluate.cjs --check",
+      "expected": "exit 0 (before and after; tripwire, 067 files untouched)",
+      "actual": "exit 0 before (Step 0) and after (Step 4): corpus=60 judged=50, misclassified(4): en-syn-01, en-syn-02, fr-syn-01, pt-syn-01"
+    },
+    {
+      "command": "node --test plans/research/070/*.test.cjs",
+      "expected": "exit 0, >= 8 assertions",
+      "actual": "exit 0: 18 tests, 18 pass, 0 fail"
+    },
+    {
+      "command": "node plans/research/070/curate.cjs --help",
+      "expected": "exit 0 with schema docs",
+      "actual": "exit 0 with schema docs"
+    },
+    {
+      "command": "node plans/research/070/curate.cjs --check <candidate.json> (valid + duplicate-id probes)",
+      "expected": "exit 0 one-line OK; exit 1 one-line reason",
+      "actual": "valid probe exit 0 (\"candidate (holdout-cli-probe-01): OK\"); duplicate-id probe exit 1 (\"duplicate id en-builtin-01\")"
+    },
+    {
+      "command": "gh issue list --label \"missed spam\" --state all (read-only inventory)",
+      "expected": "list of eligible issues, or empty",
+      "actual": "empty: zero issues with the missed-spam template label; seed deferred per STOP-condition rule (no fabrication)"
+    },
+    {
+      "command": "read-only classification of holdout-seed.json via require(\"plans/research/067/evaluate.cjs\").classify (067 unmodified)",
+      "expected": "per-entry current-matcher outcomes recorded as observations",
+      "actual": "{\"seedEntries\":0,\"devEntries\":60,\"outcomes\":[]} — nothing to classify, nothing changed"
+    },
+    {
+      "command": "npm run smoke",
+      "expected": "exit 0",
+      "actual": "exit 0"
+    },
+    {
+      "command": "npm run lint",
+      "expected": "exit 0",
+      "actual": "exit 0"
+    },
+    {
+      "command": "npm run test:unit",
+      "expected": "exit 0, all pass (81 at 3aef7b9)",
+      "actual": "exit 0: 81 tests, 81 pass, 0 fail"
+    }
+  ],
+  "measuredResults": {
+    "entriesCurated": 0,
+    "seedDeferred": true,
+    "deferralReason": "zero eligible missed-spam issues exist; synthetic holdout would launder development data into the promotion gate, so the seed stays []",
+    "curateTests": "18/18 pass (>= 8 assertions required)",
+    "evaluatorGate": "067 --check green before and after (non-interference tripwire)"
+  },
+  "missingEvidence": [
+    "any user-contributed or public-excerpt holdout entries (holdout-seed.json is [] until real missed-spam issues are filed)",
+    "paired legitimate negative examples from reporters (template negative-examples field unused so far — no reports)",
+    "fluent-speaker review for future non-EN candidates (plan-012 gate still applies at admission time)"
+  ],
+  "nextWork": [
+    "maintainer grows holdout-seed.json per policy.md as missed-spam issues arrive (draft entry, curate.cjs --check, append on pass)",
+    "a future plan merges holdout-seed.json into the 067 corpus and re-records baseline.json with reviewer sign-off",
+    "Firefox probe equivalents + paraphrase-prevalence sizing remain deferred (067 nextWork items 2-3, separate future plans)"
+  ],
+  "notes": "Do not edit baseline.json to fit: re-record deliberately after corpus or detector changes, with reviewer sign-off. An empty seed with working tooling is a valid completion, exactly as 067's insufficient-data was valid. Synthetic holdout is worse than empty holdout."
+}
