@@ -18,7 +18,7 @@
 - **Depends on:** none for design; keep legacy import compatibility aligned with 065
 - **Category:** direction — design/spike
 - **Planned at:** `3986b84`, 2026-09-13
-- **Status:** TODO
+- **Status:** DONE (2026-09-14, branch advisor/066-selective-phrase-packs @ 6bf4837, reviewed + verified; merged to main @ 8bc606a; verdict: proceed — 8 cases, 9 prototype tests, legacy mode/enabled round-trip confirmed, 065-compatible; research under plans/research/066/)
 
 ## Why this matters
 
