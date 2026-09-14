@@ -1,0 +1,60 @@
+{
+  "plan": "073",
+  "verdict": "documented-silence",
+  "decidedAt": "2026-09-14",
+  "branch": "advisor/073-menu-receipts",
+  "baseSha": "3aef7b9",
+  "productionFiles": [],
+  "policyWording": "Context-menu write actions (add-phrase, block-author) issue no success or failure receipts by design. Duplicate / already-blocked repeats are idempotent no-ops (goal state already holds — silence is correct, not a defect); empty selections are vacuous input; caps (200 phrases / 100 authors / 120 chars), quota overflow, and transient write errors are rare and the options-page lists always show true state, which is the recourse. A worker-to-tab notice cannot reach off-LinkedIn tabs where both menus fire (no content script there), and a notification-based receipt would cost a new install permission for rare paths. Do not re-report this silence as a fresh finding without new evidence.",
+  "dispositionedSites": [
+    "background.js:129 block-author unparseable author -> (c), validation of unreachable input",
+    "background.js:135 block-author already blocked -> (c), idempotent no-op, silence correct",
+    "background.js:136 block-author cap (100) -> (c), genuine failure, rare, options-page recourse",
+    "background.js:150 add-phrase empty text -> (c), vacuous input, no receipt sensible",
+    "background.js:151 add-phrase over length (120) -> (c), visible user-error validation",
+    "background.js:157 add-phrase list cap (200) -> (c), genuine failure, rare, options-page recourse",
+    "background.js:163 add-phrase duplicate -> (c), idempotent no-op, silence correct",
+    "background.js:174-177 add-phrase quota overflow -> (c), genuine failure, power-users only, options-page recourse",
+    "background.js:180-182 add-phrase write failure -> (c), transient, retry-by-hand recourse",
+    "background.js:139-141 block-author write failure (bonus observed site) -> (c), same as add-phrase write failure"
+  ],
+  "checks": [
+    {
+      "command": "git diff --stat 3aef7b9..HEAD -- background.js content.js _locales/en/messages.json",
+      "expected": "only the irrelevant +4 whatsNew lines in en locale (reviewer-reconciled, not a STOP)",
+      "actual": "only _locales/en/messages.json +4 (whatsNew* keys from merged 072); background.js and content.js byte-identical to plan excerpts — nine sites confirmed at cited lines"
+    },
+    {
+      "command": "node --test plans/research/073/*.test.cjs",
+      "expected": "exit 0, >= 10 assertions, passes against unmodified background.js",
+      "actual": "exit 0 (16/16 pass, 63 assertions: 7 add-phrase + 5 block-author + 4 report-missed cases)"
+    },
+    {
+      "command": "npm run smoke && npm run lint && npm run typecheck && npm run test:unit",
+      "expected": "exit 0 on all four (unit: 81 pass)",
+      "actual": "exit 0 on all four (unit: 81 pass, 0 fail)"
+    },
+    {
+      "command": "git diff dd85592..HEAD --name-only (branch-start = worktree base; the 3aef7b9...HEAD range additionally contains merged sibling plans 070/071/072 production changes, pre-existing and not this spike's)",
+      "expected": "only plans/research/073/ paths (production untouched by this spike)",
+      "actual": "only plans/research/073/matrix.md, receipts.test.cjs, verdict.json"
+    }
+  ],
+  "measuredResults": {
+    "characterizationTests": "16/16 pass pinning current silence on all nine write-action sites plus the block-author write-failure bonus site and four report-missed branches",
+    "existingOverlap": "report-missed 3-fixture drive already committed at tests/extension-interactions.js:2787-2838 (section J); this suite keeps one sanity case and covers only the delta",
+    "prototype": "none built — matrix recommends (c), and plan Step 3 prototypes only if (a)",
+    "optionAReachability": "hole confirmed by construction: add-phrase menu has no documentUrlPatterns (background.js:34-38, fires on ANY page) and block-author targetUrlPatterns constrain the link not the document, while the content script loads on LinkedIn hosts only (manifest.json:31-51) — off-LinkedIn receipts would hit the background.js:119-123 no-receiver swallow",
+    "note": "No user-facing behavior was changed or measured in production; the evidence is harness-level pinning of the silent outcomes plus the structural reachability analysis above."
+  },
+  "missingEvidence": [
+    "real-world frequency counts of each silent path (no telemetry by design — privacy guarantee — so rarity is argued from cap generosity, not measured)",
+    "user-complaint corroboration that 'nothing happened' confuses anyone in practice (no reports on file; absence of evidence, not evidence of absence)"
+  ],
+  "nextWork": [
+    "A future build plan may upgrade the six return-site comments to the policyWording above (comment-only change, no behavior, no locale keys needed)",
+    "Revisit only on maintainer demand with new evidence (e.g. user reports): scoped option (a) for LinkedIn-tab genuine failures, or option (b) notifications with full permission/policy/store-copy costing",
+    "If (a) is ever built: EN+ES locale keys (smoke parity), e2e scenarios in tests/extension-interactions.js, serial after any plan touching locale/test files"
+  ],
+  "notes": "Documented-silence is the honest verdict here, not a shrug: 2 of 9 sites are no-ops where silence is correct, 1 is vacuous input, and the 6 genuine failures are rare with existing recourse — while (a) collapses into silence off-LinkedIn and (b) spends the minimal-permission install story on rare paths. Production files untouched; the spike's only artifacts are plans/research/073/{matrix.md, receipts.test.cjs, verdict.json}."
+}
