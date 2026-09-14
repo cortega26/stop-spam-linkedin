@@ -72,7 +72,17 @@ Unbuilt 064/065/066/069 are explicitly not awaited.
 
 | Plan | Deliverable | Priority | Effort | Dependency | Status |
 |---|---|---|---|---|---|
-| 076 | [Release 1.6.0](archive/076-release-1.6.0.md) | P1 | S–M | — (needs HEAD CI green; tag push operator-gated) | DONE (2026-09-14, branch advisor/076-release-1.6.0, reviewed + verified; lockstep 1.6.0 + notes (063/072/074) + whatsNew refresh + privacy fix; full gate green incl. test:extension + test:package (1.6.0 zip, VERSION inside) + firefox-smoke; no tag created; note: plan's grep-≥2 criterion was miscalibrated (inlined copy mentions 1.6.0 once per file — accepted on merit, sections verified via head; deliverables on the branch, tag push is operator decision) |
+| 076 | [Release 1.6.0](archive/076-release-1.6.0.md) | P1 | S–M | — (needs HEAD CI green; tag push operator-gated) | DONE (2026-09-14, branch advisor/076-release-1.6.0, reviewed + verified; lockstep 1.6.0 + notes (063/072/074) + whatsNew refresh + privacy fix; full gate green incl. test:extension + test:package (1.6.0 zip, VERSION inside) + firefox-smoke; tag pushed by operator post-review; stores submitted via release.yml) |
+
+## Follow-up queue — 077 at `b7e55ac`
+
+Incident-driven: the 1.6.0 mistag published a GitHub Release page while
+both store submissions failed (recovered by release+tag deletion and
+re-tag on the merged bump). One workflow edge prevents recurrence.
+
+| Plan | Deliverable | Priority | Effort | Dependency | Status |
+|---|---|---|---|---|---|
+| 077 | [Release gating fix](archive/077-release-gating.md) | P2 | S | — | DONE (2026-09-14, branch advisor/077-release-gating, reviewed + verified; `github-release` now needs `[package, chrome, firefox]` — exactly one hunk, permissions block intact; js-yaml needs-graph assertion green; smoke + 81 unit green; no tag touched; live proof deferred to the next tag push) |
 
 ## Current direction queue — 2026-09-13 at `3986b84`
 
