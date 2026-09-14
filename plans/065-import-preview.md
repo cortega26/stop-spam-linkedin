@@ -18,7 +18,7 @@
 - **Depends on:** none; coordinate phrase-only file compatibility with 066
 - **Category:** direction — design/spike
 - **Planned at:** `3986b84`, 2026-09-13
-- **Status:** TODO
+- **Status:** DONE (executed 2026-09-14 on `advisor/065-import-preview`, base `74f3ae8`; index update left to reviewer)
 
 ## Why this matters
 
@@ -207,3 +207,23 @@ match-tester probe pairs near line 1800) and the packaged Chromium/Firefox gates
 Update AGENTS.md in that build if shared files, scripts, or storage keys change.
 
 **Deferred:** Production import refactor and UI require this contract/prototype verdict. Coordinate its legacy phrase-array path with 066; neither plan authorizes a general storage refactor.
+
+## Measured verdict (executor, 2026-09-14)
+
+- **Verdict: proceed.** Deliverables in `plans/research/065/`: `design.md`
+  (per-field contract, 6 measured quirks, 7 baseline-vs-proposed
+  differences, planner/controller API, integration sketch with EN/ES
+  drafts, future test strategy), `cases.json` (16 cases, every
+  exportable category), `prototype.cjs` (pure `planImport` + fake-storage
+  commit controller), `prototype.test.cjs` (14 tests), `verdict.json`.
+- Checks: cases schema exit 0; `node --test` 14/14 pass; `npm run smoke`,
+  `lint`, `typecheck`, `test:unit` (81/81) all exit 0. Browser suites not
+  run (research-only exemption). No STOP condition tripped.
+- Key findings: `version` is currently ignored (v2 would half-merge →
+  propose refusal); whitelist/blocked/allow byte gates use UTF-16 length
+  (→ propose UTF-8); excluded cap double-counts (256 effective per
+  import, replicated not fixed); block↔allow collisions are silent today
+  with allow shadowing block at match time (→ propose skip-with-reason).
+- 066 compatibility: legacy bare-array `{text, mode, enabled}` contract
+  unchanged; phrase packs round-trip through the legacy branch. No drift:
+  `git diff --name-only 74f3ae8 -- . ':!plans'` empty.
