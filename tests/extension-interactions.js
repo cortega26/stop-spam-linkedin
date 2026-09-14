@@ -2067,6 +2067,47 @@ async function main() {
     );
     await revisitPage.close();
 
+    /* ── Plan 072: what's-new card on update ── */
+
+    /* a. Stale seen-release shows the card. */
+    await setLocalStorage(context, { ss_seen_release: "0.0.0-stale" });
+    const whatsNewPage = await context.newPage();
+    await whatsNewPage.goto(
+      `chrome-extension://${await getExtensionId(context)}/options/options.html`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await whatsNewPage.locator("#whatsNewCard").waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+
+    /* b. Dismiss persists the running manifest version. */
+    const runningVersion = await context.serviceWorkers()[0].evaluate(
+      () => chrome.runtime.getManifest().version
+    );
+    await whatsNewPage.locator("#whatsNewDismissBtn").click();
+    await whatsNewPage.waitForFunction(
+      () => getComputedStyle(document.getElementById("whatsNewCard")).display === "none",
+      null,
+      { timeout: 5000 }
+    );
+    await waitForLocalValue(context, "ss_seen_release", (v) => v === runningVersion);
+
+    /* c. Reload with a current seen-release keeps the card hidden. */
+    await whatsNewPage.reload({ waitUntil: "domcontentloaded" });
+    await whatsNewPage.locator("#langToggles .lang-tog").first().waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    assert.equal(
+      await whatsNewPage
+        .locator("#whatsNewCard")
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "expected the whats-new card to stay hidden when the seen release is current"
+    );
+    await whatsNewPage.close();
+
     /* ── Per-pattern stats (plan 053): built-in + custom buckets ─── */
 
     /* Seed a custom phrase, then load a feed whose two posts match one

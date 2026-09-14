@@ -14,6 +14,7 @@
     COUNT: "ss_blocked_count",
     ONBOARDED: "ss_onboarded",
     WELCOME_PENDING: "ss_welcome_pending",
+    SEEN_RELEASE: "ss_seen_release",
     DAILY_COUNTS: "ss_daily_counts",
     PATTERN_COUNTS: "ss_pattern_counts",
     SNOOZE_UNTIL: "ss_snooze_until",

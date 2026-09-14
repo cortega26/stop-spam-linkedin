@@ -72,11 +72,15 @@
   const testResult = document.getElementById("testResult");
   const welcomeCard = document.getElementById("welcomeCard");
   const welcomeDismissBtn = document.getElementById("welcomeDismissBtn");
+  const whatsNewCard = document.getElementById("whatsNewCard");
+  const whatsNewDismissBtn = document.getElementById("whatsNewDismissBtn");
 
   /* ── Bootstrap ──────────────────────────────────────────────── */
   load();
   loadWelcomeState();
+  loadWhatsNewState();
   welcomeDismissBtn.addEventListener("click", dismissWelcome);
+  whatsNewDismissBtn.addEventListener("click", dismissWhatsNew);
   addBtn.addEventListener("click", handleAdd);
   input.addEventListener("keydown", (e) => {
     if (e.key === "Enter") handleAdd();
@@ -158,6 +162,34 @@
     chrome.storage.local.set({ [STORAGE_KEYS.WELCOME_PENDING]: false }, () => {
       if (chrome.runtime.lastError) {
         console.warn("Failed to clear welcome flag (local.set):", chrome.runtime.lastError.message);
+      }
+    });
+  }
+
+  /* What's-new card (plan 072): shown once per version bump, when the
+     stored seen-release differs from the running manifest version. An
+     absent key (first run after this ships) shows the card once —
+     consistent with welcome behavior. Local storage: seen-version is
+     per-device state, like onboarding. No mutual exclusion with the
+     welcome card — both may show on a fresh install (welcome first in
+     DOM order). */
+  function loadWhatsNewState() {
+    const runningVersion = chrome.runtime.getManifest().version;
+    chrome.storage.local.get([STORAGE_KEYS.SEEN_RELEASE],
+      /** @param {{ [key: string]: any }} result */
+      (result) => {
+      if (result[STORAGE_KEYS.SEEN_RELEASE] !== runningVersion) {
+        whatsNewCard.style.display = "block";
+      }
+    });
+  }
+
+  function dismissWhatsNew() {
+    whatsNewCard.style.display = "none";
+    const runningVersion = chrome.runtime.getManifest().version;
+    chrome.storage.local.set({ [STORAGE_KEYS.SEEN_RELEASE]: runningVersion }, () => {
+      if (chrome.runtime.lastError) {
+        console.warn("Failed to save seen release (local.set):", chrome.runtime.lastError.message);
       }
     });
   }
