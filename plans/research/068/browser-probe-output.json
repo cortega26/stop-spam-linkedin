@@ -1,0 +1,38 @@
+{
+  "browser": "chromium",
+  "cases": {
+    "inserted": {
+      "pass": true,
+      "hiddenTargets": [
+        "urn:li:activity:ss68-1"
+      ],
+      "visibleControls": [
+        "urn:li:activity:ss68-2",
+        "urn:li:activity:ss68-3"
+      ],
+      "placeholderCount": 1,
+      "collateralHides": []
+    },
+    "dynamicAppend": {
+      "pass": true,
+      "hiddenTargets": [
+        "urn:li:activity:ss68-4"
+      ],
+      "placeholderCount": 2
+    },
+    "replacedHeader": {
+      "pass": true,
+      "hiddenTargets": [
+        "urn:li:activity:ss68-5"
+      ],
+      "placeholderCount": 3
+    },
+    "restoreRescan": {
+      "pass": true,
+      "placeholderCount": 2,
+      "rescanStable": true
+    }
+  },
+  "playwrightVersion": "1.60.0",
+  "placeholderFinal": 2
+}

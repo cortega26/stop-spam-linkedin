@@ -1,0 +1,102 @@
+[
+  {
+    "id": "header-label-en",
+    "purpose": "Positive control: English Suggested label in recognized post-header metadata must target the post.",
+    "markup": "<section data-case=\"header-label-en\" data-id=\"urn:li:activity:1001\" class=\"feed-shared-update-v2\"><div class=\"feed-shared-actor\"><div class=\"feed-shared-actor__meta\"><span class=\"feed-shared-actor__title\">Jane Doe</span><span class=\"feed-shared-actor__sub-description\">Suggested</span></div></div><p class=\"post-body\">Excited to share our team quarterly results and hiring plans.</p></section>",
+    "scanRoot": "parent",
+    "expectedTarget": "[data-case=\"header-label-en\"]",
+    "metadataLocale": "en",
+    "provenance": "synthetic",
+    "validationStatus": "synthetic-validated"
+  },
+  {
+    "id": "header-label-with-sponsor",
+    "purpose": "Positive control: Suggested label followed by the LinkedIn ' · ' sponsor separator must still target the post (mirrors the matchesLabel separator rule).",
+    "markup": "<section data-case=\"header-label-with-sponsor\" data-id=\"urn:li:activity:1002\" class=\"feed-shared-update-v2\"><div class=\"update-components-actor\"><div class=\"update-components-actor__meta\"><span class=\"update-components-actor__title\">Acme Corp</span><span class=\"update-components-actor__sub-description\">Suggested · Acme Corp</span></div></div><p class=\"post-body\">A calm professional note about quarterly planning.</p></section>",
+    "scanRoot": "parent",
+    "expectedTarget": "[data-case=\"header-label-with-sponsor\"]",
+    "metadataLocale": "en",
+    "provenance": "synthetic",
+    "validationStatus": "synthetic-validated"
+  },
+  {
+    "id": "body-word",
+    "purpose": "Negative control: the word Suggested inside a body sentence must not hide the post.",
+    "markup": "<section data-case=\"body-word\" data-id=\"urn:li:activity:1003\" class=\"feed-shared-update-v2\"><div class=\"feed-shared-actor\"><div class=\"feed-shared-actor__meta\"><span class=\"feed-shared-actor__title\">John Smith</span><span class=\"feed-shared-actor__sub-description\">3rd+ · 2d</span></div></div><p class=\"post-body\">I suggested we reschedule the workshop to Thursday morning.</p></section>",
+    "scanRoot": "parent",
+    "expectedTarget": null,
+    "metadataLocale": "en",
+    "provenance": "synthetic",
+    "validationStatus": "synthetic-validated"
+  },
+  {
+    "id": "body-paragraph-only",
+    "purpose": "Negative control: a body paragraph consisting solely of Suggested (no header metadata) must not hide the post — text match alone proves nothing about header metadata.",
+    "markup": "<section data-case=\"body-paragraph-only\" data-id=\"urn:li:activity:1004\" class=\"feed-shared-update-v2\"><div class=\"feed-shared-actor\"><div class=\"feed-shared-actor__meta\"><span class=\"feed-shared-actor__title\">Jane Doe</span></div></div><p class=\"post-body\">Suggested</p></section>",
+    "scanRoot": "parent",
+    "expectedTarget": null,
+    "metadataLocale": "en",
+    "provenance": "synthetic",
+    "validationStatus": "synthetic-validated"
+  },
+  {
+    "id": "nested-comment",
+    "purpose": "Negative control: a Suggested label inside a nested comment (even in a recognized-class span) must not hide the parent post.",
+    "markup": "<section data-case=\"nested-comment\" data-id=\"urn:li:activity:1005\" class=\"feed-shared-update-v2\"><div class=\"feed-shared-actor\"><div class=\"feed-shared-actor__meta\"><span class=\"feed-shared-actor__title\">Jane Doe</span><span class=\"feed-shared-actor__sub-description\">1st · 1w</span></div></div><p class=\"post-body\">Thoughts on remote onboarding below.</p><div class=\"comments\"><div class=\"comment\"><span class=\"feed-shared-actor__sub-description\">Suggested</span><p class=\"comment-body\">Great post, thanks for sharing.</p></div></div></section>",
+    "scanRoot": "parent",
+    "expectedTarget": null,
+    "metadataLocale": "en",
+    "provenance": "synthetic",
+    "validationStatus": "synthetic-validated"
+  },
+  {
+    "id": "repost-inner",
+    "purpose": "Boundary: a Suggested label belonging to an embedded repost must not hide the outer post; only the inner repost is targeted (proposed behavior, recorded as unresolved for production).",
+    "markup": "<section data-case=\"repost-inner\" data-id=\"urn:li:activity:1006\" class=\"feed-shared-update-v2\"><div class=\"feed-shared-actor\"><div class=\"feed-shared-actor__meta\"><span class=\"feed-shared-actor__title\">John Smith</span><span class=\"feed-shared-actor__sub-description\">2nd · 4d</span></div></div><p class=\"post-body\">Worth resharing this analysis.</p><div class=\"repost\" data-id=\"urn:li:activity:1006-reshare\"><div class=\"update-components-actor\"><div class=\"update-components-actor__meta\"><span class=\"update-components-actor__title\">Acme Corp</span><span class=\"update-components-actor__sub-description\">Suggested</span></div></div><p class=\"post-body\">Original analysis text.</p></div></section>",
+    "scanRoot": "parent",
+    "expectedTarget": "[data-case=\"repost-inner\"] .repost",
+    "metadataLocale": "en",
+    "provenance": "synthetic",
+    "validationStatus": "synthetic-validated"
+  },
+  {
+    "id": "unrecognized-layout",
+    "purpose": "Negative control: Suggested text in an unknown layout (no recognized header-metadata structure) must fail open.",
+    "markup": "<section data-case=\"unrecognized-layout\" data-id=\"urn:li:activity:1007\" class=\"feed-shared-update-v2\"><div class=\"feed-shared-actor\"><div class=\"feed-shared-actor__meta\"><span class=\"feed-shared-actor__title\">Jane Doe</span></div></div><div class=\"mystery-badge\"><span>Suggested</span></div><p class=\"post-body\">A calm professional note about quarterly planning.</p></section>",
+    "scanRoot": "parent",
+    "expectedTarget": null,
+    "metadataLocale": "en",
+    "provenance": "synthetic",
+    "validationStatus": "synthetic-validated"
+  },
+  {
+    "id": "duplicate-label",
+    "purpose": "Positive control: visual + screen-reader duplicate Suggested labels in the header must produce exactly one hide target (dedupe).",
+    "markup": "<section data-case=\"duplicate-label\" data-id=\"urn:li:activity:1008\" class=\"feed-shared-update-v2\"><div class=\"feed-shared-actor\"><div class=\"feed-shared-actor__meta\"><span class=\"feed-shared-actor__title\">Jane Doe</span><span class=\"feed-shared-actor__sub-description\" aria-hidden=\"true\">Suggested</span><span class=\"visually-hidden\">Suggested</span></div></div><p class=\"post-body\">A calm professional note about quarterly planning.</p></section>",
+    "scanRoot": "parent",
+    "expectedTarget": "[data-case=\"duplicate-label\"]",
+    "metadataLocale": "en",
+    "provenance": "synthetic",
+    "validationStatus": "synthetic-validated"
+  },
+  {
+    "id": "mutation-root-is-post",
+    "purpose": "Positive control: when the mutation-observer root IS the post element itself, the scan must still target it (root.matches handling).",
+    "markup": "<section data-case=\"mutation-root-is-post\" data-id=\"urn:li:activity:1009\" class=\"feed-shared-update-v2\"><div class=\"feed-shared-actor\"><div class=\"feed-shared-actor__meta\"><span class=\"feed-shared-actor__title\">Jane Doe</span><span class=\"feed-shared-actor__sub-description\">Suggested</span></div></div><p class=\"post-body\">A calm professional note about quarterly planning.</p></section>",
+    "scanRoot": "post",
+    "expectedTarget": "[data-case=\"mutation-root-is-post\"]",
+    "metadataLocale": "en",
+    "provenance": "synthetic",
+    "validationStatus": "synthetic-validated"
+  },
+  {
+    "id": "non-english-label",
+    "purpose": "Negative control: a non-English recommendation label (es Sugerido) in header metadata must fail open — the candidate is explicitly English-label-only and no translations are claimed.",
+    "markup": "<section data-case=\"non-english-label\" data-id=\"urn:li:activity:1010\" class=\"feed-shared-update-v2\"><div class=\"feed-shared-actor\"><div class=\"feed-shared-actor__meta\"><span class=\"feed-shared-actor__title\">María García</span><span class=\"feed-shared-actor__sub-description\">Sugerido</span></div></div><p class=\"post-body\">Una nota profesional sobre la planificación trimestral.</p></section>",
+    "scanRoot": "parent",
+    "expectedTarget": null,
+    "metadataLocale": "es",
+    "provenance": "synthetic",
+    "validationStatus": "synthetic-validated"
+  }
+]
