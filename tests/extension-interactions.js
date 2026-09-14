@@ -2852,6 +2852,201 @@ async function main() {
     });
     await reportPage.close();
 
+    /* ── Plan 074: async-outcome announcements (accessible tree) ──
+       Gap list (Step 1 audit, one line per item with file:line):
+       - options/options.html:637 — #toast had no role (fixed: role=status).
+       - content.js:1269 — first-run banner had no role (fixed: role=status).
+       - popup/popup.html:322 — #connectionNotice dynamic text swap had no
+         role (fixed: role=status).
+       - popup/popup.html:363 — #snoozeStatus dynamic outcome text had no
+         role (fixed: role=status, same pattern, zero new locale keys).
+       - content.js:911/945/971/1001/1033/1049 — six placeholder buttons
+         set textContent with no aria overrides, so names equal visible
+         text (asserted below, no code change).
+       - restorePost (content.js:1495-1496) + block-swap (content.js:1024-
+         1027) remove the clicked button with its whole placeholder, so no
+         surviving sibling/container exists: DEFERRED per plan (would need
+         focus architecture on third-party LinkedIn nodes).
+       Inventory verdicts: #testResult already aria-live=polite (verify
+       only); #loadingState has no text (labelling needs a new locale
+       string — deferred per STOP); #noConnection wraps a link (role=status
+       inappropriate — left alone). Step 0 record: tester block matches by
+       content at options.html:557-563; git log --grep=064 shows the design
+       spike only, no 064 build landed — tester assertions proceed. */
+
+    /* Deterministic start: stock settings, fresh feed. spam-1 (EN-1
+       builtin, no actor author) hides behind one placeholder carrying
+       Not spam / Show / Report missed spam. */
+    await setSyncStorage(context, {
+      ss_enabled: true,
+      ss_phrases: [],
+      ss_allow_phrases: [],
+      ss_whitelist: ["trusted"],
+      ss_blocked_authors: [],
+      ss_excluded: [],
+      ss_disabled_patterns: [],
+      ss_enabled_langs: ["EN", "ES", "FR", "PT", "DE"],
+    });
+    await setLocalStorage(context, {
+      ss_snooze_until: 0,
+      ss_pending_suggestions: [],
+      ss_dismissed_suggestions: [],
+    });
+    await linkedInPage.bringToFront();
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
+    /* Placeholder buttons expose their visible text as accessible names
+       (asserted, not assumed). */
+    for (const name of [
+      /^(Show|Mostrar)$/,
+      /^(Not spam|No es spam)$/,
+      /^(Report missed spam|Reportar spam no detectado)$/,
+    ]) {
+      await linkedInPage.getByRole("button", { name }).first().waitFor({
+        state: "visible",
+        timeout: 10000,
+      });
+    }
+
+    /* An actor post adds the author actions; blocking the author swaps
+       the placeholder to the author-block variant. */
+    await linkedInPage.evaluate(() => {
+      const section = document.createElement("section");
+      section.dataset.id = "urn:li:activity:a11y-author-1";
+      section.innerHTML =
+        '<div class="update-components-actor">' +
+        '<a href="/in/a11y-author/">A11y Author</a>' +
+        "</div>" +
+        '<p>Comment "CLAUDE" and I\'ll send you the checklist for free today.</p>';
+      document.querySelector("main").appendChild(section);
+    });
+    await linkedInPage.waitForFunction(
+      () => document.querySelectorAll("[data-ss-ph]").length === 2,
+      null,
+      { timeout: 10000 }
+    );
+    const a11yPh = linkedInPage.locator(
+      '[data-id="urn:li:activity:a11y-author-1"] + [data-ss-ph]'
+    );
+    for (const name of [
+      /^(Never block this author|No bloquear a este autor)$/,
+      /^(Block this author|Bloquear a este autor)$/,
+    ]) {
+      await a11yPh.getByRole("button", { name }).waitFor({
+        state: "visible",
+        timeout: 10000,
+      });
+    }
+    await a11yPh
+      .getByRole("button", { name: /^(Block this author|Bloquear a este autor)$/ })
+      .click();
+    await linkedInPage.waitForFunction(
+      (selector) => {
+        const el = document.querySelector(selector);
+        if (!el) return false;
+        const ph = el.nextElementSibling;
+        if (!ph || !ph.hasAttribute("data-ss-ph")) return false;
+        const label = ph.querySelector("span");
+        return label !== null && /Blocked — you've blocked this author|Bloqueado/.test(label.textContent);
+      },
+      '[data-id="urn:li:activity:a11y-author-1"]',
+      { timeout: 5000 }
+    );
+    for (const name of [
+      /^(Unblock this author|Desbloquear a este autor)$/,
+      /^(Show|Mostrar)$/,
+    ]) {
+      await a11yPh.getByRole("button", { name }).waitFor({
+        state: "visible",
+        timeout: 10000,
+      });
+    }
+
+    /* Options toast announces via role=status on phrase add; the tester
+       region keeps its polite liveness. */
+    const a11yPage = await context.newPage();
+    await a11yPage.goto(
+      `chrome-extension://${await getExtensionId(context)}/options/options.html`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await a11yPage.locator("#langToggles .lang-tog").first().waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+    assert.equal(
+      await a11yPage.locator("#toast").getAttribute("role"),
+      "status",
+      "expected the options toast to carry role=status"
+    );
+    assert.equal(
+      await a11yPage.locator("#testResult").getAttribute("aria-live"),
+      "polite",
+      "expected the tester result region to stay a polite live region"
+    );
+
+    /* The polite region updates on a benign probe (no custom phrase can
+       interfere — A11YPROBE is added only after this). */
+    await a11yPage.locator("#testInput").fill(
+      "Planning our quarterly roadmap with the engineering team next Tuesday."
+    );
+    await a11yPage.locator("#testBtn").click();
+    await a11yPage.waitForFunction(
+      (sel) => /nothing matched|nada coincide/.test(document.querySelector(sel).textContent),
+      "#testResult",
+      { timeout: 5000 }
+    );
+
+    /* Adding a phrase announces through the status region: the
+       accessible tree exposes the toast under the status role. NOTE:
+       role=status is not a name-from-contents role (Chromium leaves its
+       accessible name empty), so the tree query is disambiguated with a
+       DOM-text filter instead of { name }. */
+    await a11yPage.locator("#phraseInput").fill("A11YPROBE");
+    await a11yPage.locator("#addBtn").click();
+    await waitForSyncValue(context, "ss_phrases", (v) =>
+      Array.isArray(v) && v.some((p) => p.text === "A11YPROBE")
+    );
+    await a11yPage.getByRole("status").filter({ hasText: /A11YPROBE/ }).waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+
+    /* Popup connection notice announces via role=status when no live
+       tab is connected. */
+    const a11yPopup = await context.newPage();
+    await a11yPopup.goto(
+      `chrome-extension://${await getExtensionId(context)}/popup/popup.html`,
+      { waitUntil: "domcontentloaded" }
+    );
+    /* Park focus on the non-LinkedIn options tab so the popup's refresh
+       finds no live tab and renders the fallback notice. */
+    await a11yPage.bringToFront();
+    await a11yPopup.reload({ waitUntil: "domcontentloaded" });
+    await a11yPopup.waitForFunction(
+      () => getComputedStyle(document.getElementById("connectionNotice")).display === "block",
+      null,
+      { timeout: 10000 }
+    );
+    assert.equal(
+      await a11yPopup.locator("#connectionNotice").getAttribute("role"),
+      "status",
+      "expected the popup connection notice to carry role=status"
+    );
+    assert.equal(
+      await a11yPopup.locator("#snoozeStatus").getAttribute("role"),
+      "status",
+      "expected the popup snooze status to carry role=status"
+    );
+    await a11yPopup.getByRole("status").filter({ hasText: /No active LinkedIn tab|pestaña activa/ }).waitFor({
+      state: "visible",
+      timeout: 10000,
+    });
+
+    await a11yPopup.close();
+    await a11yPage.close();
+
     console.log("Extension interactions test passed.");
   } finally {
     await context.close();
