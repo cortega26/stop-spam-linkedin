@@ -18,7 +18,7 @@
 - **Depends on:** 063 report selection contract; design can start earlier
 - **Category:** direction — design/spike
 - **Planned at:** `3986b84`, 2026-09-13
-- **Status:** TODO
+- **Status:** DONE (2026-09-14, branch advisor/069-manual-hide-once @ 76daf68, reviewed + verified; merged to main @ 0e53242; verdict: proceed — 10 cases, 14 prototype tests, Chromium probe 5/5, wrapper-over-reason architecture, zero writes/counts; research under plans/research/069/)
 
 ## Why this matters
 
