@@ -1,5 +1,13 @@
 # Release Notes
 
+## 1.6.0
+
+Easier missed-spam reporting, in-extension release notes, and accessibility improvements. Key changes:
+
+- **Report missed spam from anywhere**: select any text on LinkedIn and report it — the text is copied and a pre-filled issue opens (plan 063).
+- **What's new after every update**: the options page now shows a dismissible card with each version's highlights (plan 072).
+- **Clearer screen-reader announcements**: toasts, banners, and popup notices now expose proper live regions (plan 074).
+
 ## 1.5.0
 
 Never-hide phrases, a match tester, and broader detection coverage. Key changes:

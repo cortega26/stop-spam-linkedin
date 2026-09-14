@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.6.0 - Missed-Spam Reporting, What's New, Accessibility
+
+### Features
+
+- Added **selection-based missed-spam reporting**: right-click any selected LinkedIn text to copy it and open a pre-filled issue — nothing is sent automatically (plan 063).
+- Added a **what's-new card**: the options page shows a dismissible, version-pinned summary of each release's highlights (plan 072).
+- Added **assistive-technology announcements**: the options toast, first-run banner, and popup notices now carry `role="status"` live regions, pinned by accessible-tree e2e assertions (plan 074).
+
 ## 1.5.0 - Never-hide Phrases, Match Tester, and More
 
 ### Features
