@@ -1267,6 +1267,7 @@
     });
 
     const banner = document.createElement("div");
+    banner.setAttribute("role", "status");
     banner.textContent = SS_t("blockedToast", [String(blockedCount)]);
     Object.assign(banner.style, {
       padding: "10px 24px",
