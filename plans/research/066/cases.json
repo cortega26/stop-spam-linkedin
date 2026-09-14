@@ -1,0 +1,110 @@
+[
+  {
+    "name": "single-exact",
+    "description": "One enabled exact-match phrase selected out of three; unselected rows export nothing.",
+    "phrases": [
+      { "id": "p1", "text": "comment CLAUDE for the framework", "enabled": true, "created": 1, "mode": "exact" },
+      { "id": "p2", "text": "drop a 🔥 if you agree", "enabled": true, "created": 2, "mode": "exact" },
+      { "id": "p3", "text": "follow for part 2", "enabled": true, "created": 3, "mode": "exact" }
+    ],
+    "selectedIds": ["p2"],
+    "expected": [{ "text": "drop a 🔥 if you agree", "mode": "exact", "enabled": true }]
+  },
+  {
+    "name": "contains-mode-preserved",
+    "description": "A contains-mode phrase keeps mode contains in the pack.",
+    "phrases": [
+      { "id": "p1", "text": "comment CLAUDE for the framework", "enabled": true, "created": 1, "mode": "exact" },
+      { "id": "p2", "text": "DM me the word", "enabled": true, "created": 2, "mode": "contains" }
+    ],
+    "selectedIds": ["p2"],
+    "expected": [{ "text": "DM me the word", "mode": "contains", "enabled": true }]
+  },
+  {
+    "name": "disabled-preserved",
+    "description": "A disabled (enabled:false) selected phrase stays disabled in the pack.",
+    "phrases": [
+      { "id": "p1", "text": "comment GUIDE and I will send it", "enabled": false, "created": 1, "mode": "exact" },
+      { "id": "p2", "text": "repost to enter", "enabled": true, "created": 2, "mode": "contains" }
+    ],
+    "selectedIds": ["p1"],
+    "expected": [{ "text": "comment GUIDE and I will send it", "mode": "exact", "enabled": false }]
+  },
+  {
+    "name": "multiple-selection-keeps-list-order",
+    "description": "Selected ids given out of order still export in stored-list order.",
+    "phrases": [
+      { "id": "p1", "text": "first rule", "enabled": true, "created": 1, "mode": "exact" },
+      { "id": "p2", "text": "second rule", "enabled": false, "created": 2, "mode": "contains" },
+      { "id": "p3", "text": "third rule", "enabled": true, "created": 3, "mode": "exact" }
+    ],
+    "selectedIds": ["p3", "p1"],
+    "expected": [
+      { "text": "first rule", "mode": "exact", "enabled": true },
+      { "text": "third rule", "mode": "exact", "enabled": true }
+    ]
+  },
+  {
+    "name": "filtered-but-selected-still-exports",
+    "description": "Selection is keyed by id on the full list: a selected row outside the current visible filter still exports. visibleIds documents the hypothetical filter; the serializer only reads phrases + selectedIds.",
+    "phrases": [
+      { "id": "p1", "text": "comment CLAUDE for the framework", "enabled": true, "created": 1, "mode": "exact" },
+      { "id": "p2", "text": "DM me the word GUIDE", "enabled": true, "created": 2, "mode": "contains" },
+      { "id": "p3", "text": "repost to enter", "enabled": false, "created": 3, "mode": "exact" }
+    ],
+    "visibleIds": ["p1"],
+    "selectedIds": ["p1", "p3"],
+    "expected": [
+      { "text": "comment CLAUDE for the framework", "mode": "exact", "enabled": true },
+      { "text": "repost to enter", "mode": "exact", "enabled": false }
+    ]
+  },
+  {
+    "name": "deleted-row-dropped",
+    "description": "Selected ids with no matching row (deleted rows, stale ids) are dropped silently.",
+    "phrases": [{ "id": "p1", "text": "kept rule", "enabled": true, "created": 1, "mode": "exact" }],
+    "selectedIds": ["p1", "p-gone", "p-stale"],
+    "expected": [{ "text": "kept rule", "mode": "exact", "enabled": true }]
+  },
+  {
+    "name": "empty-selection",
+    "description": "No selected rows exports an empty pack; the UI disables Export on this state.",
+    "phrases": [{ "id": "p1", "text": "kept rule", "enabled": true, "created": 1, "mode": "exact" }],
+    "selectedIds": [],
+    "expected": []
+  },
+  {
+    "name": "invalid-skipped-poison-dropped",
+    "description": "Over-long and blank texts never leave the profile; an unknown mode normalizes to exact (importer rule); unrelated personal metadata on source objects (ids, timestamps, authors, history, stats) is dropped by the allowlist serializer.",
+    "phrases": [
+      {
+        "id": "p1",
+        "text": "good rule",
+        "enabled": true,
+        "created": 111,
+        "mode": "contains",
+        "authorId": "ac:secret",
+        "history": ["edited"],
+        "patternStats": { "hits": 9 },
+        "suggestion": "buy followers"
+      },
+      {
+        "id": "p2",
+        "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "enabled": true,
+        "created": 112,
+        "mode": "exact",
+        "blockedAuthors": ["bob"],
+        "whitelist": ["alice"],
+        "allowPhrases": [{ "text": "kind words" }]
+      },
+      { "id": "p3", "text": "   ", "enabled": true, "created": 113, "mode": "exact" },
+      { "id": "p4", "text": "odd mode rule", "enabled": true, "created": 114, "mode": "regex" }
+    ],
+    "selectedIds": ["p1", "p2", "p3", "p4"],
+    "expected": [
+      { "text": "good rule", "mode": "contains", "enabled": true },
+      { "text": "odd mode rule", "mode": "exact", "enabled": true }
+    ]
+  }
+]
