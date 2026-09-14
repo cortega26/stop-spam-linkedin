@@ -1,5 +1,68 @@
 # Implementation Plans
 
+## Current direction queue — 2026-09-14 at `3aef7b9`
+
+Third `next`/direction-only survey (no other category audited). All prior
+plans (001–069) are DONE/archived — the active queue was empty, so there
+is nothing to reconcile and no duplication. Research spikes 064/065/066/069
+closed `proceed` (builds not yet planned — see dependency notes, not
+re-planned here); 067/068 closed `insufficient-data` (070/071 are their
+evidence gates). Six findings → six plans (070–075). Effort is coarse
+(S = hours; M = roughly a day). The session was non-interactive at plan
+time for execution but the maintainer selected all six findings for
+planning. Recon was read-only (`rg`/`cat` only — no verification command
+was executed in this pass, so every new plan marks its gates `declared`;
+last recorded greens are the research-branch checks in each 064–069
+verdict).
+
+**Recommended order: 070 → 071 → 072 → 073 → 074 → 075.**
+
+| Plan | Deliverable | Priority | Effort | Dependency | Status |
+|---|---|---|---|---|---|
+| 070 | [Holdout corpus pipeline](archive/070-holdout-corpus-pipeline.md) | P1 | M | — | DONE (2026-09-14, branch advisor/070-holdout-corpus @ cb332a0, reviewed + verified; verdict: insufficient-data — zero missed-spam issues exist so seed is [], pipeline fully green: policy + curate.cjs + 18/18 tests + 067 tripwire; full gate green incl. 81 unit; deliverables on the branch, merge is operator decision) |
+| 071 | [Suggested real-sample gate](071-suggested-sample-gate.md) | P2 | S–M | 070 (vocabulary only; soft — see notes) | TODO |
+| 072 | [What's-new on update](072-whats-new-on-update.md) | P2 | S–M | — (serial before 073) | TODO |
+| 073 | [Menu-action receipts spike](073-menu-action-receipts.md) | P3 | S | after 072 (serial) | TODO |
+| 074 | [Announcement pass](074-announcement-pass.md) | P2 | S–M | 064 build (unplanned) + after 072/073 (serial) | TODO |
+| 075 | [DOM-drift tripwire spike](075-dom-drift-tripwire.md) | P3 | S–M | LAST among 072–075 (serial) | TODO |
+
+070/071 are research-only (new `plans/research/07X/` dirs, no production
+files) and can run any time, including in parallel with anything. 072 →
+073 → 074 → 075 are strictly serial (shared `content.js`,
+`background.js`, `options/*`, `_locales/*.json`,
+`tests/extension-interactions.js` — parallel worktrees would conflict on
+merge). Status values: TODO | IN PROGRESS | DONE | BLOCKED (with reason)
+| REJECTED (with rationale). Archival rule stands: on DONE/REJECTED move
+the file to `plans/archive/` and relink the row.
+
+### Batch 070–075 (2026-09-14 `next` pass) — dependency notes
+
+- **071 soft-depends on 070**: only the provenance vocabulary
+  (`provenance`/`validationStatus` values). If 070 hasn't landed, 071
+  mirrors 067's enum and records the debt — it must not block on 070.
+- **072 touches no `background.js`** (options-only by design) — its only
+  coupling to 073 is the shared locale/test files, hence serial order,
+  not a logical dependency.
+- **074 hard-gates its tester assertions on the 064 build** (proceed
+  verdict recorded, build plan not yet written at `3aef7b9`). Static
+  surfaces (toast, banner, popup, placeholder names) are independent —
+  the plan voids only the tester assertions if 064 landed first. Read
+  its Step 0 before starting.
+- **Pending builds from proceed verdicts (064/065/066/069) are not
+  re-planned here** but constrain execution: any of them touching
+  `options/`, `content.js`, `background.js`, or `_locales/` must run
+  serially against 072–075 with a rebase between landings; each plan's
+  drift check + STOP conditions enforce this. 074's tester work belongs
+  after the 064 build; 075's content.js work after the 069 build if both
+  are in flight.
+- **Locale rule**: every new user-facing string ships EN+ES with smoke
+  parity (in-plan). Do NOT create `_locales/fr|pt|de` — sourcing
+  decision (c) in `docs/i18n-audit.md` stands (no machine-translated
+  strings committed, ever).
+- **070 before any detection-family build**: 070's holdout + 071's
+  proceed verdict are the joint gates for a future Suggested-filter
+  build and for the 052 retry (competitor-review sequencing holds).
+
 ## Current direction queue — 2026-09-13 at `3986b84`
 
 The maintainer selected all net-positive directions and requested a comparison
@@ -540,6 +603,28 @@ from 005 landing first.
   all" are both one click away in the popup; a shortcut saves a click for a
   user who is already using a mouse to scroll a feed. Low leverage, and it
   adds a manifest surface for no measured demand.
+
+### Added by the 2026-09-14 `next` pass (070–075)
+
+- **Pending builds from proceed verdicts (064 tester explanations, 065
+  import preview, 066 selective export, 069 hide-once)**: already
+  designed, awaiting build plans — deliberately not re-planned. New plans
+  sequence around them (see the 070–075 dependency notes); re-planning
+  would double the queue.
+- **Rule-shadow audit view** (bulk surfacing of allow-vs-block/disabled
+  collisions): real grounding (065 found silent import collisions;
+  `options.js:348` guards only the add path) but premature — it depends
+  on unbuilt 064+065. Sequence after those builds land; do not plan
+  until then.
+- **Jobs/search page scoping**: investigated, not proposed. No FP
+  evidence on those pages in-repo (no issue, no fixture, no TODO); 052's
+  collision was about a rule family, not page scope. Revisit on the
+  first jobs-page false-positive report.
+- **Still rejected, no new evidence**: snooze durations, author-scoped
+  phrases, Solo mode, sensitivity slider, remote/community sync,
+  persistent review history, blur/removal display modes, Firefox
+  Android, keyboard shortcuts — prior rationale (above + competitor
+  review §"Considered and not selected") stands unchanged.
 
 ## Notes for future audit runs
 
