@@ -1,0 +1,72 @@
+{
+  "plan": "075",
+  "verdict": "proceed",
+  "decidedAt": "2026-09-14",
+  "branch": "advisor/075-drift-tripwire",
+  "baseSha": "eaf7631",
+  "fireCondition": "N = 5 consecutive qualifying post-warm-up scan events (textNodesSeen > 0 && containersResolved == 0); first 3 scan invocations excluded; any containersResolved > 0 resets; textNodesSeen == 0 scans neutral",
+  "destination": "console-only (single console.warn per episode; counts only, never text)",
+  "hookPoints": [
+    "H1: end of scan(), after the match loop (content.js:671-680) — emit textNodesSeen / containersResolved",
+    "H2: scanForBlockedAuthors enumeration (content.js:693-705) — contribute postsEnumerated as diagnostic context",
+    "H3: scheduleInitialScan doScan (content.js:761-766) + MutationObserver callback (content.js:1207-1217) — shared scan-invocation clock for the warm-up exclusion"
+  ],
+  "productionFiles": [
+    "content.js"
+  ],
+  "checks": [
+    {
+      "command": "npm run smoke",
+      "expected": "exit 0",
+      "actual": "exit 0 (manifest + locale JSON valid, en<->es parity holds, node --check clean)"
+    },
+    {
+      "command": "npm run lint",
+      "expected": "exit 0",
+      "actual": "exit 0 (eslint.config.js files-lists cover content/background/popup/options/i18n/shared/scripts/tests only — plans/research is unlinted by config, so the spike adds no lint surface)"
+    },
+    {
+      "command": "npm run typecheck",
+      "expected": "exit 0",
+      "actual": "exit 0"
+    },
+    {
+      "command": "npm run test:unit",
+      "expected": "exit 0, all pass (81)",
+      "actual": "exit 0 (81 pass, 0 fail)"
+    },
+    {
+      "command": "node --test plans/research/075/*.test.cjs",
+      "expected": "exit 0, all pass (>= 12 assertions)",
+      "actual": "exit 0 (11/11 pass, 40 assertions: 9 sequence tests + 2 jsdom DOM-realism probes)"
+    },
+    {
+      "command": "npm run test:extension",
+      "expected": "exit 0 on both scripts",
+      "actual": "exit 0 twice (Step 0 baseline + Step 3 gate: extension-smoke passed, extension-interactions passed)"
+    }
+  ],
+  "measuredResults": {
+    "sequenceTests": "cold-start silent; 5th consecutive qualifying scan fires exactly once with no repeat; single resolution resets; 13-zero empty-page run silent; enumerated-but-clean neutral vs unenumerated-drift streak (default-config coverage); warm-up qualifying scans excluded (streak 4, no fire); re-arm after reset; snapshot holds counts only",
+    "domProbe": "current-mock shape (data-id sections) resolves 2/2 bait nodes via the REAL shared/post-container.js strategies -> reset path, never fires; restructured variant (plain divs, no data-id/feed-shared-update-v2/article hooks, light siblings, depth < 4) resolves 0/2 -> fires exactly once at the 5th post-warm-up scan, no repeat",
+    "existingSuite": "full e2e green with zero production changes (necessary condition); sufficiency argued analytically in quietnessArgument"
+  },
+  "quietnessArgument": "The spike wires no production hook, so quietness on the real suite is argued per scenario class from the fire condition (N = 5 consecutive post-warm-up scans with textNodesSeen > 0 && containersResolved == 0). Initial scan: both suites serve the route-fulfilled mock feed (tests/extension-interactions.js:41-52; tests/extension-smoke.js:44) whose spam-1 bait matches and resolves via the data-id known selector (content.js:34-38), emitting a resolving scan that resets rather than extends — and the 3-invocation warm-up absorbs the idle-callback plus hydration rounds (content.js:767-772). Dynamic append: every evaluate-appended section carries a data-id urn:li:activity:* hook (e.g. tests/extension-interactions.js:160,1947,2923), so each debounced observer scan (content.js:1207-1217) resolves and resets; appends arrive as isolated invocations that can never chain 5 consecutive qualifying scans on resolving markup. Comment containers: the plan-059 fixture's bait sits in a .comment inside a data-id post (tests/extension-interactions.js:1938-1948) and resolves to the comment element via the comment-preference branch (shared/post-container.js:155-178) — non-null, hence a reset, and its Show-button restore (tests/extension-interactions.js:1994-2009) re-resolves on rescan. Restore/rescan: 'Show all' restore (tests/extension-smoke.js:731), whitelist restores and cooldown/forceShow suppressions all sit downstream of resolution — the counters are keyed to SS_findPostContainer results (content.js:672) before the processed/forceShow admission check (content.js:673-676), so suppressed re-blocks still resolve and reset instead of streaking. Toggle/snooze flows: toggle off/on (tests/extension-interactions.js:323-357) and snooze/cancel (tests/extension-interactions.js:359-393) return before any hook while disabled/snoozed (content.js:667,1209 emit no events), and resume re-scans resolve spam-1 to a reset. Thin point, stated not tuned: rapid successive appends batching inside one 500 ms debounce window (content.js:1217) could merge what the prototype models as separate invocations — the count only moves the streak slower (fewer invocations), never faster, but a build plan must still include browser proof that hydration burst shapes on live DOM cannot produce 5 consecutive qualifying scans, rather than lowering N to fit.",
+  "missingEvidence": [
+    "real-LinkedIn soak: console-signal quietness on live DOM before any user-visible surface ships (mandatory build-plan gate)",
+    "browser proof that hydration-burst shapes cannot chain 5 consecutive qualifying scans (debounce-batching thin point above)",
+    "warm-up/N validation against slow-load timing distributions beyond the mocked single-shot loads",
+    "Firefox behavior parity (probe is Chromium/jsdom-only)"
+  ],
+  "selectorNotes": [
+    "POST_SELECTORS fallback chain is data-id urn:li:activity:*, .feed-shared-update-v2, article (content.js:34-38); AUTHOR_BLOCK_SELECTORS deliberately excludes article (content.js:45-48), so enumeration and resolution depend on overlapping but non-identical hooks",
+    "postsEnumerated cannot gate the fire condition: the author/label passes early-return in default config (content.js:690,717,742), making it identically 0, while gating on it alone would false-fire for blocklist users on clean feeds — it is recorded as diagnostic context only",
+    "restructured-variant recipe that defeats both strategies: strip data-id/feed-shared-update-v2/article hooks, keep single-child chains with sub-100-char siblings and depth < 4 (FEED_SIBLING_FALLBACK=6, CONTENT_LENGTH_THRESHOLD=300 at content.js:12-16 unreachable)"
+  ],
+  "nextWork": [
+    "Build plan wiring H1/H2/H3 counters in content.js only, emitting one console.warn per episode (counts + streak, never text), with zero influence on processed/forceShow/counts/badge/cooldowns/placeholders and no new STORAGE_KEYS entry",
+    "Real-LinkedIn soak criterion (console quiet over sustained sessions incl. slow loads) as the proceed gate for any UI",
+    "Second-stage destination decision (popup health line vs options diagnostics, with locale-key costing) explicitly deferred until the soak passes"
+  ],
+  "notes": "A proceed verdict here authorizes console-first instrumentation only, not user-visible UI. The deliberately conservative fire shape (textNodesSeen > 0 required; postsEnumerated context-only) trades missing total-selector-rot — where enumeration hooks break alongside resolution — for silence on clean pages in every configuration; that blind spot is accepted and documented, not tuned away."
+}
