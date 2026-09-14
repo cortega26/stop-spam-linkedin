@@ -63,6 +63,17 @@ the file to `plans/archive/` and relink the row.
   proceed verdict are the joint gates for a future Suggested-filter
   build and for the 052 retry (competitor-review sequencing holds).
 
+## Release queue — 076 (1.6.0) at `e4c4085`
+
+Single release plan (060 mold, adapted: no badge steps — 061's live
+endpoints killed them; whatsNew refresh + privacy accuracy fix are new
+mandatory items). Depends on nothing outstanding (070–075 all DONE).
+Unbuilt 064/065/066/069 are explicitly not awaited.
+
+| Plan | Deliverable | Priority | Effort | Dependency | Status |
+|---|---|---|---|---|---|
+| 076 | [Release 1.6.0](archive/076-release-1.6.0.md) | P1 | S–M | — (needs HEAD CI green; tag push operator-gated) | DONE (2026-09-14, branch advisor/076-release-1.6.0, reviewed + verified; lockstep 1.6.0 + notes (063/072/074) + whatsNew refresh + privacy fix; full gate green incl. test:extension + test:package (1.6.0 zip, VERSION inside) + firefox-smoke; no tag created; note: plan's grep-≥2 criterion was miscalibrated (inlined copy mentions 1.6.0 once per file — accepted on merit, sections verified via head; deliverables on the branch, tag push is operator decision) |
+
 ## Current direction queue — 2026-09-13 at `3986b84`
 
 The maintainer selected all net-positive directions and requested a comparison
