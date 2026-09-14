@@ -18,7 +18,7 @@
 - **Depends on:** none; 063 can ship independently
 - **Category:** direction — design/spike
 - **Planned at:** `3986b84`, 2026-09-13
-- **Status:** TODO
+- **Status:** DONE (executor, 2026-09-14; index sync left to reviewer per override)
 
 ## Why this matters
 
@@ -166,15 +166,40 @@ that link-only edit is an explicit addition to the scope above.
 
 ## Done criteria
 
-- [ ] All named deliverables exist and their prescribed checks pass.
-- [ ] `npm run smoke`, `npm run lint`, `npm run typecheck`, and
+- [x] All named deliverables exist and their prescribed checks pass.
+- [x] `npm run smoke`, `npm run lint`, `npm run typecheck`, and
       `npm run test:unit` exit 0.
-- [ ] Verdict distinguishes measured behavior, design decisions, and remaining
+- [x] Verdict distinguishes measured behavior, design decisions, and remaining
       unknowns, with commands/results and a bounded future implementation scope.
-- [ ] `git diff --name-only 3986b84 -- . ':!plans'` is empty in the isolated
+- [x] `git diff --name-only fcbafd4 -- . ':!plans'` is empty in the isolated
       checkout based on that SHA; if prerequisites landed, use the recorded
       branch-start SHA instead. Record that SHA before editing.
-- [ ] `git diff --check` exits 0; the plan status and index agree.
+- [x] `git diff --check` exits 0. (Plan status set DONE by executor; index
+      row sync left to reviewer per override.)
+
+## Measured verdict (executor, 2026-09-14)
+
+- **Verdict: proceed.** Research deliverables in `plans/research/064/`:
+  `design.md` (verdict table, EN/ES draft copy, a11y/focus, 5000-char
+  contract, future file scope), `cases.json` (14 fixtures covering all 5
+  verdict kinds and all 3 disabled-rule kinds), `prototype.cjs`
+  (`explainText`, built on the real `shared/pattern-data.js` Node exports),
+  `prototype.test.cjs` (15 assertions, exit 0), `verdict.json`
+  (`verdict: proceed`, `caseCount: 14`).
+- **Branch-start SHA:** `fcbafd49845f1c93c2e5c2ced0cceb653150ac31` (recorded
+  before editing). Drift since `3986b84` is only the merged plan-063
+  prerequisite (`content.js` report flow, `tests/extension-interactions.js`
+  report scenarios); all plan contracts re-held at `fcbafd4`.
+- **Gates:** `npm run smoke` / `lint` / `typecheck` / `test:unit` all exit 0
+  (unit: 81 pass). `node --test plans/research/064/prototype.test.cjs`:
+  15 pass, including effective-decision parity with the current
+  `testerFindMatch` precedence on every non-error fixture — the explanation
+  adds specificity without flipping outcomes. Browser suites not run
+  (research-only exemption in this plan).
+- **Key decision:** explanation helper stays private in `options/options.js`;
+  no shared-file, storage, permission, or matching changes.
+- **Not done here (reviewer-owned):** `plans/README.md` index row sync and
+  plan archival + `competitor-review-2026-09-13.md` link update.
 
 ## STOP conditions
 
