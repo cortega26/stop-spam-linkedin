@@ -13,7 +13,7 @@ criteria. Advertised competitor behavior was not runtime-tested.
 |---|---|---|---|---|---|
 | 063 | [Missed-spam report build](archive/063-missed-spam-report-build.md) | P2 | M | Completed 049 design | DONE (2026-09-14, branch advisor/063-missed-spam-report @ e0b5511, reviewed + verified; merged to main @ 225f1cd; all 5 review gaps closed — Firefox bounded section, README docs, real onClicked 3-fixture drive, documentUrlPatterns scoping, no-destination path; full gate green incl. extension+package+firefox) |
 | 064 | [Tester explanations design](archive/064-tester-explanations.md) | P2 | S–M | — | DONE (2026-09-14, branch advisor/064-tester-explanations @ bcce465, reviewed + verified; merged to main @ 8e80330; verdict: proceed — 14 cases, 15 prototype tests, helper stays private in options; research under plans/research/064/) |
-| 067 | [Detection benchmark](067-detection-benchmark.md) | P2 | M | — | TODO |
+| 067 | [Detection benchmark](archive/067-detection-benchmark.md) | P2 | M | — | DONE (2026-09-14, branch advisor/067-detection-benchmark @ 2f563d4, reviewed + verified; merged to main @ 6075216; verdict: insufficient-data — 60-entry corpus, hash-pinned evaluator, Chromium probe + Firefox baseline; research under plans/research/067/) |
 | 065 | [Import preview design](065-import-preview.md) | P2 | M | Coordinate with 066 | TODO |
 | 066 | [Selective phrase packs design](066-selective-phrase-packs.md) | P3 | S–M | Coordinate with 065 | TODO |
 | 068 | [Suggested-post filter spike](068-suggested-post-filter.md) | P3 | M | 067 before proceed verdict | TODO |
