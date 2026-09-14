@@ -18,7 +18,7 @@
 - **Depends on:** 067 measurement contract before proceed verdict; design/provenance collection may start independently
 - **Category:** direction — design/spike
 - **Planned at:** `3986b84`, 2026-09-13
-- **Status:** TODO
+- **Status:** DONE (2026-09-14, branch advisor/068-suggested-post-filter @ 85872c8, reviewed + verified; merged to main @ ee6b899; verdict: insufficient-data — 10 synthetic cases, 17 detector tests, Chromium probe + zero collateral hides, realSampleCount 0; research under plans/research/068/)
 
 ## Why this matters
 
