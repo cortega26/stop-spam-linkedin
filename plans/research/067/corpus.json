@@ -1,0 +1,620 @@
+[
+  {
+    "id": "en-builtin-01",
+    "language": "EN",
+    "text": "Comment \"CLAUDE\" and I'll send you the complete checklist, template, and workflow for free today.",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/helpers.js:22-25 (mockLinkedInFeed spam-1); tests/extension-smoke.js:222",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "en-builtin-02",
+    "language": "EN",
+    "text": "comment CLAUDE and I'll send you the framework",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/extension-interactions.js:1944 (comment-post-1 comment body)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "en-builtin-03",
+    "language": "EN",
+    "text": "\"PLAYBOOK\" and I will send you the full file today.",
+    "expected": "spam",
+    "provenance": "synthetic",
+    "sourceRef": "spike-authored EN-2 shape probe (no EN-2 assertion exists in tests/unit/pattern-data.test.js)",
+    "labelStatus": "unverified",
+    "split": "development"
+  },
+  {
+    "id": "en-legit-01",
+    "language": "EN",
+    "text": "This ordinary professional update should stay visible because it does not ask anyone to comment a magic word for a download.",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/helpers.js:36-41 (mockLinkedInFeed clean-1)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "en-custom-01",
+    "language": "EN",
+    "text": "Comment \"CLAUDE\" and I'll send you the complete checklist, template, and workflow for free today.",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/extension-interactions.js:1810 (match-tester setup: custom exact CLAUDE over spam probe)",
+    "labelStatus": "verified",
+    "split": "development",
+    "settings": {
+      "customPhrases": [{ "text": "CLAUDE", "enabled": true, "mode": "exact" }]
+    },
+    "expectedReason": "custom-first attribution: text matches both the custom phrase and EN-1, custom wins"
+  },
+  {
+    "id": "en-allow-01",
+    "language": "EN",
+    "text": "Comment CLAUDE and you will hear some good news about the launch.",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/extension-interactions.js:1844-1858 (tester-overlap-1 allow pardon, plan 056 precedence)",
+    "labelStatus": "verified",
+    "split": "development",
+    "settings": {
+      "allowPhrases": [{ "text": "good news" }]
+    },
+    "expectedReason": "allow-phrase pardon wins over any custom/built-in match (content.js findMatch order)"
+  },
+  {
+    "id": "en-excluded-01",
+    "language": "EN",
+    "text": "Comment \"CLAUDE\" and I'll send you the complete checklist, template, and workflow for free today.",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "content.js:590 (exclusion check first in findMatch); tests/unit/pattern-data.test.js:436 (excluded-signature unit test)",
+    "labelStatus": "verified",
+    "split": "development",
+    "settings": {
+      "excludedTexts": ["Comment \"CLAUDE\" and I'll send you the complete checklist, template, and workflow for free today."]
+    },
+    "expectedReason": "exclusion signature wins over allow and all patterns (user pressed Not spam / Show)"
+  },
+  {
+    "id": "en-syn-01",
+    "language": "EN",
+    "text": "Drop a comment below if you want access to my free guide",
+    "expected": "spam",
+    "provenance": "synthetic",
+    "sourceRef": "spike-authored paraphrase-evasion probe",
+    "labelStatus": "unverified",
+    "split": "development",
+    "expectedReason": "engagement-bait intent without the magic-word-plus-send structure the regexes require"
+  },
+  {
+    "id": "en-syn-02",
+    "language": "EN",
+    "text": "Type YES to receive the salary report in your inbox",
+    "expected": "spam",
+    "provenance": "synthetic",
+    "sourceRef": "spike-authored paraphrase-evasion probe",
+    "labelStatus": "unverified",
+    "split": "development",
+    "expectedReason": "DM-gating shape (comment-to-receive) the built-ins do not cover; cf. archived plan 052 DO-NOT-SHIP"
+  },
+  {
+    "id": "en-syn-03",
+    "language": "EN",
+    "text": "I commented on your post yesterday, great insights on hiring",
+    "expected": "legitimate",
+    "provenance": "synthetic",
+    "sourceRef": "spike-authored near-miss guard (past-tense discussion of commenting)",
+    "labelStatus": "unverified",
+    "split": "development"
+  },
+  {
+    "id": "amb-01",
+    "language": "EN",
+    "text": "Comment INTERESTED and I'll share the job description with you",
+    "expected": "ambiguous",
+    "provenance": "synthetic",
+    "sourceRef": "spike-authored recruiter-overlap probe; legitimate recruiter language overlaps the candidate (cf. archived plan 052)",
+    "labelStatus": "unverified",
+    "split": "development",
+    "expectedReason": "indistinguishable from legitimate recruiter sourcing without sender/reputation context the extension refuses to collect"
+  },
+  {
+    "id": "es-01",
+    "language": "ES",
+    "text": "comenta CLAUDE y te envío el PDF completo gratis",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:108 (ES-1 accented verb forms)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-02",
+    "language": "ES",
+    "text": "comenta CLAUDE y te enviaré el PDF completo gratis",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:109 (ES-1 accented verb forms)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-03",
+    "language": "ES",
+    "text": "comenta CLAUDE y te daré el acceso",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:110 (ES-1 accented verb forms)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-04",
+    "language": "ES",
+    "text": "comenta CLAUDE y te envía el PDF completo gratis",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:111 (ES-1 accented verb forms)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-05",
+    "language": "ES",
+    "text": "comenta CLAUDE y te comparto el PDF completo gratis",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:112 (ES-1 accented verb forms)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-06",
+    "language": "ES",
+    "text": "comenta CLAUDE y te mando el PDF completo gratis",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:113 (ES-1 accented verb forms)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-07",
+    "language": "ES",
+    "text": "comentame CLAUDE y te mando el PDF",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:126 (ES-1 imperative+clitic forms)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-08",
+    "language": "ES",
+    "text": "escribele CLAUDE y te doy el pack",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:127 (ES-1 imperative+clitic forms)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-09",
+    "language": "ES",
+    "text": "ponme CLAUDE y te regalo el curso",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:128 (ES-1 imperative+clitic forms)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-10",
+    "language": "ES",
+    "text": "respondeles CLAUDE y te comparto el PDF",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:129 (ES-1 imperative+clitic forms)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-11",
+    "language": "ES",
+    "text": "comentanos CLAUDE y te envío el PDF",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:130 (ES-1 imperative+clitic forms)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-12",
+    "language": "ES",
+    "text": "comenta CLAUDE para recibir el PDF",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:134 (ES-2 binding)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-neg-01",
+    "language": "ES",
+    "text": "comentamos en el post nuestra opinión",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:117 (ES-1 rejects non-bait)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-neg-02",
+    "language": "ES",
+    "text": "enviaréis las tareas mañana",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:118 (ES-1 rejects non-bait)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-neg-03",
+    "language": "ES",
+    "text": "te envían documentos por interno",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:119 (ES-1 rejects non-bait)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-neg-04",
+    "language": "ES",
+    "text": "comentaba CLAUDE y te envío el PDF",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:120 (ES-1 rejects non-imperative prefix)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-neg-05",
+    "language": "ES",
+    "text": "comentamos CLAUDE y te envío el PDF",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:121 (ES-1 rejects non-imperative prefix)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-neg-06",
+    "language": "ES",
+    "text": "comentario CLAUDE y te envío el PDF",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:122 (ES-1 rejects noun prefix)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-neg-07",
+    "language": "ES",
+    "text": "comentaba CLAUDE para recibir el PDF",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:135 (ES-2 bound like ES-1)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "es-syn-01",
+    "language": "ES",
+    "text": "Comenta INFO y te mando el enlace por privado",
+    "expected": "spam",
+    "provenance": "synthetic",
+    "sourceRef": "spike-authored ES bait-variant probe (capitalized imperative, private-channel payoff)",
+    "labelStatus": "unverified",
+    "split": "development"
+  },
+  {
+    "id": "amb-02",
+    "language": "ES",
+    "text": "Comenta GANAS y te cuento cómo conseguí el puesto",
+    "expected": "ambiguous",
+    "provenance": "synthetic",
+    "sourceRef": "spike-authored career-advice overlap probe; bait structure with a plausibly legitimate payoff",
+    "labelStatus": "unverified",
+    "split": "development",
+    "expectedReason": "matches the bait structure but the payoff (career story) may be genuine conversation, not gated content"
+  },
+  {
+    "id": "fr-01",
+    "language": "FR",
+    "text": "commentez COURAGE et j'enverrai le PDF complet",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:139 (FR-1 natural bait)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "fr-02",
+    "language": "FR",
+    "text": "commentez COURAGE et je partage le guide gratuit",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:140 (FR-1 natural bait)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "fr-03",
+    "language": "FR",
+    "text": "commentez COURAGE et je vous enverrai le PDF",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:141 (FR-1 with object pronoun)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "fr-04",
+    "language": "FR",
+    "text": "commentez COURAGE et je te partage le guide",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:142 (FR-1 with object pronoun)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "fr-05",
+    "language": "FR",
+    "text": "commentez MOT pour recevoir le guide gratuit",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:151 (FR-2 pour + infinitive)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "fr-06",
+    "language": "FR",
+    "text": "ecrivez MOT pour obtenir le pack complet",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:152 (FR-2 pour + infinitive)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "fr-07",
+    "language": "FR",
+    "text": "reponds MOT afin d'obtenir le pack complet",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:153 (FR-2 afin d' + infinitive)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "fr-neg-01",
+    "language": "FR",
+    "text": "je commente un article hier",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:146 (FR-1 rejects non-bait)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "fr-neg-02",
+    "language": "FR",
+    "text": "nous commentons votre post",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:147 (FR-1 rejects non-bait)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "fr-neg-03",
+    "language": "FR",
+    "text": "je commente ton post pour dire que je suis d'accord",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:157 (FR-2 rejects pour non-bait)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "fr-neg-04",
+    "language": "FR",
+    "text": "commentez MOT pour notre communauté",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:158 (FR-2 rejects pour non-bait)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "fr-syn-01",
+    "language": "FR",
+    "text": "Écris GUIDE et je t'envoie le fichier",
+    "expected": "spam",
+    "provenance": "synthetic",
+    "sourceRef": "spike-authored FR diacritic/capitalization edge probe (É vs e, elided t'envoie)",
+    "labelStatus": "unverified",
+    "split": "development",
+    "expectedReason": "natural bait spelling the FR-1 alternation may miss on the accented capital"
+  },
+  {
+    "id": "pt-01",
+    "language": "PT",
+    "text": "comente PDF e eu enviarei o link completo",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:162 (PT-1 enviarei)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "pt-02",
+    "language": "PT",
+    "text": "comente PDF e eu vou enviar o link completo",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:163 (PT-1 near-future vou)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "pt-03",
+    "language": "PT",
+    "text": "comente PDF e eu vou te mandar o link",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:164 (PT-1 vou te mandar)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "pt-04",
+    "language": "PT",
+    "text": "comente MOT para receber o e-book",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:173 (PT-2 para receber)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "pt-05",
+    "language": "PT",
+    "text": "comente MOT e receber o link",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:174 (PT-2 e receber)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "pt-neg-01",
+    "language": "PT",
+    "text": "eu comentei no post ontem",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:168 (PT-1 rejects non-bait)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "pt-neg-02",
+    "language": "PT",
+    "text": "comentamos seu artigo ontem",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:169 (PT-1 rejects non-bait)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "pt-neg-03",
+    "language": "PT",
+    "text": "comentamos para receber respostas",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:178 (PT-2 rejects non-bait)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "pt-syn-01",
+    "language": "PT",
+    "text": "Comenta ACESSO e te mando o material no direct",
+    "expected": "spam",
+    "provenance": "synthetic",
+    "sourceRef": "spike-authored PT second-person variant probe (comenta vs comente; PT-1 lists comente, not comenta)",
+    "labelStatus": "unverified",
+    "split": "development",
+    "expectedReason": "colloquial imperative form absent from the PT-1 verb alternation"
+  },
+  {
+    "id": "de-01",
+    "language": "DE",
+    "text": "kommentiere PACK und ich schicke dir die Vorlage",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:182 (DE-1 schicke)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "de-02",
+    "language": "DE",
+    "text": "schreib MOT und ich teile die Datei",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:183 (DE-1 teile)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "de-03",
+    "language": "DE",
+    "text": "kommentiere MOT um Zugriff zu bekommen",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:191 (DE-2 um Zugriff)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "de-04",
+    "language": "DE",
+    "text": "antworte MOT damit kostenlos schicke ich dir die Vorlage",
+    "expected": "spam",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:192 (DE-2 damit kostenlos)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "de-neg-01",
+    "language": "DE",
+    "text": "ich kommentierte den Beitrag gestern",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:187 (DE-1 rejects non-bait)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "de-neg-02",
+    "language": "DE",
+    "text": "der Kommentar war zu lang",
+    "expected": "legitimate",
+    "provenance": "regression",
+    "sourceRef": "tests/unit/pattern-data.test.js:196 (DE-2 rejects non-bait)",
+    "labelStatus": "verified",
+    "split": "development"
+  },
+  {
+    "id": "de-syn-01",
+    "language": "DE",
+    "text": "Schreib mir eine Nachricht für Details",
+    "expected": "legitimate",
+    "provenance": "synthetic",
+    "sourceRef": "spike-authored DE near-miss guard (polite DM ask without bait structure)",
+    "labelStatus": "unverified",
+    "split": "development"
+  }
+]

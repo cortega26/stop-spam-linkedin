@@ -1,0 +1,69 @@
+{
+  "browser": "chromium",
+  "note": "append-to-placeholder wall time includes Playwright IPC; it is not a content-script-only cost",
+  "cases": {
+    "initial": {
+      "pass": true,
+      "hiddenTargets": [
+        "urn:li:activity:spam-1"
+      ],
+      "visibleControls": [
+        "urn:li:activity:whitelisted-1",
+        "urn:li:activity:clean-1"
+      ],
+      "placeholderCount": 1,
+      "collateralHides": []
+    },
+    "dynamicAppend": {
+      "pass": true,
+      "hiddenTargets": [
+        "urn:li:activity:probe-dyn-1",
+        "urn:li:activity:probe-dyn-2",
+        "urn:li:activity:probe-dyn-3",
+        "urn:li:activity:probe-dyn-4",
+        "urn:li:activity:probe-dyn-5"
+      ],
+      "placeholderCount": 6
+    },
+    "nestedComment": {
+      "pass": true,
+      "selectedTarget": "urn:li:activity:probe-comment-1 .comment (not the post)",
+      "postVisible": true,
+      "placeholderCount": 7
+    },
+    "restoreRescan": {
+      "pass": true,
+      "placeholderCount": 6,
+      "rescanStable": true
+    },
+    "replacedNode": {
+      "pass": null,
+      "observed": "still-visible-after-replace",
+      "note": "recorded only; not a structural invariant"
+    },
+    "splitText": {
+      "pass": null,
+      "observed": "still-visible-when-split",
+      "note": "matcher runs per text node; a split bait phrase is a known DOM-capability limit, recorded not asserted"
+    }
+  },
+  "latency": {
+    "n": 5,
+    "minMs": 505,
+    "medianMs": 510,
+    "maxMs": 516,
+    "samplesMs": [
+      516,
+      508,
+      514,
+      505,
+      510
+    ],
+    "what": "append-evaluate-call to placeholder-visible (ms), Playwright IPC included",
+    "config": "chromium persistent context, headless=false under xvfb-run, --no-sandbox --disable-gpu"
+  },
+  "browserVersion": "unknown",
+  "playwrightVersion": "1.60.0",
+  "userAgent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36",
+  "placeholderFinal": 6
+}

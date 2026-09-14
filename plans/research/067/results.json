@@ -1,0 +1,81 @@
+{
+  "plan": "067",
+  "generatedAt": "2026-09-14",
+  "branch": "advisor/067-detection-benchmark",
+  "baseSha": "45e6457",
+  "environment": {
+    "node": "v24.19.0",
+    "playwright": "1.60.0",
+    "chromium": "Chrome/148.0.0.0 (Playwright bundled, headless=false under xvfb-run)",
+    "firefox": "Mozilla Firefox 155.0.1",
+    "platform": "linux x86_64"
+  },
+  "commands": [
+    "npm run smoke",
+    "npm run lint",
+    "npm run typecheck",
+    "npm run test:unit",
+    "node plans/research/067/evaluate.cjs --json",
+    "node --test plans/research/067/evaluate.test.cjs",
+    "node plans/research/067/evaluate.cjs --check",
+    "xvfb-run -a node plans/research/067/browser-probe.cjs",
+    "npm run test:firefox"
+  ],
+  "fixtureHashes": {
+    "plans/research/067/corpus.json": "0e8a5d31a4ea7db39259da91130e85f6654e2f7ababf72780a428e7c1bffb579",
+    "plans/research/067/evaluate.cjs": "56e5f30ec6636a8b85201b93c519fc0f9ddf5ecfdcee728a98467b238081fd4a",
+    "plans/research/067/baseline.json": "c17a77e26e9661042b392570e04f9346894b26418d910905a9c1663e911069d0",
+    "plans/research/067/browser-probe.cjs": "e71118074bcd37a394892348ecb095c06d82ac5e113a45573d0cf4175980d12b",
+    "shared/pattern-data.js": "300885e5c7f5138a5257851931f02e3b38abc41f0772d6e3de3bfef5d64974b3",
+    "shared/post-container.js": "852425eeb92021c5db2cac9907971f92f0373ae17010ff60e3e3bf0d77aca038",
+    "content.js": "a6fa7e07ac05949f90e669cf1a66c0d8f8d14a6c2c5d9bf24838e0cfb6f1ef1d"
+  },
+  "offline": {
+    "corpusSize": 60,
+    "judged": 50,
+    "ambiguous": 2,
+    "unverified": 8,
+    "overall": {
+      "tp": 31,
+      "fp": 0,
+      "tn": 19,
+      "fn": 0,
+      "precision": { "value": 1, "numerator": 31, "denominator": 31 },
+      "recall": { "value": 1, "numerator": 31, "denominator": 31 },
+      "fpr": { "value": 0, "numerator": 0, "denominator": 19 }
+    },
+    "byLanguage": {
+      "EN": { "tp": 3, "fp": 0, "tn": 3, "fn": 0 },
+      "ES": { "tp": 12, "fp": 0, "tn": 7, "fn": 0 },
+      "FR": { "tp": 7, "fp": 0, "tn": 4, "fn": 0 },
+      "PT": { "tp": 5, "fp": 0, "tn": 3, "fn": 0 },
+      "DE": { "tp": 4, "fp": 0, "tn": 2, "fn": 0 }
+    },
+    "reading": "Green regression guard only: every judged entry is a developer-asserted in-repo fixture (provenance=regression, split=development). This is NOT a real-world precision claim."
+  },
+  "misclassified": [
+    { "id": "en-syn-01", "expected": "spam", "predicted": false, "labelStatus": "unverified", "via": "no-match", "note": "paraphrase without magic-word-plus-send structure" },
+    { "id": "en-syn-02", "expected": "spam", "predicted": false, "labelStatus": "unverified", "via": "no-match", "note": "comment-to-receive DM-gating shape, cf. archived plan 052 DO-NOT-SHIP" },
+    { "id": "fr-syn-01", "expected": "spam", "predicted": false, "labelStatus": "unverified", "via": "no-match", "note": "accented capital + elision edge (Écris … t'envoie)" },
+    { "id": "pt-syn-01", "expected": "spam", "predicted": false, "labelStatus": "unverified", "via": "no-match", "note": "colloquial 'comenta' absent from PT-1 verb alternation" }
+  ],
+  "browser": {
+    "scope": "Chromium only (Chrome/148 via Playwright 1.60.0); Firefox covered by the existing tests/firefox-smoke.js baseline, not by the probe cases",
+    "initial": { "pass": true, "hiddenTargets": ["urn:li:activity:spam-1"], "collateralHides": [], "placeholderCount": 1 },
+    "dynamicAppend": { "pass": true, "hiddenTargets": 5, "placeholderCount": 6 },
+    "nestedComment": { "pass": true, "selectedTarget": "probe-comment-1 .comment (post stays visible)", "placeholderCount": 7 },
+    "restoreRescan": { "pass": true, "rescanStable": true, "placeholderCount": 6 },
+    "replacedNode": { "pass": null, "observed": "still-visible-after-replace", "note": "processed-WeakSet keeps the same parent element filtered after textContent swap; recorded, not asserted" },
+    "splitText": { "pass": null, "observed": "still-visible-when-split", "note": "matcher runs per text node; recorded, not asserted" },
+    "latency": {
+      "n": 5,
+      "minMs": 505,
+      "medianMs": 510,
+      "maxMs": 516,
+      "samplesMs": [516, 508, 514, 505, 510],
+      "what": "append-evaluate-call to placeholder-visible (ms), Playwright IPC included; dominated by the 500 ms observer debounce",
+      "config": "chromium persistent context, headless=false under xvfb-run, --no-sandbox --disable-gpu"
+    },
+    "firefoxBaseline": "npm run test:firefox exit 0 (Firefox 155.0.1, geckodriver 0.37.1)"
+  }
+}

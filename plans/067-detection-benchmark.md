@@ -18,7 +18,7 @@
 - **Depends on:** none; measurement contract precedes any 068 shipping decision
 - **Category:** direction — design/spike
 - **Planned at:** `3986b84`, 2026-09-13
-- **Status:** TODO
+- **Status:** DONE 2026-09-14 (executed on `advisor/067-detection-benchmark` from base `45e6457`; verdict: **insufficient-data** — measurement contract established, regression guard green, no representative holdout; see `plans/research/067/design.md`, `results.json`, `verdict.json`. Archival + index update left to the reviewer per execution override.)
 
 ## Why this matters
 
