@@ -42,7 +42,7 @@ jobs:
   github-release:
     name: Create GitHub Release
     runs-on: ubuntu-latest
-    needs: package
+    needs: [package, chrome, firefox]
     permissions:
       contents: write
 
