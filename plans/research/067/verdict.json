@@ -1,0 +1,37 @@
+{
+  "plan": "067",
+  "verdict": "insufficient-data",
+  "decidedAt": "2026-09-14",
+  "branch": "advisor/067-detection-benchmark",
+  "baseSha": "45e6457",
+  "representativeHoldoutAvailable": false,
+  "productionFiles": [],
+  "measuredChecks": [
+    "offline regression guard: 50/50 judged fixtures correct (precision 1.0 on 31/31, recall 1.0 on 31/31, FPR 0.0 on 0/19) across EN/ES/FR/PT/DE — regression only, not a precision claim",
+    "user-policy precedence verified offline: exclusion > allow-phrase > custom-first > built-in (en-excluded-01, en-allow-01, en-custom-01)",
+    "evaluator self-tests: 14/14 (confusion math, null-on-empty-denominator, ambiguous/unverified exclusion, dedupe/split invariants, precedence, determinism, comparison surfacing)",
+    "browser probe (Chromium): initial/dynamic/comment/restore invariants pass with zero collateral hides; 5/5 dynamic appends hidden",
+    "latency observed (not gated): median 510 ms append-to-placeholder over n=5, dominated by the 500 ms observer debounce",
+    "known limits recorded visibly: 4 unverified offline gaps (paraphrase x2, FR diacritic, PT verb form); replaced-node and split-text DOM limits observed in-browser",
+    "Firefox baseline: existing npm run test:firefox exits 0"
+  ],
+  "missingEvidence": [
+    "independently labeled representative holdout (split=holdout is empty: 60/60 development); no public comparison or precision claim is supported",
+    "fluent review of FR/PT/DE/ES bait variants beyond the developer-asserted unit fixtures",
+    "Firefox equivalents of the probe cases (probe is Chromium-only; firefox-smoke.js covers install+block+popup/options bootstrap only)",
+    "real-world prevalence data for bait paraphrases (en-syn-01/02 class) to size the recall gap",
+    "repeated-run latency distribution across machines (single n=5 sample on one host)"
+  ],
+  "qualityGate": {
+    "regressionGuard": "node plans/research/067/evaluate.cjs --check must exit 0 (schema + arithmetic + dedupe/split invariants + recorded baseline); any new misclassified ID fails the gate until the baseline is deliberately re-recorded",
+    "lockLegitimate": "en-legit-01 and all *-neg-* entries are locked legitimate fixtures: a future rule that hides any of them fails --check as an introduced FP",
+    "promotionRule": "new built-in patterns require representative, independently labeled holdout entries (labelStatus=verified, split=holdout) plus the existing fluent-review/corpus gate before any public accuracy comparison",
+    "browserGate": "future build needs tests/extension-interactions.js regressions modeled on the match-tester probe pairs plus packaged Chromium/Firefox gates"
+  },
+  "nextWork": [
+    "collect independently labeled holdout with provenance (user-contributed/public-excerpt), deduplicated and split-kept, before plan 068 shipping decisions",
+    "write Firefox probe equivalents for initial/dynamic/comment/restore before any cross-browser claim",
+    "size the paraphrase gap (en-syn-01/02) against real prevalence before proposing new rule families; DM-gating stays DO-NOT-SHIP per archived plan 052"
+  ],
+  "notes": "An insufficient-data verdict is the honest successful outcome this plan defined: the measurement contract and tooling now exist, the regression guard is green, and every known gap is recorded instead of hidden."
+}

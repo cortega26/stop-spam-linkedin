@@ -1,0 +1,13 @@
+{
+  "note": "Recorded expected failures for plan 067. All four are spike-authored UNVERIFIED paraphrase/edge probes, excluded from accuracy metrics and kept visible here. Do not edit to fit: re-record deliberately after corpus or detector changes, with reviewer sign-off.",
+  "corpusSha256": "0e8a5d31a4ea7db39259da91130e85f6654e2f7ababf72780a428e7c1bffb579",
+  "evaluatorSha256": "56e5f30ec6636a8b85201b93c519fc0f9ddf5ecfdcee728a98467b238081fd4a",
+  "expectedMisclassified": [
+    "en-syn-01",
+    "en-syn-02",
+    "fr-syn-01",
+    "pt-syn-01"
+  ],
+  "recordedAt": "2026-09-14",
+  "recordCommand": "node plans/research/067/evaluate.cjs --json"
+}
