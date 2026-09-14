@@ -1,0 +1,13 @@
+{
+  "browser": "chromium",
+  "caseCount": 0,
+  "structuralInvariants": {
+    "detectorPresent": true,
+    "englishOnlyLabels": true,
+    "emptyFeedYieldsNoTargets": true,
+    "disabledFailsClosed": true,
+    "snoozedFailsClosed": true
+  },
+  "cases": {},
+  "playwrightVersion": "1.60.0"
+}

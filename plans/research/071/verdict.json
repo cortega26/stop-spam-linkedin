@@ -1,0 +1,90 @@
+{
+  "plan": "071",
+  "verdict": "insufficient-data",
+  "decidedAt": "2026-09-14",
+  "branch": "advisor/071-suggested-samples",
+  "baseSha": "3aef7b9",
+  "supportedMetadataLocales": [],
+  "realSampleCount": 0,
+  "negativeFalsePositives": [],
+  "unresolvedCases": [
+    "representative real Suggested label/layout samples with legitimate provenance (no donor capture obtainable in this environment; all 068 fixtures remain synthetic)",
+    "supported-metadata-locale list beyond English (candidate is English-label-only; no UI-locale capture was obtainable, so no locale has >= 1 real positive)",
+    "production semantics for repost-inner vs outer post on real DOM (prototype targets inner only — proposed, not integrated)",
+    "feed vs profile and layout-variant coverage on real LinkedIn DOM",
+    "Firefox probe equivalents (toolchain smoke passes; full equivalent probe deferred to the follow-up that has real captures)"
+  ],
+  "selectorObservations": [],
+  "captureAttempts": [
+    {
+      "class": "real positive headers in feed context (need >= 3)",
+      "obtained": 0,
+      "attempt": "no contributor session available in this environment; automated collection from linkedin.com is forbidden by protocol.md, so no capture was attempted or performed",
+      "recorded": "shortfall, not a fabrication"
+    },
+    {
+      "class": "real body-mention negative (need >= 1)",
+      "obtained": 0,
+      "attempt": "same constraint as positives: requires a donated manual capture, which was unavailable",
+      "recorded": "shortfall, not a fabrication"
+    },
+    {
+      "class": "non-English label via contributor UI-locale switch (need >= 1)",
+      "obtained": 0,
+      "attempt": "requires a contributor logged-in session with a switched UI locale; unavailable in this environment",
+      "recorded": "shortfall, not a fabrication (documented attempt counts as diligence per protocol.md section 3)"
+    },
+    {
+      "class": "layout variant differing from 068 synthetic shapes (need >= 1)",
+      "obtained": 0,
+      "attempt": "same constraint: real nesting only comes from a donated capture",
+      "recorded": "shortfall, not a fabrication"
+    }
+  ],
+  "checks": [
+    {
+      "command": "node --test plans/research/068/detector.test.cjs",
+      "expected": "exit 0",
+      "actual": "exit 0 (17/17 pass, untouched)"
+    },
+    {
+      "command": "node --test plans/research/071/*.test.cjs",
+      "expected": "exit 0",
+      "actual": "exit 0 (5/5 pass: schema, provenance, dedupe, sanitization, 067-rules summary over 0 real entries)"
+    },
+    {
+      "command": "xvfb-run -a node plans/research/068/browser-probe.cjs",
+      "expected": "exit 0",
+      "actual": "exit 0 (untouched proof)"
+    },
+    {
+      "command": "xvfb-run -a node plans/research/071/probe-extensions.cjs",
+      "expected": "exit 0",
+      "actual": "exit 0 (structural invariants pass, 0 per-entry outcomes)"
+    },
+    {
+      "command": "npm run smoke && npm run lint && npm run test:unit",
+      "expected": "exit 0 on all three",
+      "actual": "exit 0 on all three (unit: 81 pass, 0 fail)"
+    },
+    {
+      "command": "grep -rEn 'Jane Doe|John Smith|quarterly|Suggested|suggested|urn:li:activity' plans/research/071/cases-real.json",
+      "expected": "exit 1 (zero leftover matches)",
+      "actual": "exit 1 (zero matches; file holds an empty array)"
+    }
+  ],
+  "measuredResults": {
+    "realPositivesTargeted": [],
+    "realNegativesWithZeroHides": [],
+    "falseNegatives": [],
+    "note": "No real-donated entries exist, so no targeting claim is made on real DOM. The only executed observations are harness-level: the unmodified 068 detector loads in Chromium with English-only labels, an empty feed scans clean, and disabled/snoozed fail closed."
+  },
+  "missingEvidence": [
+    "correctly targeted real Suggested label examples (proceed gate: >= 3 real positive headers)",
+    "real body-mention negative and non-English label negative",
+    "explicit supported-layout/locale boundary beyond English header metadata",
+    "representative layout samples from legitimate sources",
+    "Firefox equivalents pending (geckodriver 0.37.1 + headless Firefox session smoke passes on about:blank; full equivalent probe deferred — with zero real entries it would assert nothing)"
+  ],
+  "notes": "An insufficient-data verdict is the honest successful outcome this plan defined for unobtainable captures: minimums were not lowered to force a build, no synthetic markup was presented as real, and every gap is recorded instead of filled with fabricated provenance. The 071 harness (cases-real.json schema/tests, probe-extensions.cjs) is load-bearing the moment the first donated capture lands."
+}
