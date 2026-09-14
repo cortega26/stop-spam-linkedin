@@ -12,7 +12,7 @@ criteria. Advertised competitor behavior was not runtime-tested.
 | Plan | Deliverable | Priority | Effort | Dependency | Status |
 |---|---|---|---|---|---|
 | 063 | [Missed-spam report build](archive/063-missed-spam-report-build.md) | P2 | M | Completed 049 design | DONE (2026-09-14, branch advisor/063-missed-spam-report @ e0b5511, reviewed + verified; merged to main @ 225f1cd; all 5 review gaps closed — Firefox bounded section, README docs, real onClicked 3-fixture drive, documentUrlPatterns scoping, no-destination path; full gate green incl. extension+package+firefox) |
-| 064 | [Tester explanations design](064-tester-explanations.md) | P2 | S–M | — | TODO |
+| 064 | [Tester explanations design](archive/064-tester-explanations.md) | P2 | S–M | — | DONE (2026-09-14, branch advisor/064-tester-explanations @ bcce465, reviewed + verified; merged to main @ 8e80330; verdict: proceed — 14 cases, 15 prototype tests, helper stays private in options; research under plans/research/064/) |
 | 067 | [Detection benchmark](067-detection-benchmark.md) | P2 | M | — | TODO |
 | 065 | [Import preview design](065-import-preview.md) | P2 | M | Coordinate with 066 | TODO |
 | 066 | [Selective phrase packs design](066-selective-phrase-packs.md) | P3 | S–M | Coordinate with 065 | TODO |
