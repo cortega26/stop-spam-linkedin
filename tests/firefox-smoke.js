@@ -329,6 +329,42 @@ async function main() {
     assert.equal(cleanVisible, true,
       "expected the clean post to stay visible in Firefox (over-match regression)");
 
+    /* Plan 063 selection/report (Firefox-bounded): static contract +
+       selection smoke. Clipboard reads and issue-tab opening are
+       platform-constrained in this harness (page-context execution
+       only, no extension-world messaging, GitHub unreachable from its
+       CONNECT proxy which 403s non-LinkedIn hosts) and are covered by
+       the Chromium e2e — no clipboard success is claimed here. The
+       destination stays local: only the URL constant string is
+       asserted, never navigated to or fetched. */
+    const ffBackgroundSrc = fs.readFileSync(path.join(repoRoot, "background.js"), "utf8");
+    assert.match(ffBackgroundSrc, /ss-report-missed/);
+    assert.match(ffBackgroundSrc, /reportMissedMenu/);
+    assert.match(ffBackgroundSrc, /chrome\.tabs\.sendMessage\(\s*tab\.id/);
+    assert.match(ffBackgroundSrc, /missed_spam_pattern\.yml/);
+    const ffContentSrc = fs.readFileSync(path.join(repoRoot, "content.js"), "utf8");
+    assert.match(ffContentSrc, /reportMissedSpam/);
+    assert.match(ffContentSrc, /600/);
+    assert.match(ffContentSrc, /"none"/);
+    assert.match(ffContentSrc, /no-selection/);
+    for (const localeFile of ["_locales/en/messages.json", "_locales/es/messages.json"]) {
+      const localeSrc = fs.readFileSync(path.join(repoRoot, localeFile), "utf8");
+      assert.match(localeSrc, /reportMissedMenu/);
+    }
+    const ffSelectionText = await driver.execute(`
+      const host = document.querySelector('[data-id="urn:li:activity:clean-1"]');
+      const walker = document.createTreeWalker(host, window.NodeFilter.SHOW_TEXT);
+      const node = walker.nextNode();
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+      return sel.toString();
+    `);
+    assert.ok(ffSelectionText && ffSelectionText.length > 0,
+      "expected a non-empty selection in the Firefox engine (DOM/selection side)");
+
     /* Extension context is wired: the profile's prefs.js maps the addon
        id to the UUID used in moz-extension:// URLs — proof the addon
        registered with Firefox's addon manager (geckodriver hard-blocks

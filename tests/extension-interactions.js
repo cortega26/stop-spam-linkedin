@@ -2183,6 +2183,634 @@ async function main() {
       "expected ss_pattern_counts to be exactly {} after reset"
     );
 
+    /* ── Plan 063: selection-anchored missed-spam report ─── */
+
+    /* Stock settings + a dedicated feed tab: spam-1 hidden, clean-1
+       visible, exactly one placeholder. Stock storage keeps every
+       selection/report below independent of the pstatsUrl page above. */
+    await setSyncStorage(context, {
+      ss_whitelist: ["trusted"],
+      ss_blocked_authors: [],
+      ss_phrases: [],
+      ss_allow_phrases: [],
+      ss_excluded: [],
+      ss_disabled_patterns: [],
+    });
+    await context.grantPermissions(["clipboard-read", "clipboard-write"], {
+      origin: "https://www.linkedin.com",
+    });
+    /* Never contact GitHub from tests: the issue form is fulfilled
+       locally, so tab-open assertions stay hermetic. */
+    await context.route(
+      "https://github.com/cortega26/stop-spam-linkedin/issues/new**",
+      (route) => {
+        route.fulfill({
+          status: 200,
+          contentType: "text/html",
+          body: "<!doctype html><html><body>report form</body></html>",
+        });
+      }
+    );
+    /* Hermetic fallback guard (worker-side chrome.tabs.create wrapper):
+       window.open popups from the content script ARE intercepted by the
+       route above, but tabs opened via the background tabs.create
+       fallback are created in the browser process and bypass Playwright
+       route interception — with real network they load the live GitHub
+       login redirect (unhermetic) and break the exactly-one-tab count
+       (this harness's Chromium reports window.open null while still
+       opening the popup, so the fallback fires on every trigger; the
+       request itself still runs, only the second real tab is
+       suppressed). The single window.open tab stays fully asserted
+       below; G2 layers its own failing wrapper on top for the
+       double-failure path and restores this guard afterwards. */
+    const reportWorker = context.serviceWorkers()[0];
+    await reportWorker.evaluate(() => {
+      globalThis.__SS_reportCreateCalls = [];
+      globalThis.__SS_origReportTabsCreate = chrome.tabs.create;
+      chrome.tabs.create = function (opts, cb) {
+        globalThis.__SS_reportCreateCalls.push(opts && opts.url);
+        if (typeof cb === "function") cb();
+        return undefined;
+      };
+    });
+    const reportPage = await context.newPage();
+    await reportPage.goto("https://www.linkedin.com/feed/", {
+      waitUntil: "domcontentloaded",
+    });
+    const reportPlaceholder = reportPage.locator("[data-ss-ph]");
+    await reportPlaceholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(reportPage.locator("[data-ss-ph]"), 1);
+    await reportPage.bringToFront();
+
+    /* Content-world patching via CDP: page.evaluate runs in the page's
+       main world, but the extension content script lives in an isolated
+       world — page-side Object.defineProperty on window.open,
+       navigator.clipboard, or document.execCommand never reaches it, so
+       clipboard/window stubs for the failure scenarios must be evaluated
+       in the isolated world itself (Playwright's own utility world gets
+       the same harmless stub). Worlds are recreated on every navigation,
+       so patch again after any reload; the reload itself is the restore.
+       Install and restore stubs by assignment, never delete: in this
+       harness's Chromium window.open is an own property with no proto
+       fallback, so `delete window.open` destroys it permanently (proved
+       by probe — typeof stays 'undefined' afterwards). Save the native
+       on window first, then assign it back.
+       Throws loudly if no target world is found. */
+    const cdpSession = await context.newCDPSession(reportPage);
+    await cdpSession.send("Page.enable");
+    await cdpSession.send("Runtime.enable");
+    const worldContextIds = new Map();
+    cdpSession.on("Runtime.executionContextCreated", ({ context: ctx }) => {
+      worldContextIds.set(ctx.id, ctx.auxData || {});
+    });
+    cdpSession.on("Runtime.executionContextDestroyed", ({ executionContextId }) => {
+      worldContextIds.delete(executionContextId);
+    });
+    async function patchContentWorld(script) {
+      const frameId = (await cdpSession.send("Page.getFrameTree")).frameTree.frame.id;
+      /* Allow a beat for pending context-creation events to arrive. */
+      await reportPage.waitForTimeout(250);
+      for (let attempt = 0; attempt < 2; attempt++) {
+        const targets = [...worldContextIds.entries()]
+          .filter(([, aux]) => aux && aux.isDefault === false && (!aux.frameId || aux.frameId === frameId))
+          .map(([id]) => id);
+        assert.ok(targets.length > 0, "expected an isolated world for the feed page");
+        let patched = 0;
+        for (const contextId of targets) {
+          try {
+            const response = await cdpSession.send("Runtime.evaluate", {
+              expression: script,
+              contextId,
+            });
+            assert.ok(!response.exceptionDetails, "expected the content-world stub to evaluate cleanly");
+            patched++;
+          } catch (error) {
+            /* Navigations leave corpse ids behind (destruction events are
+               not reliably delivered): skip them, prune, and keep going. */
+            if (/Cannot find context/.test(String((error).message || error))) {
+              worldContextIds.delete(contextId);
+              continue;
+            }
+            throw error;
+          }
+        }
+        if (patched > 0) return;
+        await reportPage.waitForTimeout(250);
+      }
+      throw new Error("expected the content-world stub to land after retry");
+    }
+    /* Contexts created before Runtime.enable are missed, so reload once
+       to capture fresh creation events for the worlds above. */
+    await reportPage.reload({ waitUntil: "domcontentloaded" });
+    await reportPlaceholder.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(reportPage.locator("[data-ss-ph]"), 1);
+    await reportPage.bringToFront();
+
+    async function snapshotReportStorage() {
+      const worker = context.serviceWorkers()[0];
+      return worker.evaluate(() => new Promise((resolve) => {
+        chrome.storage.sync.get(null, (syncAll) => {
+          chrome.storage.local.get(null, (localAll) => {
+            resolve({ sync: syncAll, local: localAll });
+          });
+        });
+      }));
+    }
+
+    async function readReportClipboard() {
+      const started = Date.now();
+      for (;;) {
+        const text = await reportPage.evaluate(() => navigator.clipboard.readText());
+        if (text || Date.now() - started > 3000) return text;
+        await reportPage.waitForTimeout(200);
+      }
+    }
+
+    async function selectNeedle(selector, needle) {
+      return reportPage.evaluate(({ root, text }) => {
+        const host = document.querySelector(root);
+        const walker = document.createTreeWalker(host, window.NodeFilter.SHOW_TEXT);
+        let node = walker.nextNode();
+        while (node) {
+          const index = node.textContent.indexOf(text);
+          if (index >= 0) {
+            const range = document.createRange();
+            range.setStart(node, index);
+            range.setEnd(node, index + text.length);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            return true;
+          }
+          node = walker.nextNode();
+        }
+        return false;
+      }, { root: selector, text: needle });
+    }
+
+    /* Listener-first: the issue tab steals focus, so every trigger below
+       registers context.waitForEvent("page") BEFORE sending, and the
+       feed tab is refocused before subsequent actions (049 §6 trap). */
+    async function triggerAndExpectSingleIssueTab(trigger) {
+      const before = context.pages().length;
+      const pagePromise = context.waitForEvent("page", { timeout: 8000 });
+      const result = await trigger();
+      const issueTab = await pagePromise;
+      assert.match(
+        issueTab.url(),
+        /issues\/new\?template=missed_spam_pattern\.yml/,
+        "expected the issue-template destination"
+      );
+      await reportPage.waitForTimeout(500);
+      assert.equal(
+        context.pages().length,
+        before + 1,
+        "expected exactly one issue tab (no double-open)"
+      );
+      return { result, issueTab };
+    }
+
+    async function triggerAndExpectNoIssueTab(trigger) {
+      const pagePromise = context
+        .waitForEvent("page", { timeout: 1500 })
+        .then((page) => page)
+        .catch(() => null);
+      const result = await trigger();
+      const unexpected = await pagePromise;
+      if (unexpected) await unexpected.close();
+      assert.equal(unexpected, null, "expected no issue tab to open");
+      return result;
+    }
+
+    async function closeIssueTab(issueTab) {
+      await issueTab.close();
+      await reportPage.bringToFront();
+    }
+
+    /* Toast assertions must accept both shipped UI locales: the
+       extension renders toasts in the browser UI locale, which varies by
+       environment. Asserting growth (not mere presence) keeps stale
+       toasts from earlier scenarios from satisfying the check; interval
+       polling keeps the wait independent of rAF throttling while the
+       issue tab holds focus. */
+    const localeEn063 = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "_locales/en/messages.json"), "utf8"));
+    const localeEs063 = JSON.parse(fs.readFileSync(path.join(__dirname, "..", "_locales/es/messages.json"), "utf8"));
+    async function countFixedDivs() {
+      return reportPage.evaluate(() => [...document.querySelectorAll("div")]
+        .filter((d) => getComputedStyle(d).position === "fixed").length);
+    }
+    /* Toasts auto-remove after 3s, so a stale toast can expire between the
+       count snapshot and the trigger, masking the new toast's growth.
+       Clearing first makes the growth check deterministic. */
+    async function clearFixedDivs() {
+      await reportPage.evaluate(() => [...document.querySelectorAll("div")]
+        .forEach((d) => { if (getComputedStyle(d).position === "fixed") d.remove(); }));
+    }
+    async function expectNewReportToast(kind, countBefore) {
+      const accepted = [localeEn063[kind].message, localeEs063[kind].message];
+      await reportPage.waitForFunction(
+        (n) => [...document.querySelectorAll("div")]
+          .filter((d) => getComputedStyle(d).position === "fixed").length > n,
+        countBefore,
+        { timeout: 5000, polling: 250 }
+      );
+      const fixedTexts = await reportPage.evaluate(() => [...document.querySelectorAll("div")]
+        .filter((d) => getComputedStyle(d).position === "fixed")
+        .map((d) => d.textContent));
+      assert.ok(
+        accepted.includes(fixedTexts[fixedTexts.length - 1]),
+        `expected the newest toast to be ${kind}`
+      );
+    }
+
+    /* Steady-state snapshot: report actions below must not mutate
+       phrases, exclusions, author lists, counters, or suggestions. */
+    const reportStorageBefore = await snapshotReportStorage();
+
+    /* A. Happy path: a short partial selection resolves through the
+       post container, so the FULL post excerpt lands on the clipboard
+       with the "none" language marker and one issue tab opens. */
+    assert.equal(
+      await selectNeedle('[data-id="urn:li:activity:clean-1"]', "ordinary"),
+      true,
+      "expected to place a partial selection in the clean post"
+    );
+    const happy = await triggerAndExpectSingleIssueTab(() =>
+      sendTabMessage(context, { action: "reportMissedSpam" })
+    );
+    assert.deepEqual(
+      happy.result,
+      { ok: true, copied: true },
+      "expected a prepared + copied report"
+    );
+    const happyCopied = await readReportClipboard();
+    assert.match(
+      happyCopied,
+      /This ordinary professional update should stay visible/,
+      "expected the full post excerpt from a partial selection (container path)"
+    );
+    assert.match(happyCopied, /Trigger: /, "expected the trigger line");
+    assert.match(
+      happyCopied,
+      /Pattern language: none/,
+      "expected the unmatched-report language marker"
+    );
+    assert.match(
+      happyCopied,
+      /LinkedIn page: https:\/\/www\.linkedin\.com/,
+      "expected the page URL"
+    );
+    await closeIssueTab(happy.issueTab);
+
+    /* B. No selection: the {ok:false} error path is reached (asserted,
+       not assumed), the clipboard sentinel survives, no tab opens. */
+    await reportPage.evaluate(() => window.getSelection().removeAllRanges());
+    await reportPage.evaluate(() => navigator.clipboard.writeText("sentinel-b-preserved"));
+    const noSel = await triggerAndExpectNoIssueTab(() =>
+      sendTabMessage(context, { action: "reportMissedSpam" })
+    );
+    assert.deepEqual(
+      noSel,
+      { ok: false, reason: "no-selection" },
+      "expected the no-selection error path"
+    );
+    assert.equal(
+      await readReportClipboard(),
+      "sentinel-b-preserved",
+      "expected the clipboard left intact with no selection"
+    );
+
+    /* C. No container: text outside any post falls back to the exact
+       selected text — never the whole anchor paragraph. */
+    const orphanSentence = "Orphan note about carrots and project timelines";
+    await reportPage.evaluate((text) => {
+      const div = document.createElement("div");
+      div.id = "ss-orphan-note";
+      div.textContent = `intro padding. ${text} trailing padding.`;
+      document.body.appendChild(div);
+    }, orphanSentence);
+    assert.equal(
+      await selectNeedle("#ss-orphan-note", "carrots and project"),
+      true,
+      "expected to select inside the orphan note"
+    );
+    const orphan = await triggerAndExpectSingleIssueTab(() =>
+      sendTabMessage(context, { action: "reportMissedSpam" })
+    );
+    assert.deepEqual(orphan.result, { ok: true, copied: true });
+    const orphanCopied = await readReportClipboard();
+    assert.equal(
+      orphanCopied.split("\n")[3],
+      "carrots and project",
+      "expected the exact selected text as the excerpt (no-container fallback)"
+    );
+    assert.match(orphanCopied, /Pattern language: none/);
+    await closeIssueTab(orphan.issueTab);
+
+    /* D. Editable control: a selection inside a comment draft is
+       rejected on its own error path, clipboard untouched, no tab. */
+    await reportPage.evaluate(() => {
+      const ed = document.createElement("div");
+      ed.id = "ss-editable-note";
+      ed.contentEditable = "true";
+      ed.textContent = "draft comment with magic words for testing editors";
+      document.body.appendChild(ed);
+    });
+    assert.equal(
+      await selectNeedle("#ss-editable-note", "magic words"),
+      true,
+      "expected to select inside the editable note"
+    );
+    await reportPage.evaluate(() => navigator.clipboard.writeText("sentinel-d-preserved"));
+    const editable = await triggerAndExpectNoIssueTab(() =>
+      sendTabMessage(context, { action: "reportMissedSpam" })
+    );
+    assert.deepEqual(
+      editable,
+      { ok: false, reason: "editable" },
+      "expected the editable-control error path"
+    );
+    assert.equal(
+      await readReportClipboard(),
+      "sentinel-d-preserved",
+      "expected the clipboard left intact for editable selections"
+    );
+
+    /* E. Comment boundary: a selection inside a comment on an innocent
+       post reports the comment only — never the parent post — and
+       blocks nothing. */
+    const commentText = "This thoughtful reply adds project context for teammates.";
+    await reportPage.evaluate((text) => {
+      const host = document.querySelector('[data-id="urn:li:activity:clean-1"]');
+      const wrap = document.createElement("div");
+      wrap.className = "comments";
+      const comment = document.createElement("div");
+      comment.className = "comment";
+      comment.textContent = text;
+      wrap.appendChild(comment);
+      host.appendChild(wrap);
+    }, commentText);
+    assert.equal(
+      await selectNeedle('[data-id="urn:li:activity:clean-1"] .comment', "thoughtful reply"),
+      true,
+      "expected to select inside the comment"
+    );
+    const comment = await triggerAndExpectSingleIssueTab(() =>
+      sendTabMessage(context, { action: "reportMissedSpam" })
+    );
+    assert.deepEqual(comment.result, { ok: true, copied: true });
+    const commentCopied = await readReportClipboard();
+    assert.equal(
+      commentCopied.split("\n")[3],
+      commentText,
+      "expected the comment text only (no parent-post expansion)"
+    );
+    assert.ok(
+      !commentCopied.includes("magic word"),
+      "comment report must not leak parent-post text"
+    );
+    await closeIssueTab(comment.issueTab);
+    await assertCount(
+      reportPage.locator("[data-ss-ph]"),
+      1,
+      "expected the comment report to block nothing"
+    );
+
+    /* F. 600-character cap: a 1000-char selection is truncated. */
+    await reportPage.evaluate((text) => {
+      const div = document.createElement("div");
+      div.id = "ss-long-note";
+      div.textContent = text;
+      document.body.appendChild(div);
+    }, "z".repeat(2000));
+    await reportPage.evaluate(() => {
+      const div = document.getElementById("ss-long-note");
+      const range = document.createRange();
+      range.setStart(div.firstChild, 0);
+      range.setEnd(div.firstChild, 1000);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+    const capped = await triggerAndExpectSingleIssueTab(() =>
+      sendTabMessage(context, { action: "reportMissedSpam" })
+    );
+    assert.deepEqual(capped.result, { ok: true, copied: true });
+    assert.equal(
+      (await readReportClipboard()).split("\n")[3].length,
+      600,
+      "expected the excerpt capped at 600 characters"
+    );
+    await closeIssueTab(capped.issueTab);
+
+    /* G. Rejected clipboard: writeText rejects AND execCommand fails →
+       the visible failure toast appears, copied is false (never claimed),
+       and the issue tab still opens. Stubs are installed and restored by
+       assignment (never delete — see the helper note); no reload, since
+       a reload would recount the mock spam post into the stats and
+       pollute the read-only storage proof below. */
+    assert.equal(
+      await selectNeedle("#ss-orphan-note", "carrots and project"),
+      true,
+      "expected to reselect inside the orphan note"
+    );
+    await patchContentWorld([
+      "window.__SS_noCopy = {",
+      "  wt: navigator.clipboard.writeText,",
+      "  ec: document.execCommand,",
+      "};",
+      "navigator.clipboard.writeText = () => Promise.reject(new Error('denied'));",
+      "document.execCommand = () => false;",
+    ].join("\n"));
+    const failPagePromise = context.waitForEvent("page", { timeout: 8000 });
+    await clearFixedDivs();
+    const toastCountBeforeG = await countFixedDivs();
+    const failResult = await sendTabMessage(context, { action: "reportMissedSpam" });
+    assert.deepEqual(
+      failResult,
+      { ok: true, copied: false },
+      "expected prepared-but-not-copied on clipboard failure"
+    );
+    const failTab = await failPagePromise;
+    assert.match(failTab.url(), /missed_spam_pattern/);
+    await expectNewReportToast("reportFailed", toastCountBeforeG);
+    await closeIssueTab(failTab);
+    await patchContentWorld([
+      "navigator.clipboard.writeText = window.__SS_noCopy.wt;",
+      "document.execCommand = window.__SS_noCopy.ec;",
+      "delete window.__SS_noCopy;",
+    ].join("\n"));
+
+    /* G2. Double failure: window.open blocked AND the background
+       fallback ack fails → {ok:false, reason:"no-destination"} with the
+       failure toast and no issue tab. The worker-side tabs.create
+       wrapper forces the ack to fail; the wrapper is restored right
+       after the trigger and the window.open stub is restored by
+       assignment (no reload — see G). */
+    assert.equal(
+      await selectNeedle('[data-id="urn:li:activity:clean-1"]', "ordinary"),
+      true,
+      "expected to place a partial selection in the clean post"
+    );
+    const noDestWorker = context.serviceWorkers()[0];
+    await noDestWorker.evaluate(() => {
+      globalThis.__SS_origTabsCreate = chrome.tabs.create;
+      chrome.tabs.create = function (_opts, cb) {
+        try {
+          Object.defineProperty(chrome.runtime, "lastError", {
+            value: { message: "injected double-failure" },
+            configurable: true,
+          });
+        } catch (_) {
+          /* If lastError cannot be faked, throwing still fails the ack. */
+          throw new Error("injected double-failure");
+        }
+        if (typeof cb === "function") cb();
+        try {
+          delete chrome.runtime.lastError;
+        } catch (_) {
+          /* Best-effort restore of the faked property. */
+        }
+        return undefined;
+      };
+    });
+    await patchContentWorld(
+      "window.__SS_origOpen = window.open; window.open = () => null;"
+    );
+    await clearFixedDivs();
+    const toastCountBeforeG2 = await countFixedDivs();
+    const noDest = await triggerAndExpectNoIssueTab(() =>
+      sendTabMessage(context, { action: "reportMissedSpam" })
+    );
+    await noDestWorker.evaluate(() => {
+      if (globalThis.__SS_origTabsCreate) {
+        chrome.tabs.create = globalThis.__SS_origTabsCreate;
+        delete globalThis.__SS_origTabsCreate;
+      }
+    });
+    assert.deepEqual(
+      noDest,
+      { ok: false, reason: "no-destination" },
+      "expected the double-failure error path"
+    );
+    await expectNewReportToast("reportFailed", toastCountBeforeG2);
+    await patchContentWorld(
+      "window.open = window.__SS_origOpen; delete window.__SS_origOpen;"
+    );
+    await assertCount(reportPage.locator("[data-ss-ph]"), 1);
+
+    /* H. Missing receiver: messaging a tab with no content script
+       resolves null — no retry, no navigation, no crash. */
+    const blankPage = await context.newPage();
+    await blankPage.goto("about:blank");
+    await blankPage.bringToFront();
+    const missing = await triggerAndExpectNoIssueTab(() =>
+      sendTabMessage(context, { action: "reportMissedSpam", selectionText: "probe" })
+    );
+    assert.equal(missing, null, "expected null with no content receiver");
+    await blankPage.close();
+    await reportPage.bringToFront();
+
+    /* I. Old report still works: the placeholder button keeps its exact
+       payload shape (EN marker) after the helper extraction. */
+    const oldBtn = reportPage.locator("[data-ss-ph] button", {
+      hasText: /Report missed spam|Reportar spam no detectado/,
+    });
+    const oldPagePromise = context.waitForEvent("page", { timeout: 8000 });
+    await oldBtn.click();
+    const oldTab = await oldPagePromise;
+    assert.match(oldTab.url(), /missed_spam_pattern/);
+    const oldCopied = await readReportClipboard();
+    assert.match(oldCopied, /Comment "CLAUDE"/);
+    assert.match(oldCopied, /Pattern language: EN/);
+    assert.match(oldCopied, /LinkedIn page:/);
+    await closeIssueTab(oldTab);
+    await assertCount(reportPage.locator("[data-ss-ph]"), 1);
+
+    /* J. Background dispatch proof: invoke the real onClicked handler
+       exposed as globalThis.__SS_handleContextMenuClick (test hook —
+       worker globals are unreachable from page/prod code). sendMessage
+       is wrapped with a recorder, then unwrapped; three fixtures cover
+       the LinkedIn dispatch, the non-LinkedIn-host reject, and the
+       missing-tab-id branch. The sender guard stays intact throughout:
+       every message above traveled via real chrome.tabs.sendMessage. */
+    const backgroundSrc = fs.readFileSync(
+      path.join(__dirname, "..", "background.js"),
+      "utf8"
+    );
+    assert.match(backgroundSrc, /ss-report-missed/);
+    assert.match(backgroundSrc, /reportMissedMenu/);
+    assert.match(backgroundSrc, /contexts:\s*\["selection"\]/);
+    assert.match(backgroundSrc, /documentUrlPatterns/);
+    assert.match(backgroundSrc, /chrome\.tabs\.sendMessage\(\s*tab\.id/);
+    const dispatchWorker = context.serviceWorkers()[0];
+    const dispatchResult = await dispatchWorker.evaluate(() => new Promise((resolve) => {
+      const handler = globalThis.__SS_handleContextMenuClick;
+      if (typeof handler !== "function") {
+        resolve({ hasHandler: false });
+        return;
+      }
+      const calls = [];
+      const orig = chrome.tabs.sendMessage;
+      chrome.tabs.sendMessage = function (tabId, msg, cb) {
+        calls.push({ tabId, msg });
+        if (typeof cb === "function") cb({ ok: true, copied: true });
+        return undefined;
+      };
+      try {
+        handler(
+          { menuItemId: "ss-report-missed", pageUrl: "https://www.linkedin.com/feed/", selectionText: "handler probe text" },
+          { id: 424242, url: "https://www.linkedin.com/feed/" }
+        );
+        const linkedInCalls = calls.slice();
+        calls.length = 0;
+        handler(
+          { menuItemId: "ss-report-missed", pageUrl: "https://example.com/", selectionText: "probe" },
+          { id: 424242, url: "https://example.com/" }
+        );
+        const nonLinkedInCalls = calls.slice();
+        calls.length = 0;
+        handler(
+          { menuItemId: "ss-report-missed", pageUrl: "https://www.linkedin.com/feed/", selectionText: "probe" },
+          undefined
+        );
+        const missingTabCalls = calls.slice();
+        resolve({ hasHandler: true, linkedInCalls, nonLinkedInCalls, missingTabCalls });
+      } finally {
+        chrome.tabs.sendMessage = orig;
+      }
+    }));
+    assert.equal(dispatchResult.hasHandler, true, "expected the exposed onClicked handler");
+    assert.equal(dispatchResult.linkedInCalls.length, 1, "expected one dispatch for a LinkedIn click");
+    assert.equal(dispatchResult.linkedInCalls[0].tabId, 424242, "expected dispatch to the clicked tab.id");
+    assert.equal(
+      dispatchResult.linkedInCalls[0].msg.action,
+      "reportMissedSpam",
+      "expected the reportMissedSpam action"
+    );
+    assert.equal(
+      dispatchResult.linkedInCalls[0].msg.selectionText,
+      "handler probe text",
+      "expected the clicked selection text"
+    );
+    assert.equal(dispatchResult.nonLinkedInCalls.length, 0, "expected no dispatch for a non-LinkedIn host");
+    assert.equal(dispatchResult.missingTabCalls.length, 0, "expected no dispatch with a missing tab id");
+
+    /* Report actions are read-only: storage is byte-identical to the
+       steady-state snapshot (counters included). */
+    assert.deepEqual(
+      await snapshotReportStorage(),
+      reportStorageBefore,
+      "expected report actions to mutate no stored state"
+    );
+    await reportWorker.evaluate(() => {
+      if (globalThis.__SS_origReportTabsCreate) {
+        chrome.tabs.create = globalThis.__SS_origReportTabsCreate;
+        delete globalThis.__SS_origReportTabsCreate;
+      }
+    });
+    await reportPage.close();
+
     console.log("Extension interactions test passed.");
   } finally {
     await context.close();

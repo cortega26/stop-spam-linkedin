@@ -20,6 +20,12 @@
     EXCLUSION_PREVIEW_LENGTH: 60,
   });
 
+  /* Missed-spam report destination + excerpt cap (plan 063): shared by
+     the placeholder button and the selection-anchored reportMissedSpam
+     message so both report kinds triage identically. */
+  const REPORT_ISSUE_URL = "https://github.com/cortega26/stop-spam-linkedin/issues/new?template=missed_spam_pattern.yml";
+  const REPORT_EXCERPT_MAX = 600;
+
   /* Effective pattern list, assembled by SS_buildPatterns
      (shared/pattern-data.js) from built-in patterns + user keywords. */
   let spamPatterns = [];
@@ -556,7 +562,18 @@
       case "getBlockedAuthors":
         sendResponse({ blockedAuthors: [...blockedAuthors] });
         break;
+
+      case "reportMissedSpam":
+        /* Async: clipboard write + tab open finish after the listener
+           returns, so keep the channel open via `return true`. `ok:true`
+           means a usable report was prepared AND its destination was
+           confirmed (window.open or the background fallback ack);
+           both-failed yields {ok:false, reason:"no-destination"}.
+           `copied` reports whether the payload reached the clipboard. */
+        handleReportMissedSpam(msg, sendResponse);
+        return true;
     }
+    return false;
   });
 
   /* ==================================================================
@@ -1037,34 +1054,14 @@
       ].join("");
       reportBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        const excerpt = (textNode ? textNode.textContent : "").trim().slice(0, 600);
+        const excerpt = (textNode ? textNode.textContent : "").trim().slice(0, REPORT_EXCERPT_MAX);
         const trigger = textNode ? extractTrigger(textNode.textContent) : "";
         /* Built-in pattern ids carry the language prefix ("EN-1" → "EN");
            custom phrases have no language. The button is gated on textNode,
            so author/label blocks (textNode null) never reach here. */
         const language = info && info.id ? info.id.split("-")[0] : "custom";
-        const payload = [
-          "Trigger: " + trigger,
-          "Pattern language: " + language,
-          "",
-          excerpt,
-          "",
-          "LinkedIn page: " + window.location.href,
-        ].join("\n");
-        const copy = () => navigator.clipboard.writeText(payload);
-        if (navigator.clipboard) {
-          copy().then(
-            () => showReportToast(SS_t("reportCopied")),
-            () => copyFallback(payload)
-          );
-        } else {
-          copyFallback(payload);
-        }
-        window.open(
-          "https://github.com/cortega26/stop-spam-linkedin/issues/new?template=missed_spam_pattern.yml",
-          "_blank",
-          "noopener"
-        );
+        copyReportPayload(buildReportPayload(excerpt, trigger, language));
+        openReportTab();
       });
       placeholder.appendChild(reportBtn);
     }
@@ -1307,13 +1304,159 @@
     ta.style.opacity = "0";
     document.body.appendChild(ta);
     ta.select();
+    /* Returns whether the payload reached the clipboard so callers can
+       report `copied` truthfully instead of claiming success on failure. */
+    let ok = false;
     try {
-      document.execCommand("copy");
-      showReportToast(SS_t("reportCopied"));
+      ok = document.execCommand("copy");
     } catch (_) {
-      showReportToast(SS_t("reportFailed"), true);
+      ok = false;
     }
     ta.remove();
+    showReportToast(SS_t(ok ? "reportCopied" : "reportFailed"), !ok);
+    return ok;
+  }
+
+  /* Shared 6-line report shape: Trigger, Pattern language, blank,
+     excerpt, blank, LinkedIn page. Both the placeholder button and the
+     selection-anchored missed-spam flow build it here so triage sees
+     one format. The excerpt is never placed in the issue URL. */
+  function buildReportPayload(excerpt, trigger, language) {
+    return [
+      "Trigger: " + trigger,
+      "Pattern language: " + language,
+      "",
+      excerpt,
+      "",
+      "LinkedIn page: " + window.location.href,
+    ].join("\n");
+  }
+
+  /* Clipboard-first copy with a selectable-text fallback. Resolves true
+     only when the payload actually reached the clipboard. */
+  function copyReportPayload(payload) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(payload).then(
+        () => {
+          showReportToast(SS_t("reportCopied"));
+          return true;
+        },
+        () => copyFallback(payload)
+      );
+    }
+    return Promise.resolve(copyFallback(payload));
+  }
+
+  /* Opens the user-visible issue form. Resolves true after exactly one
+     destination was confirmed: window.open when available, otherwise a
+     single background chrome.tabs.create fallback (the worker needs no
+     gesture). Resolves false only when BOTH failed. Only the user
+     submits the form. */
+  function openReportTab() {
+    let opened = null;
+    try {
+      opened = window.open(REPORT_ISSUE_URL, "_blank", "noopener");
+    } catch (_) {
+      opened = null;
+    }
+    if (opened) return Promise.resolve(true);
+    return new Promise((resolve) => {
+      try {
+        chrome.runtime.sendMessage({ action: "openReportTab" }, (response) => {
+          if (chrome.runtime.lastError) {
+            resolve(false);
+            return;
+          }
+          resolve(!!(response && response.ok));
+        });
+      } catch (_) {
+        /* Messaging unavailable — no destination. */
+        resolve(false);
+      }
+    });
+  }
+
+  /* True when the selection anchor lives in an editable control (input,
+     textarea, select, contenteditable): reporting password-box or
+     comment-draft text as spam makes no sense. */
+  function isEditableSelectionNode(node) {
+    if (!node) return false;
+    const el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+    if (!el || !el.closest) return false;
+    if (el.closest("input, textarea, select")) return true;
+    const editable = el.closest("[contenteditable]");
+    return !!(editable && editable.isContentEditable);
+  }
+
+  /* Selection-anchored missed-spam report (plan 063): resolves the live
+     selection's anchor through SS_findPostContainer (comment selections
+     stay on the comment element via the 059 preference — never expanded
+     to the parent post), caps to REPORT_EXCERPT_MAX, and reports with
+     the literal "none" language marker (no pattern matched). With no
+     recognized container the selected text itself is the excerpt — never
+     anchor.textContent, which may be an entire unrelated paragraph, and
+     never the whole page. `ok:true` means a usable report was prepared
+     AND its destination was confirmed (window.open or the background
+     fallback ack); when BOTH destinations fail the response is
+     {ok:false, reason:"no-destination"} with the failure toast.
+     `copied` says whether the clipboard write succeeded. Nothing is
+     saved and nothing is submitted automatically. */
+  function handleReportMissedSpam(msg, sendResponse) {
+    const fallbackText = typeof (msg && msg.selectionText) === "string"
+      ? msg.selectionText.trim()
+      : "";
+    let liveText = "";
+    let anchor = null;
+    try {
+      const sel = window.getSelection();
+      if (sel) {
+        liveText = (sel.toString() || "").trim();
+        anchor = sel.anchorNode || null;
+      }
+    } catch (_) {
+      liveText = "";
+      anchor = null;
+    }
+    const selectedText = liveText || fallbackText;
+    if (!selectedText) {
+      showReportToast(SS_t("reportFailed"), true);
+      sendResponse({ ok: false, reason: "no-selection" });
+      return;
+    }
+    if (anchor && isEditableSelectionNode(anchor)) {
+      showReportToast(SS_t("reportFailed"), true);
+      sendResponse({ ok: false, reason: "editable" });
+      return;
+    }
+    let sourceText = selectedText;
+    if (anchor) {
+      try {
+        const container = SS_findPostContainer(anchor, CONFIG, POST_SELECTORS);
+        if (container) {
+          const containerText = (container.textContent || "").trim();
+          if (containerText) sourceText = containerText;
+        }
+      } catch (_) {
+        /* Fall through with the selected text. */
+      }
+    }
+    const excerpt = sourceText.slice(0, REPORT_EXCERPT_MAX);
+    if (!excerpt) {
+      showReportToast(SS_t("reportFailed"), true);
+      sendResponse({ ok: false, reason: "no-selection" });
+      return;
+    }
+    const payload = buildReportPayload(excerpt, extractTrigger(excerpt), "none");
+    copyReportPayload(payload).then((copied) => {
+      openReportTab().then((destinationOk) => {
+        if (destinationOk) {
+          sendResponse({ ok: true, copied: !!copied });
+          return;
+        }
+        showReportToast(SS_t("reportFailed"), true);
+        sendResponse({ ok: false, reason: "no-destination" });
+      });
+    });
   }
 
   function showReportToast(message, warn) {

@@ -12,6 +12,8 @@
 
   const MENU_ID = "ss-add-phrase";
   const MENU_ID_BLOCK_AUTHOR = "ss-block-author";
+  const MENU_ID_REPORT_MISSED = "ss-report-missed";
+  const REPORT_ISSUE_URL = "https://github.com/cortega26/stop-spam-linkedin/issues/new?template=missed_spam_pattern.yml";
 
   function estimatePhraseBytes(phrases, storageKey) {
     const bytes = new TextEncoder().encode(JSON.stringify(phrases)).length;
@@ -45,6 +47,12 @@
           "*://*.linkedin.com/showcase/*",
         ],
       });
+      createMenu({
+        id: MENU_ID_REPORT_MISSED,
+        title: t("reportMissedMenu"),
+        contexts: ["selection"],
+        documentUrlPatterns: ["*://*.linkedin.com/*"],
+      });
     });
 
     if (details.reason === "install") {
@@ -67,11 +75,55 @@
         chrome.action.setBadgeBackgroundColor({ color: "#0a66c2" });
       }
       sendResponse({ ok: true });
+      return false;
     }
+    if (msg.action === "openReportTab") {
+      /* Fallback when the content script's window.open was blocked: the
+         service worker needs no gesture to open exactly one tab. */
+      chrome.tabs.create({ url: REPORT_ISSUE_URL }, () => {
+        if (chrome.runtime.lastError) {
+          sendResponse({ ok: false });
+        } else {
+          sendResponse({ ok: true });
+        }
+      });
+      return true;
+    }
+    return false;
   });
 
+  /* True when the clicked page is a LinkedIn host. Tab/page URLs come
+     from the browser event, never from page content. */
+  function isLinkedInPageUrl(value) {
+    if (typeof value !== "string" || !value) return false;
+    try {
+      return SS_isLinkedInHost(new URL(value).hostname);
+    } catch (_) {
+      return false;
+    }
+  }
+
   /* ── Click handler ──────────────────────────────────────────── */
-  chrome.contextMenus.onClicked.addListener((info, _tab) => {
+  function handleContextMenuClick(info, tab) {
+    if (info.menuItemId === MENU_ID_REPORT_MISSED) {
+      /* Dispatch to the clicked tab only — never re-resolve the active
+         tab later. Missing receiver: no retries, no navigation. */
+      if (!tab || typeof tab.id !== "number") return;
+      if (!isLinkedInPageUrl(info.pageUrl || tab.url || tab.pendingUrl)) return;
+      const selectionText = typeof info.selectionText === "string"
+        ? info.selectionText
+        : "";
+      chrome.tabs.sendMessage(
+        tab.id,
+        { action: "reportMissedSpam", selectionText },
+        () => {
+          if (chrome.runtime.lastError) {
+            /* No content receiver (e.g. chrome:// tab) — stay silent. */
+          }
+        }
+      );
+      return;
+    }
     if (info.menuItemId === MENU_ID_BLOCK_AUTHOR) {
       const authorId = SS_parseAuthorId(info.linkUrl, "https://www.linkedin.com");
       if (!authorId) return;
@@ -130,7 +182,10 @@
         }
       });
     });
-  });
+  }
+  chrome.contextMenus.onClicked.addListener(handleContextMenuClick);
+  /* Test hook: worker globals are unreachable from page/prod code. */
+  globalThis.__SS_handleContextMenuClick = handleContextMenuClick;
 
   /* ── UID (fallback-safe) ────────────────────────────────────── */
   function uid() {

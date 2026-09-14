@@ -55,14 +55,17 @@ Detection is heuristic, not magic. It can miss new spam formats, and it can occa
 - "Not spam" exclusion so the same text is never blocked again
 - "Report missed spam" on any placeholder — copies the post text to your
   clipboard and opens a pre-filled GitHub issue (the report includes which
-  pattern language matched; nothing is sent anywhere automatically)
+  pattern language matched; nothing is sent anywhere automatically).
+  Right-clicking selected LinkedIn text offers the same "Report missed spam"
+  action with identical clipboard + pre-filled-issue behavior (unmatched
+  reports carry the "none" language marker)
 - Optional toggles to hide "Promoted" posts in the feed and the "Featured" section on profiles (off by default; enable in settings)
 - Author whitelist for profile, company, school, and showcase pages
 - **Block this author** on any blocked post's placeholder — hides
   every post from that author feed-wide (also available from the
   profile-link right-click menu)
 - Snooze for 30 minutes with automatic resume
-- Right-click any selected text to add it as a phrase instantly
+- Right-click menus: selected text offers "Add to LinkedIn Spam Blocker" and "Report missed spam"; LinkedIn profile/company/school/showcase links offer "Block this author"
 - Live settings — phrase and language changes apply without reloading
 - Import / Export full settings as JSON — phrases, whitelist, author
   blocklist, disabled patterns, and the Promoted/Featured hide toggles
@@ -93,7 +96,8 @@ Detection is heuristic, not magic. It can miss new spam formats, and it can occa
 5. Click "Show" on any blocked post to restore it temporarily.
 6. Click "Not spam" if a post was incorrectly blocked.
 7. Click "Block this author" on any blocked post to hide that author's posts feed-wide.
-8. Add custom phrases from settings or by selecting text and using the right-click menu when your feed invents a new flavor of bait.
+8. Add custom phrases from settings or by selecting text and choosing "Add to LinkedIn Spam Blocker" in the right-click menu when your feed invents a new flavor of bait.
+9. Right-click selected LinkedIn text and choose "Report missed spam" to copy it and open a pre-filled issue when spam slips through.
 
 ## Install
 
@@ -145,7 +149,7 @@ Useful commands:
 ## Permissions
 
 - `storage` — saves preferences, custom phrases, language settings, stats, snooze state, whitelist entries, and false-positive exclusion signatures in browser storage
-- `contextMenus` — adds the right-click "Add to LinkedIn Spam Blocker" action for selected text and the "Block this author" action for LinkedIn profile/company/school/showcase links
+- `contextMenus` — adds the right-click "Add to LinkedIn Spam Blocker" and "Report missed spam" actions for selected text and the "Block this author" action for LinkedIn profile/company/school/showcase links
 - Static content-script matches on supported `https://www.linkedin.com/*` routes — scans LinkedIn pages without requesting a broader host permission
 
 No data is ever transmitted. See [PRIVACY_POLICY.md](PRIVACY_POLICY.md).
