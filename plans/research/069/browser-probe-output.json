@@ -1,0 +1,31 @@
+{
+  "browser": "chromium",
+  "cases": {
+    "selectionHidePost": {
+      "pass": true,
+      "placeholderCount": 1
+    },
+    "commentBoundary": {
+      "pass": true,
+      "placeholderCount": 2
+    },
+    "keyboardShow": {
+      "pass": true,
+      "placeholderCount": 1
+    },
+    "showAll": {
+      "pass": true,
+      "placeholderCount": 0
+    },
+    "snoozeReveal": {
+      "pass": true,
+      "placeholders": 0,
+      "tracked": 0,
+      "blockedCount": 0,
+      "undo": 0,
+      "storageWrites": 0
+    }
+  },
+  "playwrightVersion": "1.60.0",
+  "placeholderFinal": 0
+}
