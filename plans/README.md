@@ -20,7 +20,7 @@ verdict).
 | Plan | Deliverable | Priority | Effort | Dependency | Status |
 |---|---|---|---|---|---|
 | 070 | [Holdout corpus pipeline](archive/070-holdout-corpus-pipeline.md) | P1 | M | — | DONE (2026-09-14, branch advisor/070-holdout-corpus @ cb332a0, reviewed + verified; verdict: insufficient-data — zero missed-spam issues exist so seed is [], pipeline fully green: policy + curate.cjs + 18/18 tests + 067 tripwire; full gate green incl. 81 unit; deliverables on the branch, merge is operator decision) |
-| 071 | [Suggested real-sample gate](071-suggested-sample-gate.md) | P2 | S–M | 070 (vocabulary only; soft — see notes) | TODO |
+| 071 | [Suggested real-sample gate](archive/071-suggested-sample-gate.md) | P2 | S–M | 070 (vocabulary only; soft — see notes) | DONE (2026-09-14, branch advisor/071-suggested-samples, reviewed + verified; verdict: insufficient-data — zero donor captures obtainable without a contributor session, no fabrication: protocol + 5/5 harness tests + Chromium probe 5/5 invariants + empty cases file; full gate green incl. 068 17/17 + 81 unit; deliverables on the branch, merge is operator decision) |
 | 072 | [What's-new on update](072-whats-new-on-update.md) | P2 | S–M | — (serial before 073) | TODO |
 | 073 | [Menu-action receipts spike](073-menu-action-receipts.md) | P3 | S | after 072 (serial) | TODO |
 | 074 | [Announcement pass](074-announcement-pass.md) | P2 | S–M | 064 build (unplanned) + after 072/073 (serial) | TODO |
