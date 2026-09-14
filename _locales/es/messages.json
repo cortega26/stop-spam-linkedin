@@ -35,6 +35,7 @@
   "blockedToast": { "message": "LinkedIn Spam Blocker bloqueó $1 post(s) en esta página." },
   "contextMenuTitle": { "message": "Añadir \"%s\" al bloqueador de LinkedIn" },
   "blockAuthorMenu": { "message": "Bloquear a este autor" },
+  "reportMissedMenu": { "message": "Reportar spam no detectado" },
   "noConnection": { "message": "Abre el feed de LinkedIn para empezar a bloquear." },
   "noLiveTabNotice": { "message": "No hay una pestaña activa de LinkedIn conectada. Se muestran ajustes y conteos guardados." },
   "openLinkedIn": { "message": "Abrir Feed de LinkedIn" },

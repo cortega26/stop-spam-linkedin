@@ -35,6 +35,7 @@
   "blockedToast": { "message": "LinkedIn Spam Blocker blocked $1 post(s) on this page." },
   "contextMenuTitle": { "message": "Add \"%s\" to LinkedIn Spam Blocker" },
   "blockAuthorMenu": { "message": "Block this author" },
+  "reportMissedMenu": { "message": "Report missed spam" },
   "noConnection": { "message": "Open a LinkedIn feed to start blocking." },
   "noLiveTabNotice": { "message": "No active LinkedIn tab is connected. Showing saved settings and counts." },
   "openLinkedIn": { "message": "Open LinkedIn Feed" },
