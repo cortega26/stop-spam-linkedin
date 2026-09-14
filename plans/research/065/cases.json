@@ -1,0 +1,3996 @@
+[
+  {
+    "name": "legacy-add-mixed",
+    "before": {
+      "phrases": []
+    },
+    "input": [
+      {
+        "text": "Alpha"
+      },
+      {
+        "text": "alpha "
+      },
+      {
+        "text": ""
+      },
+      {
+        "nope": 1
+      },
+      {
+        "text": "Beta",
+        "enabled": false,
+        "mode": "contains"
+      }
+    ],
+    "expectedPatch": {
+      "phrases": [
+        {
+          "id": "uid-1",
+          "text": "Alpha",
+          "enabled": true,
+          "created": 1770000000000,
+          "mode": "exact"
+        },
+        {
+          "id": "uid-2",
+          "text": "Beta",
+          "enabled": false,
+          "created": 1770000000000,
+          "mode": "contains"
+        }
+      ]
+    },
+    "expectedSummary": {
+      "phrases": {
+        "added": 2,
+        "duplicate": 1,
+        "invalid": 2,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "conflictSkipped": 0
+      }
+    }
+  },
+  {
+    "name": "legacy-empty-rejected",
+    "before": {
+      "phrases": [
+        {
+          "id": "p0",
+          "text": "Keep",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        }
+      ]
+    },
+    "input": [],
+    "expectedPatch": {},
+    "expectedSummary": {
+      "status": "rejected",
+      "reason": "empty-legacy"
+    }
+  },
+  {
+    "name": "versioned-full-backup",
+    "before": {
+      "langs": [
+        "EN"
+      ]
+    },
+    "input": {
+      "version": 1,
+      "exportedAt": 1769999999999,
+      "phrases": [
+        {
+          "text": "P1"
+        }
+      ],
+      "whitelist": [
+        "alice"
+      ],
+      "excluded": [
+        {
+          "sig": "sig:a",
+          "preview": "A",
+          "created": 5
+        }
+      ],
+      "langs": [
+        "EN",
+        "ES"
+      ],
+      "blockedAuthors": [
+        "bob"
+      ],
+      "disabledPatterns": [
+        "ES-1"
+      ],
+      "hidePromoted": true,
+      "hideFeatured": false,
+      "allowPhrases": [
+        {
+          "text": "kind words"
+        }
+      ]
+    },
+    "expectedPatch": {
+      "phrases": [
+        {
+          "id": "uid-1",
+          "text": "P1",
+          "enabled": true,
+          "created": 1770000000000,
+          "mode": "exact"
+        }
+      ],
+      "whitelist": [
+        "alice"
+      ],
+      "excluded": [
+        {
+          "sig": "sig:a",
+          "preview": "A",
+          "created": 5
+        }
+      ],
+      "langs": [
+        "EN",
+        "ES"
+      ],
+      "blockedAuthors": [
+        "bob"
+      ],
+      "disabledPatterns": [
+        "ES-1"
+      ],
+      "hidePromoted": true,
+      "hideFeatured": false,
+      "allowPhrases": [
+        {
+          "id": "uid-2",
+          "text": "kind words",
+          "created": 1770000000000
+        }
+      ]
+    },
+    "expectedSummary": {
+      "phrases": {
+        "added": 1,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "conflictSkipped": 0
+      },
+      "whitelist": {
+        "added": 1,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "evictedExisting": 0
+      },
+      "excluded": {
+        "added": 1,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "evictedExisting": 0
+      },
+      "langs": {
+        "from": [
+          "EN"
+        ],
+        "to": [
+          "EN",
+          "ES"
+        ],
+        "added": 1,
+        "ignored": 0
+      },
+      "blockedAuthors": {
+        "added": 1,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "evictedExisting": 0
+      },
+      "disabledPatterns": {
+        "added": 1,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0
+      },
+      "hidePromoted": {
+        "from": false,
+        "to": true,
+        "changed": true
+      },
+      "hideFeatured": {
+        "from": false,
+        "to": false,
+        "changed": false
+      },
+      "allowPhrases": {
+        "added": 1,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "evictedExisting": 0,
+        "conflictSkipped": 0
+      }
+    }
+  },
+  {
+    "name": "additive-merge-keeps-existing",
+    "before": {
+      "phrases": [
+        {
+          "id": "p0",
+          "text": "Keep",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        }
+      ],
+      "whitelist": [
+        "zon"
+      ],
+      "excluded": [
+        {
+          "sig": "sig:k",
+          "preview": "K",
+          "created": 2
+        }
+      ],
+      "langs": [
+        "EN",
+        "ES"
+      ],
+      "blockedAuthors": [
+        "b0"
+      ],
+      "disabledPatterns": [
+        "EN-1"
+      ],
+      "allowPhrases": [
+        {
+          "id": "a0",
+          "text": "Nice",
+          "created": 3
+        }
+      ]
+    },
+    "input": {
+      "version": 1,
+      "exportedAt": 1770000000000,
+      "phrases": [
+        {
+          "text": "keep"
+        },
+        {
+          "text": "New"
+        }
+      ],
+      "whitelist": [
+        "zon",
+        "amy"
+      ],
+      "excluded": [
+        {
+          "sig": "sig:k",
+          "preview": "K2",
+          "created": 9
+        },
+        {
+          "sig": "sig:new",
+          "preview": "N",
+          "created": 4
+        }
+      ],
+      "langs": [
+        "ES",
+        "FR"
+      ],
+      "blockedAuthors": [
+        "b0",
+        "b1"
+      ],
+      "disabledPatterns": [
+        "EN-1",
+        "XX-1"
+      ],
+      "allowPhrases": [
+        {
+          "text": "NICE"
+        },
+        {
+          "text": "Calm"
+        }
+      ]
+    },
+    "expectedPatch": {
+      "phrases": [
+        {
+          "id": "p0",
+          "text": "Keep",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "uid-1",
+          "text": "New",
+          "enabled": true,
+          "created": 1770000000000,
+          "mode": "exact"
+        }
+      ],
+      "whitelist": [
+        "zon",
+        "amy"
+      ],
+      "excluded": [
+        {
+          "sig": "sig:k",
+          "preview": "K",
+          "created": 2
+        },
+        {
+          "sig": "sig:new",
+          "preview": "N",
+          "created": 4
+        }
+      ],
+      "langs": [
+        "EN",
+        "ES",
+        "FR"
+      ],
+      "blockedAuthors": [
+        "b0",
+        "b1"
+      ],
+      "disabledPatterns": [
+        "EN-1"
+      ],
+      "allowPhrases": [
+        {
+          "id": "a0",
+          "text": "Nice",
+          "created": 3
+        },
+        {
+          "id": "uid-2",
+          "text": "Calm",
+          "created": 1770000000000
+        }
+      ]
+    },
+    "expectedSummary": {
+      "phrases": {
+        "added": 1,
+        "duplicate": 1,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "conflictSkipped": 0
+      },
+      "whitelist": {
+        "added": 1,
+        "duplicate": 1,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "evictedExisting": 0
+      },
+      "excluded": {
+        "added": 1,
+        "duplicate": 1,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "evictedExisting": 0
+      },
+      "langs": {
+        "from": [
+          "EN",
+          "ES"
+        ],
+        "to": [
+          "EN",
+          "ES",
+          "FR"
+        ],
+        "added": 1,
+        "ignored": 0
+      },
+      "blockedAuthors": {
+        "added": 1,
+        "duplicate": 1,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "evictedExisting": 0
+      },
+      "disabledPatterns": {
+        "added": 0,
+        "duplicate": 1,
+        "invalid": 1,
+        "quotaSkipped": 0,
+        "evicted": 0
+      },
+      "allowPhrases": {
+        "added": 1,
+        "duplicate": 1,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "evictedExisting": 0,
+        "conflictSkipped": 0
+      }
+    }
+  },
+  {
+    "name": "phrase-item-cap",
+    "before": {
+      "phrases": [
+        {
+          "id": "e-0",
+          "text": "c-0",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-1",
+          "text": "c-1",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-2",
+          "text": "c-2",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-3",
+          "text": "c-3",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-4",
+          "text": "c-4",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-5",
+          "text": "c-5",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-6",
+          "text": "c-6",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-7",
+          "text": "c-7",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-8",
+          "text": "c-8",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-9",
+          "text": "c-9",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-10",
+          "text": "c-10",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-11",
+          "text": "c-11",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-12",
+          "text": "c-12",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-13",
+          "text": "c-13",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-14",
+          "text": "c-14",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-15",
+          "text": "c-15",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-16",
+          "text": "c-16",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-17",
+          "text": "c-17",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-18",
+          "text": "c-18",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-19",
+          "text": "c-19",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-20",
+          "text": "c-20",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-21",
+          "text": "c-21",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-22",
+          "text": "c-22",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-23",
+          "text": "c-23",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-24",
+          "text": "c-24",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-25",
+          "text": "c-25",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-26",
+          "text": "c-26",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-27",
+          "text": "c-27",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-28",
+          "text": "c-28",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-29",
+          "text": "c-29",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-30",
+          "text": "c-30",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-31",
+          "text": "c-31",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-32",
+          "text": "c-32",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-33",
+          "text": "c-33",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-34",
+          "text": "c-34",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-35",
+          "text": "c-35",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-36",
+          "text": "c-36",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-37",
+          "text": "c-37",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-38",
+          "text": "c-38",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-39",
+          "text": "c-39",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-40",
+          "text": "c-40",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-41",
+          "text": "c-41",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-42",
+          "text": "c-42",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-43",
+          "text": "c-43",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-44",
+          "text": "c-44",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-45",
+          "text": "c-45",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-46",
+          "text": "c-46",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-47",
+          "text": "c-47",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-48",
+          "text": "c-48",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-49",
+          "text": "c-49",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-50",
+          "text": "c-50",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-51",
+          "text": "c-51",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-52",
+          "text": "c-52",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-53",
+          "text": "c-53",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-54",
+          "text": "c-54",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-55",
+          "text": "c-55",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-56",
+          "text": "c-56",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-57",
+          "text": "c-57",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-58",
+          "text": "c-58",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-59",
+          "text": "c-59",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-60",
+          "text": "c-60",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-61",
+          "text": "c-61",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-62",
+          "text": "c-62",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-63",
+          "text": "c-63",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-64",
+          "text": "c-64",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-65",
+          "text": "c-65",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-66",
+          "text": "c-66",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-67",
+          "text": "c-67",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-68",
+          "text": "c-68",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-69",
+          "text": "c-69",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-70",
+          "text": "c-70",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-71",
+          "text": "c-71",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-72",
+          "text": "c-72",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-73",
+          "text": "c-73",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-74",
+          "text": "c-74",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-75",
+          "text": "c-75",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-76",
+          "text": "c-76",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-77",
+          "text": "c-77",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-78",
+          "text": "c-78",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-79",
+          "text": "c-79",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-80",
+          "text": "c-80",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-81",
+          "text": "c-81",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-82",
+          "text": "c-82",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-83",
+          "text": "c-83",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-84",
+          "text": "c-84",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-85",
+          "text": "c-85",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-86",
+          "text": "c-86",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-87",
+          "text": "c-87",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-88",
+          "text": "c-88",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-89",
+          "text": "c-89",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-90",
+          "text": "c-90",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-91",
+          "text": "c-91",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-92",
+          "text": "c-92",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-93",
+          "text": "c-93",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-94",
+          "text": "c-94",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-95",
+          "text": "c-95",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-96",
+          "text": "c-96",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-97",
+          "text": "c-97",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-98",
+          "text": "c-98",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-99",
+          "text": "c-99",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-100",
+          "text": "c-100",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-101",
+          "text": "c-101",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-102",
+          "text": "c-102",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-103",
+          "text": "c-103",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-104",
+          "text": "c-104",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-105",
+          "text": "c-105",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-106",
+          "text": "c-106",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-107",
+          "text": "c-107",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-108",
+          "text": "c-108",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-109",
+          "text": "c-109",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-110",
+          "text": "c-110",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-111",
+          "text": "c-111",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-112",
+          "text": "c-112",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-113",
+          "text": "c-113",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-114",
+          "text": "c-114",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-115",
+          "text": "c-115",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-116",
+          "text": "c-116",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-117",
+          "text": "c-117",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-118",
+          "text": "c-118",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-119",
+          "text": "c-119",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-120",
+          "text": "c-120",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-121",
+          "text": "c-121",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-122",
+          "text": "c-122",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-123",
+          "text": "c-123",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-124",
+          "text": "c-124",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-125",
+          "text": "c-125",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-126",
+          "text": "c-126",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-127",
+          "text": "c-127",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-128",
+          "text": "c-128",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-129",
+          "text": "c-129",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-130",
+          "text": "c-130",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-131",
+          "text": "c-131",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-132",
+          "text": "c-132",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-133",
+          "text": "c-133",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-134",
+          "text": "c-134",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-135",
+          "text": "c-135",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-136",
+          "text": "c-136",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-137",
+          "text": "c-137",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-138",
+          "text": "c-138",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-139",
+          "text": "c-139",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-140",
+          "text": "c-140",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-141",
+          "text": "c-141",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-142",
+          "text": "c-142",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-143",
+          "text": "c-143",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-144",
+          "text": "c-144",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-145",
+          "text": "c-145",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-146",
+          "text": "c-146",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-147",
+          "text": "c-147",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-148",
+          "text": "c-148",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-149",
+          "text": "c-149",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-150",
+          "text": "c-150",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-151",
+          "text": "c-151",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-152",
+          "text": "c-152",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-153",
+          "text": "c-153",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-154",
+          "text": "c-154",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-155",
+          "text": "c-155",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-156",
+          "text": "c-156",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-157",
+          "text": "c-157",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-158",
+          "text": "c-158",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-159",
+          "text": "c-159",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-160",
+          "text": "c-160",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-161",
+          "text": "c-161",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-162",
+          "text": "c-162",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-163",
+          "text": "c-163",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-164",
+          "text": "c-164",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-165",
+          "text": "c-165",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-166",
+          "text": "c-166",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-167",
+          "text": "c-167",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-168",
+          "text": "c-168",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-169",
+          "text": "c-169",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-170",
+          "text": "c-170",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-171",
+          "text": "c-171",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-172",
+          "text": "c-172",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-173",
+          "text": "c-173",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-174",
+          "text": "c-174",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-175",
+          "text": "c-175",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-176",
+          "text": "c-176",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-177",
+          "text": "c-177",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-178",
+          "text": "c-178",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-179",
+          "text": "c-179",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-180",
+          "text": "c-180",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-181",
+          "text": "c-181",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-182",
+          "text": "c-182",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-183",
+          "text": "c-183",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-184",
+          "text": "c-184",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-185",
+          "text": "c-185",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-186",
+          "text": "c-186",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-187",
+          "text": "c-187",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-188",
+          "text": "c-188",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-189",
+          "text": "c-189",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-190",
+          "text": "c-190",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-191",
+          "text": "c-191",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-192",
+          "text": "c-192",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-193",
+          "text": "c-193",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-194",
+          "text": "c-194",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-195",
+          "text": "c-195",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-196",
+          "text": "c-196",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-197",
+          "text": "c-197",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-198",
+          "text": "c-198",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        }
+      ]
+    },
+    "input": {
+      "version": 1,
+      "exportedAt": 1770000000000,
+      "phrases": [
+        {
+          "text": "cap-new-1"
+        },
+        {
+          "text": "cap-new-2"
+        },
+        {
+          "text": "cap-new-3"
+        }
+      ]
+    },
+    "opts": {
+      "quotaBytesPerItem": 100000
+    },
+    "expectedPatch": {
+      "phrases": [
+        {
+          "id": "e-0",
+          "text": "c-0",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-1",
+          "text": "c-1",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-2",
+          "text": "c-2",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-3",
+          "text": "c-3",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-4",
+          "text": "c-4",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-5",
+          "text": "c-5",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-6",
+          "text": "c-6",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-7",
+          "text": "c-7",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-8",
+          "text": "c-8",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-9",
+          "text": "c-9",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-10",
+          "text": "c-10",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-11",
+          "text": "c-11",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-12",
+          "text": "c-12",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-13",
+          "text": "c-13",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-14",
+          "text": "c-14",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-15",
+          "text": "c-15",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-16",
+          "text": "c-16",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-17",
+          "text": "c-17",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-18",
+          "text": "c-18",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-19",
+          "text": "c-19",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-20",
+          "text": "c-20",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-21",
+          "text": "c-21",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-22",
+          "text": "c-22",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-23",
+          "text": "c-23",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-24",
+          "text": "c-24",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-25",
+          "text": "c-25",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-26",
+          "text": "c-26",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-27",
+          "text": "c-27",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-28",
+          "text": "c-28",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-29",
+          "text": "c-29",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-30",
+          "text": "c-30",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-31",
+          "text": "c-31",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-32",
+          "text": "c-32",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-33",
+          "text": "c-33",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-34",
+          "text": "c-34",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-35",
+          "text": "c-35",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-36",
+          "text": "c-36",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-37",
+          "text": "c-37",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-38",
+          "text": "c-38",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-39",
+          "text": "c-39",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-40",
+          "text": "c-40",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-41",
+          "text": "c-41",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-42",
+          "text": "c-42",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-43",
+          "text": "c-43",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-44",
+          "text": "c-44",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-45",
+          "text": "c-45",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-46",
+          "text": "c-46",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-47",
+          "text": "c-47",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-48",
+          "text": "c-48",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-49",
+          "text": "c-49",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-50",
+          "text": "c-50",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-51",
+          "text": "c-51",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-52",
+          "text": "c-52",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-53",
+          "text": "c-53",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-54",
+          "text": "c-54",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-55",
+          "text": "c-55",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-56",
+          "text": "c-56",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-57",
+          "text": "c-57",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-58",
+          "text": "c-58",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-59",
+          "text": "c-59",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-60",
+          "text": "c-60",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-61",
+          "text": "c-61",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-62",
+          "text": "c-62",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-63",
+          "text": "c-63",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-64",
+          "text": "c-64",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-65",
+          "text": "c-65",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-66",
+          "text": "c-66",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-67",
+          "text": "c-67",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-68",
+          "text": "c-68",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-69",
+          "text": "c-69",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-70",
+          "text": "c-70",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-71",
+          "text": "c-71",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-72",
+          "text": "c-72",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-73",
+          "text": "c-73",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-74",
+          "text": "c-74",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-75",
+          "text": "c-75",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-76",
+          "text": "c-76",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-77",
+          "text": "c-77",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-78",
+          "text": "c-78",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-79",
+          "text": "c-79",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-80",
+          "text": "c-80",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-81",
+          "text": "c-81",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-82",
+          "text": "c-82",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-83",
+          "text": "c-83",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-84",
+          "text": "c-84",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-85",
+          "text": "c-85",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-86",
+          "text": "c-86",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-87",
+          "text": "c-87",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-88",
+          "text": "c-88",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-89",
+          "text": "c-89",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-90",
+          "text": "c-90",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-91",
+          "text": "c-91",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-92",
+          "text": "c-92",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-93",
+          "text": "c-93",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-94",
+          "text": "c-94",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-95",
+          "text": "c-95",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-96",
+          "text": "c-96",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-97",
+          "text": "c-97",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-98",
+          "text": "c-98",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-99",
+          "text": "c-99",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-100",
+          "text": "c-100",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-101",
+          "text": "c-101",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-102",
+          "text": "c-102",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-103",
+          "text": "c-103",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-104",
+          "text": "c-104",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-105",
+          "text": "c-105",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-106",
+          "text": "c-106",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-107",
+          "text": "c-107",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-108",
+          "text": "c-108",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-109",
+          "text": "c-109",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-110",
+          "text": "c-110",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-111",
+          "text": "c-111",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-112",
+          "text": "c-112",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-113",
+          "text": "c-113",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-114",
+          "text": "c-114",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-115",
+          "text": "c-115",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-116",
+          "text": "c-116",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-117",
+          "text": "c-117",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-118",
+          "text": "c-118",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-119",
+          "text": "c-119",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-120",
+          "text": "c-120",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-121",
+          "text": "c-121",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-122",
+          "text": "c-122",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-123",
+          "text": "c-123",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-124",
+          "text": "c-124",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-125",
+          "text": "c-125",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-126",
+          "text": "c-126",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-127",
+          "text": "c-127",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-128",
+          "text": "c-128",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-129",
+          "text": "c-129",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-130",
+          "text": "c-130",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-131",
+          "text": "c-131",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-132",
+          "text": "c-132",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-133",
+          "text": "c-133",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-134",
+          "text": "c-134",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-135",
+          "text": "c-135",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-136",
+          "text": "c-136",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-137",
+          "text": "c-137",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-138",
+          "text": "c-138",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-139",
+          "text": "c-139",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-140",
+          "text": "c-140",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-141",
+          "text": "c-141",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-142",
+          "text": "c-142",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-143",
+          "text": "c-143",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-144",
+          "text": "c-144",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-145",
+          "text": "c-145",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-146",
+          "text": "c-146",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-147",
+          "text": "c-147",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-148",
+          "text": "c-148",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-149",
+          "text": "c-149",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-150",
+          "text": "c-150",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-151",
+          "text": "c-151",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-152",
+          "text": "c-152",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-153",
+          "text": "c-153",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-154",
+          "text": "c-154",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-155",
+          "text": "c-155",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-156",
+          "text": "c-156",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-157",
+          "text": "c-157",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-158",
+          "text": "c-158",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-159",
+          "text": "c-159",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-160",
+          "text": "c-160",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-161",
+          "text": "c-161",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-162",
+          "text": "c-162",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-163",
+          "text": "c-163",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-164",
+          "text": "c-164",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-165",
+          "text": "c-165",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-166",
+          "text": "c-166",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-167",
+          "text": "c-167",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-168",
+          "text": "c-168",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-169",
+          "text": "c-169",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-170",
+          "text": "c-170",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-171",
+          "text": "c-171",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-172",
+          "text": "c-172",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-173",
+          "text": "c-173",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-174",
+          "text": "c-174",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-175",
+          "text": "c-175",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-176",
+          "text": "c-176",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-177",
+          "text": "c-177",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-178",
+          "text": "c-178",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-179",
+          "text": "c-179",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-180",
+          "text": "c-180",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-181",
+          "text": "c-181",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-182",
+          "text": "c-182",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-183",
+          "text": "c-183",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-184",
+          "text": "c-184",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-185",
+          "text": "c-185",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-186",
+          "text": "c-186",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-187",
+          "text": "c-187",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-188",
+          "text": "c-188",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-189",
+          "text": "c-189",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-190",
+          "text": "c-190",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-191",
+          "text": "c-191",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-192",
+          "text": "c-192",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-193",
+          "text": "c-193",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-194",
+          "text": "c-194",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-195",
+          "text": "c-195",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-196",
+          "text": "c-196",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-197",
+          "text": "c-197",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "e-198",
+          "text": "c-198",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        },
+        {
+          "id": "uid-1",
+          "text": "cap-new-1",
+          "enabled": true,
+          "created": 1770000000000,
+          "mode": "exact"
+        }
+      ]
+    },
+    "expectedSummary": {
+      "phrases": {
+        "added": 1,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 2,
+        "evicted": 0,
+        "conflictSkipped": 0
+      }
+    }
+  },
+  {
+    "name": "multibyte-byte-quota",
+    "before": {
+      "whitelist": []
+    },
+    "input": {
+      "version": 1,
+      "exportedAt": 1770000000000,
+      "phrases": [],
+      "whitelist": [
+        "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé",
+        "zzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzzz"
+      ]
+    },
+    "opts": {
+      "quotaBytesPerItem": 300
+    },
+    "expectedPatch": {
+      "phrases": [],
+      "whitelist": [
+        "éééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+      ]
+    },
+    "expectedSummary": {
+      "phrases": {
+        "added": 0,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "conflictSkipped": 0
+      },
+      "whitelist": {
+        "added": 1,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 1,
+        "evictedExisting": 0
+      }
+    }
+  },
+  {
+    "name": "whitelist-item-cap",
+    "before": {
+      "whitelist": [
+        "w000",
+        "w001",
+        "w002",
+        "w003",
+        "w004",
+        "w005",
+        "w006",
+        "w007",
+        "w008",
+        "w009",
+        "w010",
+        "w011",
+        "w012",
+        "w013",
+        "w014",
+        "w015",
+        "w016",
+        "w017",
+        "w018",
+        "w019",
+        "w020",
+        "w021",
+        "w022",
+        "w023",
+        "w024",
+        "w025",
+        "w026",
+        "w027",
+        "w028",
+        "w029",
+        "w030",
+        "w031",
+        "w032",
+        "w033",
+        "w034",
+        "w035",
+        "w036",
+        "w037",
+        "w038",
+        "w039",
+        "w040",
+        "w041",
+        "w042",
+        "w043",
+        "w044",
+        "w045",
+        "w046",
+        "w047",
+        "w048",
+        "w049",
+        "w050",
+        "w051",
+        "w052",
+        "w053",
+        "w054",
+        "w055",
+        "w056",
+        "w057",
+        "w058",
+        "w059",
+        "w060",
+        "w061",
+        "w062",
+        "w063",
+        "w064",
+        "w065",
+        "w066",
+        "w067",
+        "w068",
+        "w069",
+        "w070",
+        "w071",
+        "w072",
+        "w073",
+        "w074",
+        "w075",
+        "w076",
+        "w077",
+        "w078",
+        "w079",
+        "w080",
+        "w081",
+        "w082",
+        "w083",
+        "w084",
+        "w085",
+        "w086",
+        "w087",
+        "w088",
+        "w089",
+        "w090",
+        "w091",
+        "w092",
+        "w093",
+        "w094",
+        "w095",
+        "w096",
+        "w097",
+        "w098",
+        "w099"
+      ]
+    },
+    "input": {
+      "version": 1,
+      "exportedAt": 1770000000000,
+      "phrases": [],
+      "whitelist": [
+        "over-cap"
+      ]
+    },
+    "expectedPatch": {
+      "phrases": [],
+      "whitelist": [
+        "w000",
+        "w001",
+        "w002",
+        "w003",
+        "w004",
+        "w005",
+        "w006",
+        "w007",
+        "w008",
+        "w009",
+        "w010",
+        "w011",
+        "w012",
+        "w013",
+        "w014",
+        "w015",
+        "w016",
+        "w017",
+        "w018",
+        "w019",
+        "w020",
+        "w021",
+        "w022",
+        "w023",
+        "w024",
+        "w025",
+        "w026",
+        "w027",
+        "w028",
+        "w029",
+        "w030",
+        "w031",
+        "w032",
+        "w033",
+        "w034",
+        "w035",
+        "w036",
+        "w037",
+        "w038",
+        "w039",
+        "w040",
+        "w041",
+        "w042",
+        "w043",
+        "w044",
+        "w045",
+        "w046",
+        "w047",
+        "w048",
+        "w049",
+        "w050",
+        "w051",
+        "w052",
+        "w053",
+        "w054",
+        "w055",
+        "w056",
+        "w057",
+        "w058",
+        "w059",
+        "w060",
+        "w061",
+        "w062",
+        "w063",
+        "w064",
+        "w065",
+        "w066",
+        "w067",
+        "w068",
+        "w069",
+        "w070",
+        "w071",
+        "w072",
+        "w073",
+        "w074",
+        "w075",
+        "w076",
+        "w077",
+        "w078",
+        "w079",
+        "w080",
+        "w081",
+        "w082",
+        "w083",
+        "w084",
+        "w085",
+        "w086",
+        "w087",
+        "w088",
+        "w089",
+        "w090",
+        "w091",
+        "w092",
+        "w093",
+        "w094",
+        "w095",
+        "w096",
+        "w097",
+        "w098",
+        "w099"
+      ]
+    },
+    "expectedSummary": {
+      "phrases": {
+        "added": 0,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "conflictSkipped": 0
+      },
+      "whitelist": {
+        "added": 0,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 1,
+        "evicted": 0,
+        "evictedExisting": 0
+      }
+    }
+  },
+  {
+    "name": "blocked-authors-validate-dedupe",
+    "before": {
+      "blockedAuthors": [
+        "a",
+        "b"
+      ]
+    },
+    "input": {
+      "version": 1,
+      "exportedAt": 1770000000000,
+      "phrases": [],
+      "blockedAuthors": [
+        "b",
+        "",
+        "a",
+        "c",
+        42
+      ]
+    },
+    "expectedPatch": {
+      "phrases": [],
+      "blockedAuthors": [
+        "a",
+        "b",
+        "c"
+      ]
+    },
+    "expectedSummary": {
+      "phrases": {
+        "added": 0,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "conflictSkipped": 0
+      },
+      "blockedAuthors": {
+        "added": 1,
+        "duplicate": 2,
+        "invalid": 2,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "evictedExisting": 0
+      }
+    }
+  },
+  {
+    "name": "allow-validate-dedupe",
+    "before": {
+      "allowPhrases": [
+        {
+          "id": "a0",
+          "text": "Be Kind",
+          "created": 1
+        }
+      ]
+    },
+    "input": {
+      "version": 1,
+      "exportedAt": 1770000000000,
+      "phrases": [],
+      "allowPhrases": [
+        {
+          "text": "be kind"
+        },
+        {
+          "text": "  "
+        },
+        {
+          "text": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+        },
+        {
+          "text": "Stay Calm",
+          "created": 9
+        }
+      ]
+    },
+    "expectedPatch": {
+      "phrases": [],
+      "allowPhrases": [
+        {
+          "id": "a0",
+          "text": "Be Kind",
+          "created": 1
+        },
+        {
+          "id": "uid-1",
+          "text": "Stay Calm",
+          "created": 9
+        }
+      ]
+    },
+    "expectedSummary": {
+      "phrases": {
+        "added": 0,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "conflictSkipped": 0
+      },
+      "allowPhrases": {
+        "added": 1,
+        "duplicate": 1,
+        "invalid": 2,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "evictedExisting": 0,
+        "conflictSkipped": 0
+      }
+    }
+  },
+  {
+    "name": "excluded-merge-shapes",
+    "before": {
+      "excluded": [
+        {
+          "sig": "sig:keep",
+          "preview": "K",
+          "created": 1
+        }
+      ]
+    },
+    "input": {
+      "version": 1,
+      "exportedAt": 1770000000000,
+      "phrases": [],
+      "excluded": [
+        {
+          "sig": "sig:keep",
+          "preview": "K2",
+          "created": 2
+        },
+        "plain text entry",
+        {
+          "sig": "sig:new2",
+          "preview": "N2",
+          "created": 3
+        }
+      ]
+    },
+    "expectedPatch": {
+      "phrases": [],
+      "excluded": [
+        {
+          "sig": "sig:keep",
+          "preview": "K",
+          "created": 1
+        },
+        {
+          "sig": "sig:1rxih82",
+          "preview": "plain text entry",
+          "created": null
+        },
+        {
+          "sig": "sig:new2",
+          "preview": "N2",
+          "created": 3
+        }
+      ]
+    },
+    "expectedSummary": {
+      "phrases": {
+        "added": 0,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "conflictSkipped": 0
+      },
+      "excluded": {
+        "added": 2,
+        "duplicate": 1,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "evictedExisting": 0
+      }
+    }
+  },
+  {
+    "name": "langs-additive-unknown-ignored",
+    "before": {
+      "langs": [
+        "EN"
+      ]
+    },
+    "input": {
+      "version": 1,
+      "exportedAt": 1770000000000,
+      "phrases": [],
+      "langs": [
+        "EN",
+        "XX",
+        42,
+        "ES",
+        "ES"
+      ]
+    },
+    "expectedPatch": {
+      "phrases": [],
+      "langs": [
+        "EN",
+        "ES"
+      ]
+    },
+    "expectedSummary": {
+      "phrases": {
+        "added": 0,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "conflictSkipped": 0
+      },
+      "langs": {
+        "from": [
+          "EN"
+        ],
+        "to": [
+          "EN",
+          "ES"
+        ],
+        "added": 1,
+        "ignored": 3
+      }
+    }
+  },
+  {
+    "name": "disabled-patterns-known-only",
+    "before": {
+      "disabledPatterns": [
+        "EN-1"
+      ]
+    },
+    "input": {
+      "version": 1,
+      "exportedAt": 1770000000000,
+      "phrases": [],
+      "disabledPatterns": [
+        "EN-1",
+        "FR-9",
+        "EN-2",
+        7
+      ]
+    },
+    "expectedPatch": {
+      "phrases": [],
+      "disabledPatterns": [
+        "EN-1",
+        "EN-2"
+      ]
+    },
+    "expectedSummary": {
+      "phrases": {
+        "added": 0,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "conflictSkipped": 0
+      },
+      "disabledPatterns": {
+        "added": 1,
+        "duplicate": 1,
+        "invalid": 2,
+        "quotaSkipped": 0,
+        "evicted": 0
+      }
+    }
+  },
+  {
+    "name": "boolean-transitions",
+    "before": {
+      "hidePromoted": true,
+      "hideFeatured": false
+    },
+    "input": {
+      "version": 1,
+      "exportedAt": 1770000000000,
+      "phrases": [],
+      "hidePromoted": false,
+      "hideFeatured": false
+    },
+    "expectedPatch": {
+      "phrases": [],
+      "hidePromoted": false,
+      "hideFeatured": false
+    },
+    "expectedSummary": {
+      "phrases": {
+        "added": 0,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "conflictSkipped": 0
+      },
+      "hidePromoted": {
+        "from": true,
+        "to": false,
+        "changed": true
+      },
+      "hideFeatured": {
+        "from": false,
+        "to": false,
+        "changed": false
+      }
+    }
+  },
+  {
+    "name": "block-allow-conflict-skipped",
+    "before": {
+      "phrases": [
+        {
+          "id": "p0",
+          "text": "Gated",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        }
+      ],
+      "allowPhrases": [
+        {
+          "id": "a0",
+          "text": "Evergreen",
+          "created": 2
+        }
+      ]
+    },
+    "input": {
+      "version": 1,
+      "exportedAt": 1770000000000,
+      "phrases": [
+        {
+          "text": "everGREEN"
+        },
+        {
+          "text": "Gated"
+        }
+      ],
+      "allowPhrases": [
+        {
+          "text": "GATED"
+        },
+        {
+          "text": "Fresh"
+        }
+      ]
+    },
+    "expectedPatch": {
+      "phrases": [
+        {
+          "id": "p0",
+          "text": "Gated",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        }
+      ],
+      "allowPhrases": [
+        {
+          "id": "a0",
+          "text": "Evergreen",
+          "created": 2
+        },
+        {
+          "id": "uid-1",
+          "text": "Fresh",
+          "created": 1770000000000
+        }
+      ]
+    },
+    "expectedSummary": {
+      "phrases": {
+        "added": 0,
+        "duplicate": 1,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "conflictSkipped": 1
+      },
+      "allowPhrases": {
+        "added": 1,
+        "duplicate": 0,
+        "invalid": 0,
+        "quotaSkipped": 0,
+        "evicted": 0,
+        "evictedExisting": 0,
+        "conflictSkipped": 1
+      }
+    }
+  },
+  {
+    "name": "unsupported-version-rejected",
+    "before": {
+      "phrases": [
+        {
+          "id": "p0",
+          "text": "Keep",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        }
+      ]
+    },
+    "input": {
+      "version": 2,
+      "exportedAt": 1770000000000,
+      "phrases": [
+        {
+          "text": "X"
+        }
+      ]
+    },
+    "expectedPatch": {},
+    "expectedSummary": {
+      "status": "rejected",
+      "reason": "unsupported-version"
+    }
+  },
+  {
+    "name": "invalid-shape-rejected",
+    "before": {
+      "phrases": [
+        {
+          "id": "p0",
+          "text": "Keep",
+          "enabled": true,
+          "created": 1,
+          "mode": "exact"
+        }
+      ]
+    },
+    "input": {
+      "foo": 1
+    },
+    "expectedPatch": {},
+    "expectedSummary": {
+      "status": "rejected",
+      "reason": "invalid-shape"
+    }
+  }
+]
