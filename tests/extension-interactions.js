@@ -2055,6 +2055,7 @@ async function main() {
 
     /* 1. Fresh install shows the card: flag true → card visible. */
     await setLocalStorage(context, { ss_welcome_pending: true });
+    await setSyncStorage(context, { ss_hide_promoted: false });
     const welcomePage = await context.newPage();
     await welcomePage.goto(
       `chrome-extension://${await getExtensionId(context)}/options/options.html`,
@@ -2065,6 +2066,20 @@ async function main() {
       timeout: 10000,
     });
 
+    /* First-run onboarding has a real optional action, not a decorative
+       illustration or a bundled default that silently changes preferences. */
+    assert.equal(await welcomePage.locator("#welcomeEnablePromotedBtn").isEnabled(), true);
+    assert.equal(await getSyncStorage(context, "ss_hide_promoted"), false,
+      "promoted-post filtering stays opt-in on first install");
+    await welcomePage.locator("#welcomeEnablePromotedBtn").click();
+    await waitForSyncValue(context, "ss_hide_promoted", (v) => v === true);
+    assert.equal(await welcomePage.locator("#hidePromotedCheckbox").isChecked(), true);
+    assert.equal(await welcomePage.locator("#welcomeEnablePromotedBtn").isDisabled(), true);
+    assert.match(await welcomePage.locator("#welcomeActionFeedback").textContent(),
+      /Promoted-post filtering|filtro de promociones/);
+    assert.equal(await welcomePage.locator("#whatsNewCard").isVisible(), false,
+      "first installs must not show an update changelog beside onboarding");
+
     /* 2. Dismiss persists: hide, clear the flag, survive a reload. */
     await welcomePage.locator("#welcomeDismissBtn").click();
     await welcomePage.waitForFunction(
@@ -2073,6 +2088,8 @@ async function main() {
       { timeout: 5000 }
     );
     await waitForLocalValue(context, "ss_welcome_pending", (v) => v === false);
+    const installedVersion = await welcomePage.evaluate(() => chrome.runtime.getManifest().version);
+    await waitForLocalValue(context, "ss_seen_release", (v) => v === installedVersion);
     await welcomePage.reload({ waitUntil: "domcontentloaded" });
     await welcomePage.locator("#langToggles .lang-tog").first().waitFor({
       state: "visible",
