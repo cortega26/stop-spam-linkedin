@@ -134,7 +134,7 @@
 
   const manualStyle = document.createElement("style");
   manualStyle.textContent = `
-    .ss-feed-action { display:flex; justify-content:flex-end; padding:2px 14px 7px; }
+    .ss-feed-action { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:6px; padding:2px 14px 7px; }
     .ss-feed-action-button { color:#53677b; background:transparent; border:1px solid transparent;
       border-radius:20px; padding:5px 12px; font:500 12px/1.4 system-ui,sans-serif;
       cursor:pointer; opacity:.65; transition:opacity .15s, background .15s; }
@@ -810,6 +810,38 @@
           blockPost(post, null, { reason: "manual" });
         });
         wrapper.appendChild(button);
+        const authorId = getAuthorId(post);
+        if (authorId) {
+          const mute = document.createElement("button");
+          mute.type = "button";
+          mute.className = "ss-feed-action-button";
+          mute.textContent = SS_t("muteAuthorInline");
+          mute.setAttribute("aria-label", SS_t("muteAuthorInline"));
+          mute.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            if (!enabled || Date.now() < snoozeUntil) return;
+            blockedAuthors.add(authorId);
+            whitelistedAuthors.delete(authorId);
+            pruneSet(blockedAuthors, LIMITS.MAX_BLOCKED_AUTHORS);
+            chrome.storage.sync.set({
+              [STORAGE_KEYS.BLOCKED_AUTHORS]: [...blockedAuthors],
+              [STORAGE_KEYS.WHITELIST]: [...whitelistedAuthors],
+            }, () => {
+              if (chrome.runtime.lastError) {
+                console.warn("Could not mute author:", chrome.runtime.lastError.message);
+                /* Do not claim a successful mute if persistence fails. */
+                chrome.storage.sync.get([STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.WHITELIST], (saved) => {
+                  blockedAuthors = new Set(saved[STORAGE_KEYS.BLOCKED_AUTHORS] || []);
+                  whitelistedAuthors = new Set(saved[STORAGE_KEYS.WHITELIST] || []);
+                });
+              } else {
+                scanForBlockedAuthors(document.body);
+              }
+            });
+          });
+          wrapper.appendChild(mute);
+        }
         post.appendChild(wrapper);
       }
     }
