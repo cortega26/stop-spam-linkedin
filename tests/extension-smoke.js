@@ -74,7 +74,7 @@ async function main() {
     );
     await assert.match(
       await placeholder.textContent(),
-      /Blocked by LinkedIn Spam Blocker|Bloqueado por LinkedIn Spam Blocker/,
+      /Hidden by Feed Control|Oculta por Feed Control/,
       "expected extension placeholder text"
     );
 

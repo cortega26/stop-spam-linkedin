@@ -74,6 +74,16 @@
   const welcomeDismissBtn = document.getElementById("welcomeDismissBtn");
   const whatsNewCard = document.getElementById("whatsNewCard");
   const whatsNewDismissBtn = document.getElementById("whatsNewDismissBtn");
+  const riskyRuleCard = document.getElementById("riskyRuleCard");
+  const riskyRuleDetails = document.getElementById("riskyRuleDetails");
+  const pauseRiskyRulesBtn = document.getElementById("pauseRiskyRulesBtn");
+  /* Historical optional starter pack terms; NEVER infer user intent from
+     their presence or silently modify saved preferences. */
+  const HISTORIC_BROAD_TERMS = new Set([
+    "CLAUDE", "SKILL", "PROMPTS", "AI PROMPTS", "PDF",
+    "LINK IN BIO", "DM ME", "TEMPLATE", "COMMENT", "10x",
+    "SECRET", "FREE ACCESS", "GROWTH HACK", "CHATGPT", "BOT",
+  ]);
 
   /* ── Bootstrap ──────────────────────────────────────────────── */
   load();
@@ -93,6 +103,27 @@
   importFile.addEventListener("change", handleImport);
   exportBtn.addEventListener("click", handleExport);
   starterPackBtn.addEventListener("click", handleStarterPack);
+  pauseRiskyRulesBtn.addEventListener("click", () => {
+    const broad = phrases.filter((p) => p.enabled && typeof p.text === "string" &&
+      HISTORIC_BROAD_TERMS.has(p.text.toUpperCase().trim()));
+    if (broad.length === 0) return;
+    const previous = phrases;
+    phrases = phrases.map((p) => p.enabled && typeof p.text === "string" &&
+      HISTORIC_BROAD_TERMS.has(p.text.toUpperCase().trim())
+      ? { ...p, enabled: false } : p);
+    locallyWrittenKeys.add(PHRASES_STORAGE_KEY);
+    chrome.storage.sync.set({ [PHRASES_STORAGE_KEY]: phrases }, () => {
+      if (chrome.runtime.lastError) {
+        locallyWrittenKeys.delete(PHRASES_STORAGE_KEY);
+        phrases = previous;
+        showToast("Storage write failed: " + chrome.runtime.lastError.message, true);
+      } else {
+        showToast(SS_t("riskyRuleDone"));
+      }
+      render();
+    });
+    render();
+  });
   searchInput.addEventListener("input", SS_debounce(() => render(), 200));
   testBtn.addEventListener("click", runTester);
   clearExcludedBtn.addEventListener("click", () => {
@@ -579,10 +610,15 @@
   /* ── Starter Pack ──────────────────────────────────────────── */
 
   function handleStarterPack() {
+    /* Optional examples must express complete bait requests, never generic
+       subjects like Python, Claude, PDF or ChatGPT. Custom "exact" matching
+       means whole-phrase-with-boundaries inside a post, not whole-post only. */
     const defaults = [
-      "CLAUDE", "SKILL", "PROMPTS", "AI PROMPTS", "PDF",
-      "LINK IN BIO", "DM ME", "TEMPLATE", "COMMENT", "10x",
-      "SECRET", "FREE ACCESS", "GROWTH HACK", "CHATGPT", "BOT",
+      "comment below and I'll send",
+      "drop a comment and I'll DM",
+      "comment to receive my free",
+      "comenta para recibir mi plantilla",
+      "comenta y te mando el documento",
     ];
     const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
     let added = 0;
@@ -1844,8 +1880,20 @@
 
   /* ── Render ─────────────────────────────────────────────────── */
 
+  function renderRiskyRuleWarning() {
+    const risky = phrases.filter((p) => p.enabled && typeof p.text === "string" &&
+      HISTORIC_BROAD_TERMS.has(p.text.toUpperCase().trim()));
+    riskyRuleCard.style.display = risky.length > 0 ? "block" : "none";
+    riskyRuleDetails.textContent = risky.length
+      ? SS_t("riskyRuleBody", [String(risky.length)]) + " " +
+        risky.map((p) => p.text).join(", ")
+      : "";
+  }
+
+
   function render() {
     list.innerHTML = "";
+    renderRiskyRuleWarning();
 
     renderLangs();
     renderHideToggles();

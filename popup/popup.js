@@ -4,6 +4,7 @@
   const { STORAGE_KEYS, LIMITS } = globalThis.SS_CONSTANTS;
 
   const toggleEl = /** @type {HTMLInputElement} */ (document.getElementById("toggleEnabled"));
+  const promotedEl = /** @type {HTMLInputElement} */ (document.getElementById("quickHidePromoted"));
   const countEl = document.getElementById("blockedCount");
   const resetBtn = document.getElementById("resetBtn");
   const snoozeBtn = document.getElementById("snoozeBtn");
@@ -458,6 +459,26 @@
   manageLink.addEventListener("click", (e) => {
     e.preventDefault();
     chrome.runtime.openOptionsPage();
+  });
+
+  /* Single-click category control. Preferences are browser-native and synced;
+     content.js responds live and restores only promoted hides on disable. */
+  chrome.storage.sync.get([STORAGE_KEYS.HIDE_PROMOTED], (values) => {
+    if (!chrome.runtime.lastError) promotedEl.checked = values[STORAGE_KEYS.HIDE_PROMOTED] === true;
+  });
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "sync" && changes[STORAGE_KEYS.HIDE_PROMOTED]) {
+      promotedEl.checked = changes[STORAGE_KEYS.HIDE_PROMOTED].newValue === true;
+    }
+  });
+  promotedEl.addEventListener("change", () => {
+    const next = promotedEl.checked;
+    chrome.storage.sync.set({ [STORAGE_KEYS.HIDE_PROMOTED]: next }, () => {
+      if (chrome.runtime.lastError) {
+        promotedEl.checked = !next;
+        console.warn("Could not update promoted filter:", chrome.runtime.lastError.message);
+      }
+    });
   });
 
   /* --- Initial load --- */

@@ -55,6 +55,22 @@ async function main() {
     await placeholder.waitFor({ state: "visible", timeout: 10000 });
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
 
+    /* Product V2: manual hiding of a legitimate post is reversible and
+       does not inflate automatic-detection statistics. */
+    const ordinaryPost = linkedInPage.locator('[data-id="urn:li:activity:clean-1"]');
+    const hideOnce = ordinaryPost.locator('[data-ss-control="hide-once"] button').first();
+    await hideOnce.waitFor({ state: "visible", timeout: 10000 });
+    await hideOnce.click();
+    await ordinaryPost.waitFor({ state: "hidden", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+    assert.equal(await getLocalStorage(context, "ss_blocked_count"), 1,
+      "manual hide should not increment the spam counter");
+    await linkedInPage.locator("[data-ss-ph]").filter({
+      hasText: /Hidden at your request|Oculta a petición tuya/
+    }).getByRole("button", { name: /Show|Mostrar/ }).click();
+    await ordinaryPost.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
     /* ── Popup: live state + undo (plan 014 step 2) ─────────────── */
 
     /* The popup messages the ACTIVE tab, so the mock feed tab must stay
@@ -1153,7 +1169,7 @@ async function main() {
     const authorPlaceholder = linkedInPage.locator("[data-ss-ph]").last();
     assert.match(
       await authorPlaceholder.locator("span").first().textContent(),
-      /Blocked — you've blocked this author|Bloqueado/,
+      /Hidden — muted author|Oculta — autor silenciado/,
       "expected the author-blocked placeholder to explain the block is by author"
     );
     assert.equal(
@@ -1549,7 +1565,7 @@ async function main() {
         const ph = el.nextElementSibling;
         if (!ph || !ph.hasAttribute("data-ss-ph")) return false;
         const label = ph.querySelector("span");
-        return label !== null && /Blocked — you've blocked this author|Bloqueado/.test(label.textContent);
+        return label !== null && /Hidden — muted author|Oculta — autor silenciado/.test(label.textContent);
       },
       '[data-id="urn:li:activity:block-me-1"]',
       { timeout: 4000 }
@@ -1568,7 +1584,7 @@ async function main() {
     assert.equal(swapped.display, "none", "post must stay hidden after blocking its author");
     assert.match(
       swapped.label,
-      /Blocked — you've blocked this author|Bloqueado/,
+      /Hidden — muted author|Oculta — autor silenciado/,
       "expected the placeholder to switch to the author-block variant"
     );
     assert.ok(
@@ -2949,7 +2965,7 @@ async function main() {
         const ph = el.nextElementSibling;
         if (!ph || !ph.hasAttribute("data-ss-ph")) return false;
         const label = ph.querySelector("span");
-        return label !== null && /Blocked — you've blocked this author|Bloqueado/.test(label.textContent);
+        return label !== null && /Hidden — muted author|Oculta — autor silenciado/.test(label.textContent);
       },
       '[data-id="urn:li:activity:a11y-author-1"]',
       { timeout: 5000 }
@@ -3046,6 +3062,113 @@ async function main() {
 
     await a11yPopup.close();
     await a11yPage.close();
+
+    /* Product V2: one click mutes an ordinary author's existing posts.
+       The persistent blocklist, not a temporary manual-hide signature,
+       governs subsequently arriving feed items. */
+    await setSyncStorage(context, {
+      ss_enabled: true,
+      ss_hide_promoted: false,
+      ss_blocked_authors: [],
+      ss_whitelist: [],
+      ss_phrases: [],
+    });
+    await setLocalStorage(context, { ss_snooze_until: 0 });
+    const mutePage = await context.newPage();
+    await mutePage.goto("https://www.linkedin.com/feed/", { waitUntil: "domcontentloaded" });
+    await mutePage.evaluate(() => {
+      for (const suffix of ["a", "b"]) {
+        const card = document.createElement("section");
+        card.dataset.id = "urn:li:activity:mute-smoke-" + suffix;
+        card.innerHTML = '<div class="update-components-actor"><a href="/in/v2-mute-smoke/">A quiet author</a></div>' +
+          "<p>An ordinary technical career note with practical engineering advice.</p>";
+        document.querySelector("main").appendChild(card);
+      }
+    });
+    const muteCard = mutePage.locator('[data-id="urn:li:activity:mute-smoke-a"]');
+    const muteAction = muteCard.locator('[data-ss-control="hide-once"] button', { hasText: /Mute|Silenciar/ });
+    await muteAction.waitFor({ state: "visible", timeout: 10000 });
+    await muteAction.click();
+    await muteCard.waitFor({ state: "hidden", timeout: 10000 });
+    await mutePage.locator('[data-id="urn:li:activity:mute-smoke-b"]').waitFor({ state: "hidden", timeout: 10000 });
+    const muted = await getSyncStorage(context, "ss_blocked_authors");
+    assert.ok(muted.includes("v2-mute-smoke"), "mute action must persist the author ID");
+
+    /* The quick promoted-content control must apply without a reload and
+       restore only its own category when disabled. */
+    await mutePage.evaluate(() => {
+      const card = document.createElement("section");
+      card.dataset.id = "urn:li:activity:promoted-v2";
+      card.innerHTML = '<span>Promoted</span><p>An advertised professional course for teams.</p>';
+      document.querySelector("main").appendChild(card);
+    });
+    const promoted = mutePage.locator('[data-id="urn:li:activity:promoted-v2"]');
+    await promoted.waitFor({ state: "visible", timeout: 10000 });
+    const quickPage = await context.newPage();
+    await quickPage.goto(
+      `chrome-extension://${await getExtensionId(context)}/popup/popup.html`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await quickPage.locator("#quickHidePromoted").check();
+    await promoted.waitFor({ state: "hidden", timeout: 10000 });
+    await quickPage.locator("#quickHidePromoted").uncheck();
+    await promoted.waitFor({ state: "visible", timeout: 10000 });
+    assert.equal(await getSyncStorage(context, "ss_hide_promoted"), false,
+      "quick toggle should restore its persisted off state");
+    await quickPage.close();
+    await mutePage.close();
+
+    /* Responsive smoke: popup and settings must remain usable within
+       common narrow viewport widths, with no clipped horizontal content. */
+    const visualPage = await context.newPage();
+    await visualPage.setViewportSize({ width: 390, height: 844 });
+    await visualPage.goto(
+      `chrome-extension://${await getExtensionId(context)}/options/options.html`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await visualPage.locator(".settings-nav").waitFor({ state: "visible" });
+    let overflow = await visualPage.evaluate(() =>
+      document.documentElement.scrollWidth - document.documentElement.clientWidth
+    );
+    assert.ok(overflow <= 1, `options must not overflow at 390px (overflow ${overflow}px)`);
+    await visualPage.goto(
+      `chrome-extension://${await getExtensionId(context)}/popup/popup.html`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await visualPage.locator(".hero").waitFor({ state: "visible" });
+    for (const width of [390, 320]) {
+      await visualPage.setViewportSize({ width, height: 844 });
+      overflow = await visualPage.evaluate(() =>
+        document.documentElement.scrollWidth - document.documentElement.clientWidth
+      );
+      assert.ok(overflow <= 1, `popup must not overflow at ${width}px (overflow ${overflow}px)`);
+    }
+    await visualPage.close();
+
+    /* Legacy starter-pack safety: never modify saved rules without an
+       explicit user action. Pausing keeps the entries and clears enabled. */
+    await setSyncStorage(context, { ss_phrases: [
+      { id:"legacy-a", text:"CLAUDE", enabled:true, mode:"exact" },
+      { id:"legacy-b", text:"PDF", enabled:true, mode:"exact" },
+      { id:"legit-a", text:"a carefully chosen very specific phrase", enabled:true, mode:"exact" },
+    ] });
+    const riskPage = await context.newPage();
+    await riskPage.goto(
+      `chrome-extension://${await getExtensionId(context)}/options/options.html`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await riskPage.locator("#riskyRuleCard").waitFor({ state:"visible", timeout:10000 });
+    let beforeRisk = await getSyncStorage(context, "ss_phrases");
+    assert.equal(beforeRisk.filter(x => x.enabled).length, 3,
+      "risk warning must not silently disable user rules");
+    await riskPage.locator("#pauseRiskyRulesBtn").click();
+    await waitForSyncValue(context, "ss_phrases", (xs) =>
+      Array.isArray(xs) && xs.length === 3 && xs.filter(x => x.enabled).length === 1
+    );
+    const afterRisk = await getSyncStorage(context, "ss_phrases");
+    assert.equal(afterRisk.find(x => x.id === "legit-a").enabled, true,
+      "non-starter phrase must remain enabled");
+    await riskPage.close();
 
     console.log("Extension interactions test passed.");
   } finally {
