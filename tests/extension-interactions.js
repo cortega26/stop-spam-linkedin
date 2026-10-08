@@ -55,6 +55,22 @@ async function main() {
     await placeholder.waitFor({ state: "visible", timeout: 10000 });
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
 
+    /* Product V2: manual hiding of a legitimate post is reversible and
+       does not inflate automatic-detection statistics. */
+    const ordinaryPost = linkedInPage.locator('[data-id="urn:li:activity:clean-1"]');
+    const hideOnce = ordinaryPost.locator('[data-ss-control="hide-once"] button').first();
+    await hideOnce.waitFor({ state: "visible", timeout: 10000 });
+    await hideOnce.click();
+    await ordinaryPost.waitFor({ state: "hidden", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+    assert.equal(await getLocalStorage(context, "ss_blocked_count"), 1,
+      "manual hide should not increment the spam counter");
+    await linkedInPage.locator("[data-ss-ph]").filter({
+      hasText: /Hidden at your request|Oculta a petición tuya/
+    }).getByRole("button", { name: /Show|Mostrar/ }).click();
+    await ordinaryPost.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+
     /* ── Popup: live state + undo (plan 014 step 2) ─────────────── */
 
     /* The popup messages the ACTIVE tab, so the mock feed tab must stay
@@ -3046,6 +3062,53 @@ async function main() {
 
     await a11yPopup.close();
     await a11yPage.close();
+
+    /* Product V2: one click mutes an ordinary author's existing posts.
+       The persistent blocklist, not a temporary manual-hide signature,
+       governs subsequently arriving feed items. */
+    const mutePage = await context.newPage();
+    await mutePage.goto("https://www.linkedin.com/feed/", { waitUntil: "domcontentloaded" });
+    await mutePage.evaluate(() => {
+      for (const suffix of ["a", "b"]) {
+        const card = document.createElement("section");
+        card.dataset.id = "urn:li:activity:mute-smoke-" + suffix;
+        card.innerHTML = '<div class="update-components-actor"><a href="/in/v2-mute-smoke/">A quiet author</a></div>' +
+          "<p>An ordinary technical career note with practical engineering advice.</p>";
+        document.querySelector("main").appendChild(card);
+      }
+    });
+    const muteCard = mutePage.locator('[data-id="urn:li:activity:mute-smoke-a"]');
+    const muteAction = muteCard.locator('[data-ss-control="hide-once"] button', { hasText: /Mute|Silenciar/ });
+    await muteAction.waitFor({ state: "visible", timeout: 10000 });
+    await muteAction.click();
+    await muteCard.waitFor({ state: "hidden", timeout: 10000 });
+    await mutePage.locator('[data-id="urn:li:activity:mute-smoke-b"]').waitFor({ state: "hidden", timeout: 10000 });
+    const muted = await getSyncStorage(context, "ss_blocked_authors");
+    assert.ok(muted.includes("v2-mute-smoke"), "mute action must persist the author ID");
+
+    /* The quick promoted-content control must apply without a reload and
+       restore only its own category when disabled. */
+    await mutePage.evaluate(() => {
+      const card = document.createElement("section");
+      card.dataset.id = "urn:li:activity:promoted-v2";
+      card.innerHTML = '<span>Promoted</span><p>An advertised professional course for teams.</p>';
+      document.querySelector("main").appendChild(card);
+    });
+    const promoted = mutePage.locator('[data-id="urn:li:activity:promoted-v2"]');
+    await promoted.waitFor({ state: "visible", timeout: 10000 });
+    const quickPage = await context.newPage();
+    await quickPage.goto(
+      `chrome-extension://${await getExtensionId(context)}/popup/popup.html`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await quickPage.locator("#quickHidePromoted").check();
+    await promoted.waitFor({ state: "hidden", timeout: 10000 });
+    await quickPage.locator("#quickHidePromoted").uncheck();
+    await promoted.waitFor({ state: "visible", timeout: 10000 });
+    assert.equal(await getSyncStorage(context, "ss_hide_promoted"), false,
+      "quick toggle should restore its persisted off state");
+    await quickPage.close();
+    await mutePage.close();
 
     console.log("Extension interactions test passed.");
   } finally {
