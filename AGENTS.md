@@ -91,6 +91,8 @@ the test suite that covers the change.
 - **Hide this post** uses `blockPost(...,{reason:"manual"})`: manual hides are cosmetic and **must never increment** automatic spam counters or undo-window statistics; they stay reversible with Show/Show all.
 - **Mute this author** uses the existing persisted `ss_blocked_authors` list and removes that ID from the allowlist if present; the user's explicit last action wins.
 - `cosmeticReasons` tracks manual/promoted/featured hides so turning off one category never restores another. Restoring any hide must also clean up bookkeeping.
+- Only explicit Show/Undo restores create the 15-minute cooldown and `forceShow`; category toggle-off uses `restorePost(post, { explicit: false })`.
+- Explicit manual Hide cancels its post-key cooldown and node force-show exemption. Only a newly counted automatic block triggers first-run onboarding.
 - Popup `quickHidePromoted` writes to the existing option key, not a second state store. Any store error should reverse the UI toggle.
 - V2 ships EN+ES interface labels; FR/PT/DE continue to be *detection languages only*. Marketing illustration `assets/feed-control-promo.svg` is original SVG, **not** a mock screenshot to submit as a real UI capture.
 - The former generic-word Starter Pack could hide legitimate discussions; optional examples must use complete request phrases with narrow false-positive likelihood.

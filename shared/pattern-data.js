@@ -307,7 +307,7 @@
    * Creates a bounded, expiring key store.
    * @param {number} expiryMs Entry lifetime in milliseconds.
    * @param {number} maxEntries Upper bound on the number of stored keys.
-   * @returns {{ has(key: string): boolean; set(key: string): void }}
+   * @returns {{ has(key: string): boolean; set(key: string): void; delete(key: string): boolean }}
    */
   function createCooldownStore(expiryMs, maxEntries) {
     const map = new Map();
@@ -330,6 +330,9 @@
           const oldest = map.keys().next().value;
           map.delete(oldest);
         }
+      },
+      delete(key) {
+        return map.delete(key);
       },
     };
   }

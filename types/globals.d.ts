@@ -58,7 +58,7 @@ declare function SS_getLocalDayKey(date?: Date): string;
 declare function SS_createCooldownStore(
   expiryMs: number,
   maxEntries: number,
-): { has(key: string): boolean; set(key: string): void };
+): { has(key: string): boolean; set(key: string): void; delete(key: string): boolean };
 
 declare function SS_estimateEntriesBytes(
   map: Map<string, { preview: string | null; created: number | null }>,

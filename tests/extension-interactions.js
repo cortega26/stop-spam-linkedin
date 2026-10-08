@@ -70,6 +70,16 @@ async function main() {
     }).getByRole("button", { name: /Show|Mostrar/ }).click();
     await ordinaryPost.waitFor({ state: "visible", timeout: 10000 });
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
+    /* Repeated manual Hide after Show must override the 15-minute cooldown. */
+    await hideOnce.click();
+    await ordinaryPost.waitFor({ state: "hidden", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
+    assert.equal(await getLocalStorage(context, "ss_blocked_count"), 1);
+    await linkedInPage.locator("[data-ss-ph]").filter({
+      hasText: /Hidden at your request|Oculta a petición tuya/
+    }).getByRole("button", { name: /Show|Mostrar/ }).click();
+    await ordinaryPost.waitFor({ state: "visible", timeout: 10000 });
+    await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
 
     /* ── Popup: live state + undo (plan 014 step 2) ─────────────── */
 
@@ -3115,6 +3125,11 @@ async function main() {
     await promoted.waitFor({ state: "visible", timeout: 10000 });
     assert.equal(await getSyncStorage(context, "ss_hide_promoted"), false,
       "quick toggle should restore its persisted off state");
+    /* Re-enabling the same category must hide the same DOM node again. */
+    await quickPage.locator("#quickHidePromoted").check();
+    await promoted.waitFor({ state: "hidden", timeout: 10000 });
+    await quickPage.locator("#quickHidePromoted").uncheck();
+    await promoted.waitFor({ state: "visible", timeout: 10000 });
     await quickPage.close();
     await mutePage.close();
 
@@ -3169,6 +3184,54 @@ async function main() {
     assert.equal(afterRisk.find(x => x.id === "legit-a").enabled, true,
       "non-starter phrase must remain enabled");
     await riskPage.close();
+
+
+    /* Featured category: OFF/ON on the same profile section must reapply. */
+    await setSyncStorage(context, { ss_hide_featured: false });
+    await context.route("https://www.linkedin.com/in/feed-control-featured-smoke/", (route) => {
+      route.fulfill({
+        status: 200,
+        contentType: "text/html",
+        body: '<!doctype html><html><body><main><section id="featured-smoke">' +
+          '<h2>Featured</h2><p>Useful profile work and projects.</p>' +
+          '</section></main></body></html>',
+      });
+    });
+    const featuredPage = await context.newPage();
+    await featuredPage.goto("https://www.linkedin.com/in/feed-control-featured-smoke/", { waitUntil: "domcontentloaded" });
+    const featuredSection = featuredPage.locator("#featured-smoke");
+    await featuredSection.waitFor({ state: "visible" });
+    for (const value of [true, false, true, false]) {
+      await setSyncStorage(context, { ss_hide_featured: value });
+      await featuredSection.waitFor({ state: value ? "hidden" : "visible", timeout: 10000 });
+    }
+    await featuredPage.close();
+
+    /* A first-session manual hide must not consume auto-block onboarding. */
+    await setSyncStorage(context, {
+      ss_enabled: true, ss_enabled_langs: [], ss_phrases: [],
+      ss_blocked_authors: [], ss_hide_promoted: false, ss_hide_featured: false,
+    });
+    await setLocalStorage(context, { ss_onboarded: false, ss_snooze_until: 0 });
+    const firstRunPage = await context.newPage();
+    await firstRunPage.goto("https://www.linkedin.com/feed/", { waitUntil: "domcontentloaded" });
+    const firstRunClean = firstRunPage.locator('[data-id="urn:li:activity:clean-1"]');
+    const firstRunHide = firstRunClean.locator('[data-ss-control="hide-once"] button').first();
+    await firstRunHide.waitFor({ state: "visible", timeout: 10000 });
+    const beforeManual = await getLocalStorage(context, "ss_blocked_count");
+    await firstRunHide.click();
+    await firstRunClean.waitFor({ state: "hidden", timeout: 10000 });
+    assert.equal(await getLocalStorage(context, "ss_blocked_count"), beforeManual);
+    assert.equal(await getLocalStorage(context, "ss_onboarded"), false,
+      "manual hides must not consume automatic-block onboarding");
+    assert.equal(await firstRunPage.locator('[role="status"]').count(), 0);
+    await firstRunPage.close();
+    await setSyncStorage(context, { ss_enabled_langs: ["EN"] });
+    const automaticFirstRunPage = await context.newPage();
+    await automaticFirstRunPage.goto("https://www.linkedin.com/feed/", { waitUntil: "domcontentloaded" });
+    await automaticFirstRunPage.locator('[data-id="urn:li:activity:spam-1"]').waitFor({ state: "hidden", timeout: 10000 });
+    await waitForLocalValue(context, "ss_onboarded", (v) => v === true);
+    await automaticFirstRunPage.close();
 
     console.log("Extension interactions test passed.");
   } finally {

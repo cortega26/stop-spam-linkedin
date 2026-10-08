@@ -54,3 +54,13 @@ test("set on an existing key refreshes its expiry", () => {
   store.set("urn:li:activity:spam-1");
   assert.equal(store.has("urn:li:activity:spam-1"), true);
 });
+
+test("manual re-hide cancels one post cooldown without affecting another", () => {
+  const store = createCooldownStore(15 * 60 * 1000, 10);
+  store.set("urn:li:activity:user-shown");
+  store.set("urn:li:activity:other-shown");
+  assert.equal(store.delete("urn:li:activity:user-shown"), true);
+  assert.equal(store.has("urn:li:activity:user-shown"), false);
+  assert.equal(store.has("urn:li:activity:other-shown"), true);
+  assert.equal(store.delete("urn:li:activity:user-shown"), false);
+});
