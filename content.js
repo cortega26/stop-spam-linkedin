@@ -172,13 +172,17 @@
      listener for each virtualized feed post. */
   document.addEventListener("click", (event) => {
     if (!(event.target instanceof Node)) return;
-    for (const control of document.querySelectorAll('details[data-ss-control="hide-once"][open]')) {
+    for (const control of /** @type {NodeListOf<HTMLDetailsElement>} */ (
+      document.querySelectorAll('details[data-ss-control="hide-once"][open]')
+    )) {
       if (!control.contains(event.target)) control.open = false;
     }
   }, true);
   document.addEventListener("keydown", (event) => {
     if (event.key !== "Escape") return;
-    const control = document.querySelector('details[data-ss-control="hide-once"][open]');
+    const control = /** @type {HTMLDetailsElement | null} */ (
+      document.querySelector('details[data-ss-control="hide-once"][open]')
+    );
     if (!control) return;
     control.open = false;
     control.querySelector("summary")?.focus();
