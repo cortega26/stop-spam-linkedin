@@ -1169,7 +1169,7 @@ async function main() {
     const authorPlaceholder = linkedInPage.locator("[data-ss-ph]").last();
     assert.match(
       await authorPlaceholder.locator("span").first().textContent(),
-      /Blocked — you've blocked this author|Bloqueado/,
+      /Hidden — muted author|Oculta — autor silenciado/,
       "expected the author-blocked placeholder to explain the block is by author"
     );
     assert.equal(
@@ -1565,7 +1565,7 @@ async function main() {
         const ph = el.nextElementSibling;
         if (!ph || !ph.hasAttribute("data-ss-ph")) return false;
         const label = ph.querySelector("span");
-        return label !== null && /Blocked — you've blocked this author|Bloqueado/.test(label.textContent);
+        return label !== null && /Hidden — muted author|Oculta — autor silenciado/.test(label.textContent);
       },
       '[data-id="urn:li:activity:block-me-1"]',
       { timeout: 4000 }
@@ -1584,7 +1584,7 @@ async function main() {
     assert.equal(swapped.display, "none", "post must stay hidden after blocking its author");
     assert.match(
       swapped.label,
-      /Blocked — you've blocked this author|Bloqueado/,
+      /Hidden — muted author|Oculta — autor silenciado/,
       "expected the placeholder to switch to the author-block variant"
     );
     assert.ok(
@@ -2965,7 +2965,7 @@ async function main() {
         const ph = el.nextElementSibling;
         if (!ph || !ph.hasAttribute("data-ss-ph")) return false;
         const label = ph.querySelector("span");
-        return label !== null && /Blocked — you've blocked this author|Bloqueado/.test(label.textContent);
+        return label !== null && /Hidden — muted author|Oculta — autor silenciado/.test(label.textContent);
       },
       '[data-id="urn:li:activity:a11y-author-1"]',
       { timeout: 5000 }
