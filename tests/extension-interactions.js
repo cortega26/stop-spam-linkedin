@@ -3118,6 +3118,33 @@ async function main() {
     await quickPage.close();
     await mutePage.close();
 
+    /* Responsive smoke: popup and settings must remain usable within
+       common narrow viewport widths, with no clipped horizontal content. */
+    const visualPage = await context.newPage();
+    await visualPage.setViewportSize({ width: 390, height: 844 });
+    await visualPage.goto(
+      `chrome-extension://${await getExtensionId(context)}/options/options.html`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await visualPage.locator(".settings-nav").waitFor({ state: "visible" });
+    let overflow = await visualPage.evaluate(() =>
+      document.documentElement.scrollWidth - document.documentElement.clientWidth
+    );
+    assert.ok(overflow <= 1, `options must not overflow at 390px (overflow ${overflow}px)`);
+    await visualPage.goto(
+      `chrome-extension://${await getExtensionId(context)}/popup/popup.html`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await visualPage.locator(".hero").waitFor({ state: "visible" });
+    for (const width of [390, 320]) {
+      await visualPage.setViewportSize({ width, height: 844 });
+      overflow = await visualPage.evaluate(() =>
+        document.documentElement.scrollWidth - document.documentElement.clientWidth
+      );
+      assert.ok(overflow <= 1, `popup must not overflow at ${width}px (overflow ${overflow}px)`);
+    }
+    await visualPage.close();
+
     console.log("Extension interactions test passed.");
   } finally {
     await context.close();
