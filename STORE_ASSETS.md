@@ -20,8 +20,8 @@ Feed Control helps you take back the small decisions that add up: a post you don
 
 ### Make your feed feel yours
 
-- **Hide any post in one click.** A discreet button on recognized feed posts puts you in control, even if the content isn't technically spam.
-- **Mute authors directly.** Stop seeing posts from an author you don't want in your feed, without hunting through settings.
+- **Hide any post.** Choose **Feed options → Hide this post** on a recognized post, even when it isn't technically spam.
+- **Mute authors directly.** Choose **Feed options → Mute this author** when an author is recognized, without hunting through settings.
 - **Filter promoted content.** Turn promoted-post hiding on or off instantly, without a reload.
 - **Block obvious engagement bait automatically.** Proven, editable local rules support English, Spanish, French, Portuguese and German.
 - **Keep what matters.** Protect trusted authors and meaningful phrases. Every hidden item has a reversible Show action.
@@ -49,7 +49,7 @@ Feed Control te permite ocultar una publicación que no te interesa, silenciar a
 
 ### Más control, menos distracciones
 
-- **Oculta cualquier publicación con un clic**, aunque no sea técnicamente spam.
+- **Oculta cualquier publicación desde «Opciones del feed»**, aunque no sea técnicamente spam.
 - **Silencia autores desde su publicación**, sin buscar opciones escondidas.
 - **Activa o desactiva el filtro de promociones** y ve el cambio de inmediato.
 - **Filtra automáticamente las publicaciones de interacción forzada** mediante reglas locales en cinco idiomas.
@@ -99,3 +99,9 @@ Source of the new original vector visual: `assets/feed-control-promo.svg`. Its i
 
 - **Tags**: linkedin, spam, productivity, feed, blocker
 - **Homepage URL**: (optional)
+
+## Screenshot and store copy gate for the next release
+
+Browser stores still publish 1.6.0, not all merged 2.0 features or new UI. Replace screenshots with the **actual tested candidate**, not the HTML mockups or original promo SVG. Capture five consented/sanitized real screenshots: (1) native feed before/after with unrelated posts retained, (2) Feed options disclosed with Hide/Mute, (3) manual Hide → Show/Undo, (4) first-run opt-in and successful confirmation, (5) popup settings and privacy. Inspect Chrome and Firefox at relevant dimensions. The mocked feed cannot establish live DOM acceptance.
+
+**Do not market Suggested post or connection-activity auto filters:** those remain research-only pending authentic LinkedIn DOM samples and locked negative cases. Update the version-availability statement in both READMEs at actual store release.

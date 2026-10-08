@@ -139,3 +139,10 @@ verification command — and update their status row in `plans/README.md`
 when done (status values: TODO | IN PROGRESS | DONE | BLOCKED (with
 reason) | REJECTED (with rationale)). Honor each plan's STOP conditions:
 verify before assuming, and report discrepancies instead of improvising.
+
+## Feed Control next-release handoff
+
+- A single native HTML details/summary **Feed options** disclosure now contains Hide and Mute, instead of two permanently visible buttons. Global Escape and outside-click listeners are installed once per content script, not for every post. Preserve keyboard, touch, focus, dark mode and reduced motion behavior.
+- Strictly scoped modern React candidate selection is **manual control only**: data-testid=mainFeed, role=listitem, expandable-text-box, no nested listitems. The original data-id and feed-shared-update-v2 selectors remain supported. Public competitor source code suggests this newer layout but there are **no first-hand authenticated LinkedIn samples**; do not enable new automatic filtering or claim universal compatibility.
+- The first-run welcome has a functional opt-in for promoted posts, a real feed launch link and accessible success/error messaging. Suppress What's New on the first installation; on welcome dismissal persist seen release alongside welcome pending.
+- The currently available Chrome/Firefox packages can lag the source. Never write misleading store marketing or use conceptual marketing art as real screenshots.

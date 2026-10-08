@@ -8,7 +8,7 @@
 - Run `npm run smoke`.
 - Run `npm run test:extension`.
 - Run `npm run test:package`.
-- Load the extension unpacked in Chrome and verify blocking on a real LinkedIn feed page.
+- Load the extension unpacked in Chrome and verify blocking on a real **authenticated** LinkedIn feed (legacy data-id and any modern mainFeed/listitem variants present), without broad assumptions about user account data.
 - Open the popup on LinkedIn and on a non-LinkedIn tab to verify both live and saved-state behavior.
 - Open the options page and verify add, edit, delete, language toggles, import, export, and starter pack.
 
@@ -46,3 +46,13 @@ Or run locally: `npm run submit:chrome` / `npm run submit:firefox` with the same
 - Upload screenshots and promo assets from `screenshots/`.
 - Paste the current version's notes from `RELEASE_NOTES.md`.
 - Verify Chrome Web Store and Firefox Add-ons privacy disclosures match `PRIVACY_POLICY.md`.
+
+## First-minute, authenticity and accessible UI acceptance
+
+- [ ] First install: filters work by default, promoted is still opt-in, actions confirm only on successful sync writes, storage errors are recoverable.
+- [ ] New user sees welcome but not a second What's New card; onboarding dismissal survives reload.
+- [ ] Feed options: Tab, Enter, Space, Escape and outside-click behaviors in Chrome and Firefox. Hide, Mute, Show/Undo and repeat Hide all work.
+- [ ] In real LinkedIn, no overlap or behavior damage to posting, messaging, search, jobs, navigation, comments and native buttons. Unsupported layouts fail open.
+- [ ] Verify new React layout fallback only adds **manual** controls on real feed posts; it must not automatically filter Sponsored/Suggested posts based on unverified metadata.
+- [ ] Inspect options/popup at 320px, 390px, desktop, light/dark themes, in English and Spanish. Check accessible focus and reduced motion.
+- [ ] Update all honest real screenshots, store text and version availability notice. Do not tag and auto-submit stores until these gates pass.
