@@ -299,15 +299,87 @@
         --focus: #5b9bd5;
       }
     }
+
+    /* Product experience V2: hierarchy, reassuring privacy cues, deliberate spacing. */
+    :root { --text:#14243a; --text-secondary:#64748b; --text-tertiary:#64748b; --bg:#f6f8fc;
+      --bg-secondary:#fff; --bg-hover:#eef4fc; --bg-active:#e6f1ff; --border:#dce4f0;
+      --border-light:#e7edf5; --primary:#135dd8; --primary-hover:#0c4cae;
+      --toggle-off:#b8c7d9; --toggle-on:#0e63dd; --focus:#0c62d7; }
+    body { width:378px; padding:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,
+      BlinkMacSystemFont,'Segoe UI',sans-serif; font-size:13px; line-height:1.48; }
+    .hero { padding:24px 24px 26px; background:radial-gradient(ellipse at 90% 0%,#285cab 0%,transparent 55%),
+      linear-gradient(128deg,#111c32,#172c51 78%); color:#f8fbff; }
+    .hero-logo { display:flex; align-items:center; justify-content:space-between; gap:8px; }
+    .hero h1 { margin:0; font-size:17px; line-height:1.3; letter-spacing:-.45px; font-weight:750; color:#fff; }
+    .hero h1 svg { stroke:#7cb2ff; width:24px; height:24px; }
+    .hero-badge { white-space:nowrap; font-size:9px; font-weight:800; letter-spacing:1.3px;
+      color:#b4e9de; background:#234d59; border:1px solid #387a81; padding:5px 7px; border-radius:6px; }
+    .hero-tagline { margin-top:16px; font-size:17px; letter-spacing:-.45px; font-weight:620; }
+    .hero-privacy { margin-top:5px; font-size:11px; color:#b8c9e0; }
+    #mainContent { padding:19px 21px 17px; }
+    #noConnection { padding:20px 22px; }
+    #loadingState { min-height:60px; }
+    .toggle-wrap { margin-bottom:13px; padding:14px 16px; background:#fff;
+      border:1px solid var(--border-light); box-shadow:0 3px 15px #142a4810; border-radius:14px; }
+    .toggle-wrap .stat-label { color:#243b57; font-size:13px; font-weight:700; }
+    .toggle { flex:none; }
+    .stat-card { margin-bottom:13px; border:1px solid #cbdffc; border-radius:14px;
+      background:linear-gradient(130deg,#f2f7ff,#fff); padding:12px 16px 13px; }
+    .stat-card .stat { padding:0; }
+    .stat-card .stat-label { color:#536c87; font-weight:700; }
+    .stat-card .stat-value { font-size:31px; line-height:1.15; letter-spacing:-1.3px; color:#164b9b; }
+    .stat-explain { margin-top:6px; color:#72839b; font-size:11px; }
+    .quick-controls { margin-top:13px; padding:14px 15px; border:1px solid var(--border-light);
+      border-radius:14px; background:#fff; }
+    .section-overline { font-weight:780; font-size:12px; color:#182a45; }
+    .section-caption { color:var(--text-secondary); font-size:11px; margin-top:2px; }
+    .quick-setting { display:flex; justify-content:space-between; gap:12px; align-items:center;
+      padding:13px 0 8px; font-size:13px; font-weight:600; cursor:pointer; }
+    .quick-setting input { accent-color:var(--primary); width:17px; height:17px; cursor:pointer; }
+    .feed-hint { font-size:11px; color:#738198; padding-top:8px;
+      border-top:1px solid #edf1f6; margin-top:5px; }
+    .stats-row { background:#fff; margin:11px 0 0; border-radius:10px; padding:8px 10px;
+      justify-content:space-between; color:#5e718a; font-size:11px; }
+    .stats-row .sep { display:none; }
+    .actions { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:13px; }
+    .actions #snoozeBtn { grid-column:1 / -1; background:#eaf2ff; border-color:#d8e7fa;
+      color:#1459a9; font-weight:700; }
+    .actions button { min-height:34px; border-radius:9px; font-weight:600; }
+    .manage-primary { margin:8px 0 0; background:var(--primary); color:#fff; border-radius:11px;
+      font-weight:700; padding:12px; text-decoration:none; }
+    .manage-primary:hover { color:#fff; text-decoration:none; background:var(--primary-hover); }
+    .footer { margin-top:12px; line-height:1.55; font-size:10px; }
+    hr { margin:13px 0; }
+    #lastBlockedSection,#patternSection,#suggestionSection { background:#fff; padding:11px;
+      border:1px solid var(--border-light); border-radius:10px; margin-top:10px; }
+    #lastBlockedSection hr,#patternSection hr,#suggestionSection hr { display:none; }
+    .snooze-status { margin-top:10px; }
+    button:focus-visible,a:focus-visible,input:focus-visible {outline:2px solid var(--focus);outline-offset:3px;}
+    @media(prefers-color-scheme:dark) {
+      :root {--text:#e4ecf7;--text-secondary:#abbdd4;--bg:#111b2c;--bg-secondary:#1d2b41;
+        --bg-hover:#293b57;--bg-active:#344969;--border:#3b526d;--border-light:#314660;}
+      .hero {background:radial-gradient(ellipse at 90% 0%,#234677,transparent 55%),linear-gradient(128deg,#0b1425,#172c51);}
+      .toggle-wrap,.quick-controls,.stats-row,#lastBlockedSection,#patternSection,#suggestionSection {background:#1d2b41;}
+      .toggle-wrap .stat-label,.section-overline {color:#e3eeff;}
+      .stat-card {background:linear-gradient(135deg,#1b3456,#182639);border-color:#335982;}
+      .stat-card .stat-label,.stat-explain,.feed-hint,.section-caption {color:#a9bdd5;}
+      .stat-card .stat-value {color:#8cbcff;}
+      .feed-hint {border-color:#334b65;}
+      .actions #snoozeBtn {background:#203d61;color:#a4ccff;border-color:#365679;}
+    }
+    @media(prefers-reduced-motion:reduce) {*,*::before,*::after {transition:none!important;animation:none!important;}}
+
   </style>
 </head>
 <body>
-  <h1>
-    <svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a66c2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+  <header class="hero">
+    <div class="hero-top"><div class="hero-logo"><h1><svg aria-hidden="true" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#0a66c2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
     </svg>
-    __MSG_appName__
-  </h1>
+    __MSG_appName__</h1><span class="hero-badge">LOCAL ONLY</span></div></div>
+    <p class="hero-tagline">__MSG_popupLead__</p>
+    <p class="hero-privacy">__MSG_privacyPromise__</p>
+  </header>
 
   <div id="loadingState">
     <div class="spinner"></div>
@@ -329,10 +401,22 @@
     </label>
   </div>
 
-  <div class="stat">
-    <span class="stat-label">__MSG_postsBlocked__</span>
-    <span class="stat-value" id="blockedCount">0</span>
-  </div>
+  <section class="stat-card" aria-label="__MSG_postsBlocked__">
+    <div class="stat">
+      <span class="stat-label">__MSG_postsBlocked__</span>
+      <span class="stat-value" id="blockedCount">0</span>
+    </div>
+    <p class="stat-explain">__MSG_filteredStatCaption__</p>
+  </section>
+  <section class="quick-controls" aria-label="__MSG_quickControlsTitle__">
+    <div class="section-overline">__MSG_quickControlsTitle__</div>
+    <p class="section-caption">__MSG_quickControlsSubtitle__</p>
+    <label class="quick-setting" for="quickHidePromoted">
+      <span>__MSG_hidePromotedLabel__</span>
+      <input id="quickHidePromoted" type="checkbox" />
+    </label>
+    <p class="feed-hint">__MSG_popupHint__</p>
+  </section>
 
   <div class="stats-row" id="statsRow">
     <span>__MSG_todayLabel__: <strong id="todayCount">0</strong></span>
@@ -370,7 +454,7 @@
 
   <hr />
 
-  <a class="manage-link" id="manageLink">__MSG_managePhrases__ &rarr;</a>
+  <a class="manage-link manage-primary" id="manageLink">__MSG_advancedSettings__ <span aria-hidden="true">&rarr;</span></a>
 
   <div class="footer">__MSG_footerSites__</div>
 
