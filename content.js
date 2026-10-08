@@ -77,6 +77,7 @@
      whitelist change must never un-hide these: they're hidden by class,
      not by author. */
   const labelBlockedPosts = new Set();
+  const cosmeticReasons = new WeakMap();
 
   /* Cooldown after user presses "Show" — keyed by post identity
      (data-id) so it survives virtual-scroll node re-creation.
@@ -130,6 +131,25 @@
   /* ==================================================================
    *  INITIALISATION
    * ================================================================== */
+
+  const manualStyle = document.createElement("style");
+  manualStyle.textContent = `
+    .ss-feed-action { display:flex; justify-content:flex-end; padding:2px 14px 7px; }
+    .ss-feed-action-button { color:#53677b; background:transparent; border:1px solid transparent;
+      border-radius:20px; padding:5px 12px; font:500 12px/1.4 system-ui,sans-serif;
+      cursor:pointer; opacity:.65; transition:opacity .15s, background .15s; }
+    .ss-feed-action-button:hover, .ss-feed-action-button:focus-visible {
+      opacity:1; color:#0759a9; background:#eaf3fe; border-color:#bcdaf8; }
+    .ss-feed-action-button:focus-visible {outline:2px solid #0759a9; outline-offset:2px;}
+    @media (prefers-color-scheme:dark) {
+      .ss-feed-action-button {color:#c2d0df;}
+      .ss-feed-action-button:hover,.ss-feed-action-button:focus-visible {
+        color:#e6f3ff; background:#26384b; border-color:#536d86; }
+    }
+    @media (prefers-reduced-motion: reduce) {.ss-feed-action-button {transition:none;}}
+  `;
+  (document.head || document.documentElement).appendChild(manualStyle);
+
 
   function migrateRuntimeStorage(syncResult, localResult) {
     const localPatch = {};
@@ -282,6 +302,7 @@
           }
         } else {
           restoreBlocked();
+          removeManualControls();
           stopObserver();
           setBadge("");
         }
@@ -323,9 +344,13 @@
       }
       if (changes[STORAGE_KEYS.HIDE_PROMOTED]) {
         hidePromoted = changes[STORAGE_KEYS.HIDE_PROMOTED].newValue === true;
+        if (hidePromoted) scanForLabeledPosts(document.body);
+        else restoreCosmeticReason("promoted");
       }
       if (changes[STORAGE_KEYS.HIDE_FEATURED]) {
         hideFeatured = changes[STORAGE_KEYS.HIDE_FEATURED].newValue === true;
+        if (hideFeatured) scanForFeaturedSection(document.body);
+        else restoreCosmeticReason("featured");
       }
     }
   });
@@ -631,6 +656,7 @@
       const tag = textNode.parentElement.tagName;
       if (tag === "SCRIPT" || tag === "STYLE" || tag === "NOSCRIPT")
         return NodeFilter.FILTER_REJECT;
+      if (textNode.parentElement.closest('[data-ss-control="hide-once"]')) return NodeFilter.FILTER_REJECT;
       if (processed.has(textNode.parentElement))
         return NodeFilter.FILTER_REJECT;
       if (textNode.textContent.trim().length < CONFIG.MIN_TEXT_LENGTH)
@@ -757,12 +783,55 @@
     }
   }
 
+  /* One-click reversible hiding on verified feed post containers. */
+  function scanForManualControls(root) {
+    if (!enabled || Date.now() < snoozeUntil) return;
+    if (!/^\/(?:feed|posts)\//.test(window.location.pathname)) return;
+    root = root || document.body;
+    for (const selector of AUTHOR_BLOCK_SELECTORS) {
+      const posts = root.matches?.(selector)
+        ? [root, ...root.querySelectorAll(selector)]
+        : root.querySelectorAll(selector);
+      for (const post of posts) {
+        if (blockedPosts.has(post) || post.querySelector('[data-ss-control="hide-once"]')) continue;
+        if (!getPostKey(post)) continue;
+        const wrapper = document.createElement("div");
+        wrapper.dataset.ssControl = "hide-once";
+        wrapper.className = "ss-feed-action";
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "ss-feed-action-button";
+        button.textContent = SS_t("hideOnce");
+        button.setAttribute("aria-label", SS_t("hideOnce"));
+        button.addEventListener("click", (event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          if (!enabled || Date.now() < snoozeUntil || blockedPosts.has(post)) return;
+          blockPost(post, null, { reason: "manual" });
+        });
+        wrapper.appendChild(button);
+        post.appendChild(wrapper);
+      }
+    }
+  }
+
+  function removeManualControls() {
+    for (const control of document.querySelectorAll('[data-ss-control="hide-once"]')) control.remove();
+  }
+
+  function restoreCosmeticReason(reason) {
+    for (const post of [...labelBlockedPosts]) {
+      if (cosmeticReasons.get(post) === reason) restorePost(post);
+    }
+  }
+
   function scheduleInitialScan() {
     const doScan = () => {
       scan(document.body);
       scanForBlockedAuthors(document.body);
       scanForLabeledPosts(document.body);
       scanForFeaturedSection(document.body);
+      scanForManualControls(document.body);
     };
     if (window.requestIdleCallback) {
       requestIdleCallback(doScan, { timeout: 2000 });
@@ -806,7 +875,7 @@
 
     /* Skip if author is whitelisted. */
     const isAuthorBlock = !!(info && info.reason === "author-blocklist");
-    const isLabelBlock = !!(info && (info.reason === "promoted" || info.reason === "featured"));
+    const isLabelBlock = !!(info && ["promoted", "featured", "manual"].includes(info.reason));
     const authorId = isAuthorBlock
       ? info.authorId
       : textNode
@@ -817,7 +886,10 @@
     processed.add(post);
     post.style.display = "none";
     blockedPosts.add(post);
-    if (isLabelBlock) labelBlockedPosts.add(post);
+    if (isLabelBlock) {
+      labelBlockedPosts.add(post);
+      cosmeticReasons.set(post, info.reason);
+    }
     /* Label hides are opt-in cosmetic filters: they must not touch the
        stats, the badge, or the popup's undo list. Everything else below
        (cooldown/forceShow/restore) still applies so Show/disable work. */
@@ -897,7 +969,7 @@
     label.textContent = isAuthorBlock
       ? SS_t("blockedByAuthor")
       : isLabelBlock
-        ? (info.reason === "promoted" ? SS_t("blockedPromoted") : SS_t("blockedFeatured"))
+        ? (info.reason === "promoted" ? SS_t("blockedPromoted") : info.reason === "featured" ? SS_t("blockedFeatured") : SS_t("hiddenManually"))
         : SS_t("blockedBy");
     placeholder.appendChild(label);
 
@@ -1106,6 +1178,7 @@
       if (ph && ph.dataset && ph.dataset.ssPh) ph.remove();
     }
     blockedPosts.clear();
+    labelBlockedPosts.clear();
     processed = new WeakSet();
     /* Bulk restore invalidates the popup's undo window: the same posts
        will be re-blocked by the next scan and re-added, so dropping the
@@ -1184,6 +1257,7 @@
     }
 
     restoreBlocked();
+    removeManualControls();
     snoozeTimer = setTimeout(() => {
       snoozeUntil = 0;
       chrome.storage.local.set({ [STORAGE_KEYS.SNOOZE_UNTIL]: 0 }, () => {
@@ -1213,6 +1287,7 @@
           scanForBlockedAuthors(root);
           scanForLabeledPosts(root);
           scanForFeaturedSection(root);
+          scanForManualControls(root);
         }
       }, CONFIG.OBSERVER_DEBOUNCE_MS)
     );
@@ -1500,6 +1575,7 @@
        restores and bulk restore from re-processing them. */
     blockedPosts.delete(post);
     labelBlockedPosts.delete(post);
+    cosmeticReasons.delete(post);
 
     /* Keep lastBlocked in sync so the popup undo list stays accurate. */
     for (let i = lastBlocked.length - 1; i >= 0; i--) {
