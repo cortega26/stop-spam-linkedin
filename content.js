@@ -832,8 +832,10 @@
                 console.warn("Could not mute author:", chrome.runtime.lastError.message);
                 /* Do not claim a successful mute if persistence fails. */
                 chrome.storage.sync.get([STORAGE_KEYS.BLOCKED_AUTHORS, STORAGE_KEYS.WHITELIST], (saved) => {
-                  blockedAuthors = new Set(saved[STORAGE_KEYS.BLOCKED_AUTHORS] || []);
-                  whitelistedAuthors = new Set(saved[STORAGE_KEYS.WHITELIST] || []);
+                  blockedAuthors = new Set(Array.isArray(saved[STORAGE_KEYS.BLOCKED_AUTHORS])
+                    ? saved[STORAGE_KEYS.BLOCKED_AUTHORS] : []);
+                  whitelistedAuthors = new Set(Array.isArray(saved[STORAGE_KEYS.WHITELIST])
+                    ? saved[STORAGE_KEYS.WHITELIST] : []);
                 });
               } else {
                 scanForBlockedAuthors(document.body);
