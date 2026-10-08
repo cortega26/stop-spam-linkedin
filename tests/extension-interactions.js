@@ -3109,6 +3109,49 @@ async function main() {
     await a11yPopup.close();
     await a11yPage.close();
 
+    /* Best-effort modern React feed support is user-initiated ONLY:
+       require mainFeed + listitem + expandable-text-box, and fail open for
+       unrelated list items or nested comment list items. */
+    const reactFeedPage = await context.newPage();
+    await reactFeedPage.goto("https://www.linkedin.com/feed/", {
+      waitUntil: "domcontentloaded"
+    });
+    await reactFeedPage.evaluate(() => {
+      const feed = document.createElement("div");
+      feed.dataset.testid = "mainFeed";
+      feed.innerHTML =
+        '<div role="listitem" id="modern-feed-post">' +
+          '<div data-testid="expandable-text-box">A normal professional update</div>' +
+        '</div>' +
+        '<div role="listitem" id="modern-feed-nonpost">Navigation only</div>' +
+        '<div role="listitem" id="modern-parent">' +
+          '<div data-testid="expandable-text-box">Another useful update</div>' +
+          '<div role="listitem" id="modern-nested-comment">' +
+            '<div data-testid="expandable-text-box">A comment, not its own post</div>' +
+          '</div>' +
+        '</div>';
+      document.querySelector("main").appendChild(feed);
+      const outside = document.createElement("div");
+      outside.setAttribute("role", "listitem");
+      outside.id = "outside-react-feed";
+      outside.innerHTML = '<div data-testid="expandable-text-box">Not in the feed</div>';
+      document.querySelector("main").appendChild(outside);
+    });
+    const modernPost = reactFeedPage.locator("#modern-feed-post");
+    const modernDisclosure = modernPost.locator('details[data-ss-control="hide-once"]');
+    await modernDisclosure.locator("summary").waitFor({ state: "visible", timeout: 10000 });
+    assert.equal(await reactFeedPage.locator("#modern-feed-nonpost [data-ss-control]").count(), 0);
+    assert.equal(await reactFeedPage.locator("#modern-nested-comment [data-ss-control]").count(), 0);
+    assert.equal(await reactFeedPage.locator("#outside-react-feed [data-ss-control]").count(), 0);
+    await modernDisclosure.locator("summary").click();
+    await modernDisclosure.getByRole("button", {name:/Hide this post|Ocultar esta publicación/}).click();
+    await modernPost.waitFor({ state:"hidden", timeout:10000 });
+    await reactFeedPage.locator('[data-ss-ph]').filter({
+      hasText:/Hidden at your request|Oculta a petición tuya/
+    }).getByRole("button",{name:/Show|Mostrar/}).click();
+    await modernPost.waitFor({ state:"visible", timeout:10000 });
+    await reactFeedPage.close();
+
     /* Product V2: one click mutes an ordinary author's existing posts.
        The persistent blocklist, not a temporary manual-hide signature,
        governs subsequently arriving feed items. */

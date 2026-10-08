@@ -46,6 +46,14 @@
     '[data-id*="urn:li:activity:"]',
     ".feed-shared-update-v2",
   ]);
+  /* A narrowly scoped best-effort compatibility fallback for manual
+     controls on LinkedIn's newer React feed. This is NOT used for automatic
+     text, author, Suggested or sponsored filtering: real DOM acceptance is
+     still required before broadening any automatic detection. */
+  const MANUAL_CONTROL_SELECTORS = Object.freeze([
+    ...AUTHOR_BLOCK_SELECTORS,
+    '[data-testid="mainFeed"] [role="listitem"]',
+  ]);
 
   const AUTHOR_LINK_SELECTORS = Object.freeze([
     ".update-components-actor a[href]",
@@ -827,13 +835,17 @@
     if (!enabled || Date.now() < snoozeUntil) return;
     if (!/^\/(?:feed|posts)\//.test(window.location.pathname)) return;
     root = root || document.body;
-    for (const selector of AUTHOR_BLOCK_SELECTORS) {
+    for (const selector of MANUAL_CONTROL_SELECTORS) {
       const posts = root.matches?.(selector)
         ? [root, ...root.querySelectorAll(selector)]
         : root.querySelectorAll(selector);
       for (const post of posts) {
         if (blockedPosts.has(post) || post.querySelector('[data-ss-control="hide-once"]')) continue;
-        if (!getPostKey(post)) continue;
+        const isLegacyPost = !!getPostKey(post);
+        const isModernFeedItem = post.matches('[data-testid="mainFeed"] [role="listitem"]') &&
+          !!post.querySelector('[data-testid="expandable-text-box"]') &&
+          !post.parentElement?.closest('[role="listitem"]');
+        if (!isLegacyPost && !isModernFeedItem) continue;
         const wrapper = document.createElement("details");
         wrapper.dataset.ssControl = "hide-once";
         wrapper.className = "ss-feed-action";
