@@ -1,179 +1,557 @@
 {
-  "appName": { "message": "Spam Blocker" },
-  "enabled": { "message": "Enabled" },
-  "postsBlocked": { "message": "Posts blocked" },
-  "todayLabel": { "message": "Today" },
-  "weekLabel": { "message": "Week" },
-  "totalLabel": { "message": "Total" },
-  "byPatternLabel": { "message": "By pattern" },
-  "byPatternCustom": { "message": "Custom phrases" },
-  "byPatternAuthor": { "message": "Blocked authors" },
-  "lastBlockedLabel": { "message": "Last blocked" },
-  "matchedLabel": { "message": "Matched:" },
-  "snooze30": { "message": "Snooze 30 min" },
-  "cancelSnooze": { "message": "Cancel Snooze" },
-  "resetCount": { "message": "Reset count" },
-  "managePhrases": { "message": "Manage matching phrases" },
-  "snoozedUntil": { "message": "Snoozed until" },
-  "justNow": { "message": "just now" },
-  "mAgo": { "message": "m ago" },
-  "undo": { "message": "Undo" },
-  "blockedBy": { "message": "Blocked by LinkedIn Spam Blocker" },
-  "blockedByAuthor": { "message": "Blocked — you've blocked this author" },
-  "blockedPromoted": { "message": "Blocked — promoted post" },
-  "blockedFeatured": { "message": "Blocked — Featured section" },
-  "unblockAuthor": { "message": "Unblock this author" },
-  "show": { "message": "Show" },
-  "showAll": { "message": "Show all" },
-  "notSpam": { "message": "Not spam" },
-  "notSpamTooltip": { "message": "Report as false positive" },
-  "neverBlock": { "message": "Never block this author" },
-  "blockAuthor": { "message": "Block this author" },
-  "reportMissed": { "message": "Report missed spam" },
-  "reportCopied": { "message": "Post text copied — paste it into the issue form" },
-  "reportFailed": { "message": "Couldn't copy — please copy the post text manually" },
-  "blockedToast": { "message": "LinkedIn Spam Blocker blocked $1 post(s) on this page." },
-  "contextMenuTitle": { "message": "Add \"%s\" to LinkedIn Spam Blocker" },
-  "blockAuthorMenu": { "message": "Block this author" },
-  "reportMissedMenu": { "message": "Report missed spam" },
-  "noConnection": { "message": "Open a LinkedIn feed to start blocking." },
-  "noLiveTabNotice": { "message": "No active LinkedIn tab is connected. Showing saved settings and counts." },
-  "openLinkedIn": { "message": "Open LinkedIn Feed" },
-  "toggleEnabledLabel": { "message": "Enable or disable LinkedIn spam blocking" },
-
-  "settingsTitle": { "message": "LinkedIn Spam Blocker — Settings" },
-  "pageSubtitle": { "message": "Manage the phrases that trigger post blocking on LinkedIn." },
-  "welcomeTitle": { "message": "Welcome — you're set up" },
-  "welcomeIntro": { "message": "LinkedIn Spam Blocker is already running. Here's what it does and how to tune it." },
-  "welcomeStepDetect": { "message": "It hides posts that ask you to comment a keyword to get a file — in five languages, each toggleable below." },
-  "welcomeStepTune": { "message": "Add your own phrases, or turn off any built-in pattern that gets it wrong." },
-  "welcomeStepRestore": { "message": "Every hidden post leaves a placeholder: Show it, mark it Not spam, or block its author." },
-  "welcomeStepPrivacy": { "message": "Nothing leaves your browser — no analytics, no network requests, ever." },
-  "welcomeDismiss": { "message": "Got it" },
-  "whatsNewTitle": { "message": "What's new in this version" },
-  "whatsNewIntro": { "message": "This update improves reporting, feedback, and release notes. Highlights:" },
-  "whatsNewPoint": { "message": "Report missed spam from any selected text, catch up with in-extension release notes after each update, and clearer announcements for screen readers. Nothing leaves your browser, as always." },
-  "whatsNewDismiss": { "message": "Got it" },
-  "addPlaceholder": { "message": "e.g. \"CLAUDE\", \"send the PDF\", \"DM me the file\"" },
-  "addButton": { "message": "Add Phrase" },
-  "addPhraseInputLabel": { "message": "Phrase to add" },
-  "addPhraseButtonLabel": { "message": "Add phrase to block list" },
-  "importJson": { "message": "Import JSON" },
-  "importJsonLabel": { "message": "Import phrases from a JSON file" },
-  "exportJson": { "message": "Export JSON" },
-  "exportJsonLabel": { "message": "Export custom phrases as JSON" },
-  "starterPack": { "message": "Add Starter Pack" },
-  "starterPackLabel": { "message": "Add starter phrases" },
-  "noCustomPhrases": { "message": "No custom phrases yet." },
-  "builtinLabel": { "message": "built-in" },
-  "exact": { "message": "Exact" },
-  "contains": { "message": "Contains" },
-  "edit": { "message": "Edit" },
-  "delete": { "message": "Delete" },
-  "save": { "message": "Save" },
-  "cancel": { "message": "Cancel" },
-  "exactTooltip": { "message": "Exact mode: matches whole words only (click to switch)" },
-  "containsTooltip": { "message": "Contains mode: matches any post containing this text (click to switch)" },
-  "footerSites": { "message": "Runs on supported LinkedIn feed, profile, company, group, search, jobs, notification, network, newsletter, and article pages" },
-  "detectionLangs": { "message": "Detection Languages" },
-  "hideLabelsTitle": { "message": "Feed Content" },
-  "hidePromotedLabel": { "message": "Hide promoted posts" },
-  "hideFeaturedLabel": { "message": "Hide the Featured section on profiles" },
-  "whitelistTitle": { "message": "Whitelisted Authors" },
-  "blockedAuthorTitle": { "message": "Blocked Authors" },
-  "removeBlockedAuthorLabel": { "message": "Remove blocked author $1" },
-  "excludedTitle": { "message": "Excluded Posts" },
-  "excludedCountOne": { "message": "1 excluded post" },
-  "excludedCountMany": { "message": "$1 excluded posts" },
-  "excludedNearCap": { "message": "Near the storage limit — oldest entries may be removed automatically." },
-  "excludedNoPreview": { "message": "(no preview available)" },
-  "excludedClearAll": { "message": "Clear all" },
-  "removeExcludedLabel": { "message": "Remove excluded post $1" },
-  "remove": { "message": "Remove" },
-  "suggestionsLabel": { "message": "Suggestions" },
-  "suggestionDismiss": { "message": "Dismiss" },
-  "suggestionAddExact": { "message": "Add as exact" },
-  "suggestionAddContains": { "message": "Add as contains" },
-  "suggestionAddExactLabel": { "message": "Add \"$1\" as an exact phrase" },
-  "suggestionAddContainsLabel": { "message": "Add \"$1\" as a contains phrase" },
-  "suggestionDismissLabel": { "message": "Dismiss suggestion \"$1\"" },
-  "suggestionsFallbackHint": { "message": "Open a LinkedIn feed to add or dismiss these suggestions." },
-  "add": { "message": "Add" },
-  "disabled": { "message": "Disabled" },
-  "clickToConfirm": { "message": "Click again to confirm" },
-  "tryStarterPack": { "message": "Tip: Try the \"Add Starter Pack\" button above to get started." },
-  "searchPhrases": { "message": "Search phrases..." },
-  "searchPhrasesLabel": { "message": "Search custom and built-in phrases" },
-  "importHint": { "message": "JSON format: [{ \"text\": \"phrase\", \"enabled\": true }]" },
-  "noCustomPhrasesShort": { "message": "No custom phrases" },
-  "duplicatePhraseToast": { "message": "Already exists: \"$1\"" },
-  "addedPhraseToast": { "message": "Added: \"$1\"" },
-  "deletedPhraseToast": { "message": "Deleted: \"$1\"" },
-  "phraseLimitToast": { "message": "Custom phrase limit reached ($1)." },
-  "phraseStorageFullToast": { "message": "No more room for phrases — remove or shorten some to add more." },
-  "phraseTooLongToast": { "message": "Phrase is too long. Keep it under $1 characters." },
-  "starterPackAddedOne": { "message": "Added 1 starter phrase." },
-  "starterPackAddedMany": { "message": "Added $1 starter phrases." },
-  "starterPackExists": { "message": "All starter phrases already exist." },
-  "nothingToExport": { "message": "Nothing to export - no custom phrases or settings to back up." },
-  "exportedClipboardOne": { "message": "Exported 1 phrase to clipboard." },
-  "exportedClipboardMany": { "message": "Exported $1 phrases to clipboard." },
-  "exportedDownloadedOne": { "message": "Exported 1 phrase (file downloaded)." },
-  "exportedDownloadedMany": { "message": "Exported $1 phrases (file downloaded)." },
-  "exportedSummaryClipboard": { "message": "Exported $1 to clipboard." },
-  "exportedSummaryDownloaded": { "message": "Exported $1 (file downloaded)." },
-  "invalidJsonFile": { "message": "Invalid JSON file." },
-  "importFileTooLarge": { "message": "Import file is too large." },
-  "importFileEmpty": { "message": "File contains no phrases." },
-  "importedPhrasesOne": { "message": "Imported 1 phrase." },
-  "importedPhrasesMany": { "message": "Imported $1 phrases." },
-  "importedPhrasesSkippedOne": { "message": "Imported 1 phrase ($2 skipped)." },
-  "importedPhrasesSkippedMany": { "message": "Imported $1 phrases ($2 skipped)." },
-  "importedSummary": { "message": "Imported $1." },
-  "importedSummarySkipped": { "message": "Imported $1 ($2 skipped)." },
-  "importedNothing": { "message": "No new entries imported." },
-  "importedNothingSkipped": { "message": "No new entries imported ($1 skipped)." },
-  "settingsPartAnd": { "message": "and" },
-  "settingsPartPhrasesOne": { "message": "1 phrase" },
-  "settingsPartPhrasesMany": { "message": "$1 phrases" },
-  "settingsPartWhitelistOne": { "message": "1 whitelisted author" },
-  "settingsPartWhitelistMany": { "message": "$1 whitelisted authors" },
-  "settingsPartExcludedOne": { "message": "1 exclusion" },
-  "settingsPartExcludedMany": { "message": "$1 exclusions" },
-  "settingsPartLangsOne": { "message": "1 language" },
-  "settingsPartLangsMany": { "message": "$1 languages" },
-  "settingsPartBlockedAuthorsOne": { "message": "1 blocked author" },
-  "settingsPartBlockedAuthorsMany": { "message": "$1 blocked authors" },
-  "settingsPartAllowOne": { "message": "1 never-hide phrase" },
-  "settingsPartAllowMany": { "message": "$1 never-hide phrases" },
-  "patternCountOne": { "message": "1 pattern" },
-  "patternCountMany": { "message": "$1 patterns" },
-  "customPhraseStatusOne": { "message": "$1 of $2 custom phrase active" },
-  "customPhraseStatusMany": { "message": "$1 of $2 custom phrases active" },
-  "noPhrasesMatch": { "message": "No phrases match \"$1\"" },
-  "languageToggleLabel": { "message": "$1 detection language, currently $2" },
-  "removeWhitelistedAuthorLabel": { "message": "Remove whitelisted author $1" },
-  "builtinPatternToggleLabel": { "message": "Built-in pattern: $1" },
-  "builtinPatternToggleHint": { "message": "Turn this built-in pattern on or off without disabling its language" },
-  "patternHitCountTitle": { "message": "Lifetime blocks matched by this pattern: $1" },
-  "patternTotalsLine": { "message": "Custom phrases: $1 · Blocked authors: $2" },
-  "phraseToggleLabel": { "message": "Enable or disable phrase $1" },
-  "modeToggleLabel": { "message": "Change matching mode for $1, currently $2" },
-  "editPhraseLabel": { "message": "Edit phrase $1" },
-  "deletePhraseLabel": { "message": "Delete phrase $1" },
-  "allowTitle": { "message": "Never-hide Phrases" },
-  "allowHint": { "message": "Posts containing this text are never hidden — even if a pattern or custom phrase matches." },
-  "allowPlaceholder": { "message": "e.g. engagement bait" },
-  "allowInputLabel": { "message": "Add a never-hide phrase" },
-  "allowAddLabel": { "message": "Add never-hide phrase" },
-  "allowAddedToast": { "message": "Never hiding posts with: \"$1\"" },
-  "allowLimitToast": { "message": "Never-hide phrase limit reached ($1)." },
-  "allowConflictToast": { "message": "\"$1\" is already a custom phrase — remove it there first." },
-  "allowEmpty": { "message": "No never-hide phrases yet." },
-  "removeAllowPhraseLabel": { "message": "Remove never-hide phrase $1" },
-  "testerTitle": { "message": "Would this be blocked?" },
-  "testerPlaceholder": { "message": "Paste a post's text to test it against your current rules" },
-  "testerButton": { "message": "Test" },
-  "testerNoMatch": { "message": "Would NOT be hidden — nothing matched." },
-  "testerAllowed": { "message": "Would NOT be hidden — allowed by: \"$1\"" }
+  "appName": {
+    "message": "Feed Control"
+  },
+  "enabled": {
+    "message": "Enabled"
+  },
+  "postsBlocked": {
+    "message": "Distractions filtered"
+  },
+  "todayLabel": {
+    "message": "Today"
+  },
+  "weekLabel": {
+    "message": "Week"
+  },
+  "totalLabel": {
+    "message": "Total"
+  },
+  "byPatternLabel": {
+    "message": "By pattern"
+  },
+  "byPatternCustom": {
+    "message": "Custom phrases"
+  },
+  "byPatternAuthor": {
+    "message": "Blocked authors"
+  },
+  "lastBlockedLabel": {
+    "message": "Last blocked"
+  },
+  "matchedLabel": {
+    "message": "Matched:"
+  },
+  "snooze30": {
+    "message": "Snooze 30 min"
+  },
+  "cancelSnooze": {
+    "message": "Cancel Snooze"
+  },
+  "resetCount": {
+    "message": "Reset count"
+  },
+  "managePhrases": {
+    "message": "Customize my feed"
+  },
+  "snoozedUntil": {
+    "message": "Snoozed until"
+  },
+  "justNow": {
+    "message": "just now"
+  },
+  "mAgo": {
+    "message": "m ago"
+  },
+  "undo": {
+    "message": "Undo"
+  },
+  "blockedBy": {
+    "message": "Blocked by LinkedIn Spam Blocker"
+  },
+  "blockedByAuthor": {
+    "message": "Blocked — you've blocked this author"
+  },
+  "blockedPromoted": {
+    "message": "Blocked — promoted post"
+  },
+  "blockedFeatured": {
+    "message": "Blocked — Featured section"
+  },
+  "unblockAuthor": {
+    "message": "Unblock this author"
+  },
+  "show": {
+    "message": "Show"
+  },
+  "showAll": {
+    "message": "Show all"
+  },
+  "notSpam": {
+    "message": "Not spam"
+  },
+  "notSpamTooltip": {
+    "message": "Report as false positive"
+  },
+  "neverBlock": {
+    "message": "Never block this author"
+  },
+  "blockAuthor": {
+    "message": "Block this author"
+  },
+  "reportMissed": {
+    "message": "Report missed spam"
+  },
+  "reportCopied": {
+    "message": "Post text copied — paste it into the issue form"
+  },
+  "reportFailed": {
+    "message": "Couldn't copy — please copy the post text manually"
+  },
+  "blockedToast": {
+    "message": "LinkedIn Spam Blocker blocked $1 post(s) on this page."
+  },
+  "contextMenuTitle": {
+    "message": "Add \"%s\" to LinkedIn Spam Blocker"
+  },
+  "blockAuthorMenu": {
+    "message": "Block this author"
+  },
+  "reportMissedMenu": {
+    "message": "Report missed spam"
+  },
+  "noConnection": {
+    "message": "Open LinkedIn to see your cleaner feed."
+  },
+  "noLiveTabNotice": {
+    "message": "No active LinkedIn tab is connected. Showing saved settings and counts."
+  },
+  "openLinkedIn": {
+    "message": "Open LinkedIn Feed"
+  },
+  "toggleEnabledLabel": {
+    "message": "Enable or pause personal feed filtering"
+  },
+  "settingsTitle": {
+    "message": "LinkedIn Feed Control — Settings"
+  },
+  "pageSubtitle": {
+    "message": "Make LinkedIn worth opening. Quiet the noise, keep the useful conversations."
+  },
+  "welcomeTitle": {
+    "message": "Welcome — you're set up"
+  },
+  "welcomeIntro": {
+    "message": "Your personal feed controls are ready. Built around your preferences, not someone else's algorithm."
+  },
+  "welcomeStepDetect": {
+    "message": "Engagement-bait patterns work automatically in five languages. You can also hide any feed post manually."
+  },
+  "welcomeStepTune": {
+    "message": "Block authors, hide promotions, add precise phrases, or protect content you always want to see."
+  },
+  "welcomeStepRestore": {
+    "message": "Every hidden post is reversible. You can reveal it or correct a false match whenever you wish."
+  },
+  "welcomeStepPrivacy": {
+    "message": "Nothing leaves your browser — no analytics, no network requests, ever."
+  },
+  "welcomeDismiss": {
+    "message": "Got it"
+  },
+  "whatsNewTitle": {
+    "message": "What's new in this version"
+  },
+  "whatsNewIntro": {
+    "message": "This update improves reporting, feedback, and release notes. Highlights:"
+  },
+  "whatsNewPoint": {
+    "message": "Report missed spam from any selected text, catch up with in-extension release notes after each update, and clearer announcements for screen readers. Nothing leaves your browser, as always."
+  },
+  "whatsNewDismiss": {
+    "message": "Got it"
+  },
+  "addPlaceholder": {
+    "message": "e.g. \"CLAUDE\", \"send the PDF\", \"DM me the file\""
+  },
+  "addButton": {
+    "message": "Add Phrase"
+  },
+  "addPhraseInputLabel": {
+    "message": "Phrase to add"
+  },
+  "addPhraseButtonLabel": {
+    "message": "Add phrase to block list"
+  },
+  "importJson": {
+    "message": "Import JSON"
+  },
+  "importJsonLabel": {
+    "message": "Import phrases from a JSON file"
+  },
+  "exportJson": {
+    "message": "Export JSON"
+  },
+  "exportJsonLabel": {
+    "message": "Export custom phrases as JSON"
+  },
+  "starterPack": {
+    "message": "Add precise examples"
+  },
+  "starterPackLabel": {
+    "message": "Add conservative optional phrases"
+  },
+  "noCustomPhrases": {
+    "message": "No custom phrases yet."
+  },
+  "builtinLabel": {
+    "message": "built-in"
+  },
+  "exact": {
+    "message": "Exact"
+  },
+  "contains": {
+    "message": "Contains"
+  },
+  "edit": {
+    "message": "Edit"
+  },
+  "delete": {
+    "message": "Delete"
+  },
+  "save": {
+    "message": "Save"
+  },
+  "cancel": {
+    "message": "Cancel"
+  },
+  "exactTooltip": {
+    "message": "Exact mode: matches whole words only (click to switch)"
+  },
+  "containsTooltip": {
+    "message": "Contains mode: matches any post containing this text (click to switch)"
+  },
+  "footerSites": {
+    "message": "Runs on supported LinkedIn feed, profile, company, group, search, jobs, notification, network, newsletter, and article pages"
+  },
+  "detectionLangs": {
+    "message": "Detection Languages"
+  },
+  "hideLabelsTitle": {
+    "message": "Feed Content"
+  },
+  "hidePromotedLabel": {
+    "message": "Hide promoted posts"
+  },
+  "hideFeaturedLabel": {
+    "message": "Hide the Featured section on profiles"
+  },
+  "whitelistTitle": {
+    "message": "Whitelisted Authors"
+  },
+  "blockedAuthorTitle": {
+    "message": "Blocked Authors"
+  },
+  "removeBlockedAuthorLabel": {
+    "message": "Remove blocked author $1"
+  },
+  "excludedTitle": {
+    "message": "Excluded Posts"
+  },
+  "excludedCountOne": {
+    "message": "1 excluded post"
+  },
+  "excludedCountMany": {
+    "message": "$1 excluded posts"
+  },
+  "excludedNearCap": {
+    "message": "Near the storage limit — oldest entries may be removed automatically."
+  },
+  "excludedNoPreview": {
+    "message": "(no preview available)"
+  },
+  "excludedClearAll": {
+    "message": "Clear all"
+  },
+  "removeExcludedLabel": {
+    "message": "Remove excluded post $1"
+  },
+  "remove": {
+    "message": "Remove"
+  },
+  "suggestionsLabel": {
+    "message": "Suggestions"
+  },
+  "suggestionDismiss": {
+    "message": "Dismiss"
+  },
+  "suggestionAddExact": {
+    "message": "Add as exact"
+  },
+  "suggestionAddContains": {
+    "message": "Add as contains"
+  },
+  "suggestionAddExactLabel": {
+    "message": "Add \"$1\" as an exact phrase"
+  },
+  "suggestionAddContainsLabel": {
+    "message": "Add \"$1\" as a contains phrase"
+  },
+  "suggestionDismissLabel": {
+    "message": "Dismiss suggestion \"$1\""
+  },
+  "suggestionsFallbackHint": {
+    "message": "Open a LinkedIn feed to add or dismiss these suggestions."
+  },
+  "add": {
+    "message": "Add"
+  },
+  "disabled": {
+    "message": "Disabled"
+  },
+  "clickToConfirm": {
+    "message": "Click again to confirm"
+  },
+  "tryStarterPack": {
+    "message": "Start with the built-in rules. Add phrases only for content you actually want to hide."
+  },
+  "searchPhrases": {
+    "message": "Search phrases..."
+  },
+  "searchPhrasesLabel": {
+    "message": "Search custom and built-in phrases"
+  },
+  "importHint": {
+    "message": "JSON format: [{ \"text\": \"phrase\", \"enabled\": true }]"
+  },
+  "noCustomPhrasesShort": {
+    "message": "No custom phrases"
+  },
+  "duplicatePhraseToast": {
+    "message": "Already exists: \"$1\""
+  },
+  "addedPhraseToast": {
+    "message": "Added: \"$1\""
+  },
+  "deletedPhraseToast": {
+    "message": "Deleted: \"$1\""
+  },
+  "phraseLimitToast": {
+    "message": "Custom phrase limit reached ($1)."
+  },
+  "phraseStorageFullToast": {
+    "message": "No more room for phrases — remove or shorten some to add more."
+  },
+  "phraseTooLongToast": {
+    "message": "Phrase is too long. Keep it under $1 characters."
+  },
+  "starterPackAddedOne": {
+    "message": "Added 1 starter phrase."
+  },
+  "starterPackAddedMany": {
+    "message": "Added $1 starter phrases."
+  },
+  "starterPackExists": {
+    "message": "Those optional examples are already installed."
+  },
+  "nothingToExport": {
+    "message": "Nothing to export - no custom phrases or settings to back up."
+  },
+  "exportedClipboardOne": {
+    "message": "Exported 1 phrase to clipboard."
+  },
+  "exportedClipboardMany": {
+    "message": "Exported $1 phrases to clipboard."
+  },
+  "exportedDownloadedOne": {
+    "message": "Exported 1 phrase (file downloaded)."
+  },
+  "exportedDownloadedMany": {
+    "message": "Exported $1 phrases (file downloaded)."
+  },
+  "exportedSummaryClipboard": {
+    "message": "Exported $1 to clipboard."
+  },
+  "exportedSummaryDownloaded": {
+    "message": "Exported $1 (file downloaded)."
+  },
+  "invalidJsonFile": {
+    "message": "Invalid JSON file."
+  },
+  "importFileTooLarge": {
+    "message": "Import file is too large."
+  },
+  "importFileEmpty": {
+    "message": "File contains no phrases."
+  },
+  "importedPhrasesOne": {
+    "message": "Imported 1 phrase."
+  },
+  "importedPhrasesMany": {
+    "message": "Imported $1 phrases."
+  },
+  "importedPhrasesSkippedOne": {
+    "message": "Imported 1 phrase ($2 skipped)."
+  },
+  "importedPhrasesSkippedMany": {
+    "message": "Imported $1 phrases ($2 skipped)."
+  },
+  "importedSummary": {
+    "message": "Imported $1."
+  },
+  "importedSummarySkipped": {
+    "message": "Imported $1 ($2 skipped)."
+  },
+  "importedNothing": {
+    "message": "No new entries imported."
+  },
+  "importedNothingSkipped": {
+    "message": "No new entries imported ($1 skipped)."
+  },
+  "settingsPartAnd": {
+    "message": "and"
+  },
+  "settingsPartPhrasesOne": {
+    "message": "1 phrase"
+  },
+  "settingsPartPhrasesMany": {
+    "message": "$1 phrases"
+  },
+  "settingsPartWhitelistOne": {
+    "message": "1 whitelisted author"
+  },
+  "settingsPartWhitelistMany": {
+    "message": "$1 whitelisted authors"
+  },
+  "settingsPartExcludedOne": {
+    "message": "1 exclusion"
+  },
+  "settingsPartExcludedMany": {
+    "message": "$1 exclusions"
+  },
+  "settingsPartLangsOne": {
+    "message": "1 language"
+  },
+  "settingsPartLangsMany": {
+    "message": "$1 languages"
+  },
+  "settingsPartBlockedAuthorsOne": {
+    "message": "1 blocked author"
+  },
+  "settingsPartBlockedAuthorsMany": {
+    "message": "$1 blocked authors"
+  },
+  "settingsPartAllowOne": {
+    "message": "1 never-hide phrase"
+  },
+  "settingsPartAllowMany": {
+    "message": "$1 never-hide phrases"
+  },
+  "patternCountOne": {
+    "message": "1 pattern"
+  },
+  "patternCountMany": {
+    "message": "$1 patterns"
+  },
+  "customPhraseStatusOne": {
+    "message": "$1 of $2 custom phrase active"
+  },
+  "customPhraseStatusMany": {
+    "message": "$1 of $2 custom phrases active"
+  },
+  "noPhrasesMatch": {
+    "message": "No phrases match \"$1\""
+  },
+  "languageToggleLabel": {
+    "message": "$1 detection language, currently $2"
+  },
+  "removeWhitelistedAuthorLabel": {
+    "message": "Remove whitelisted author $1"
+  },
+  "builtinPatternToggleLabel": {
+    "message": "Built-in pattern: $1"
+  },
+  "builtinPatternToggleHint": {
+    "message": "Turn this built-in pattern on or off without disabling its language"
+  },
+  "patternHitCountTitle": {
+    "message": "Lifetime blocks matched by this pattern: $1"
+  },
+  "patternTotalsLine": {
+    "message": "Custom phrases: $1 · Blocked authors: $2"
+  },
+  "phraseToggleLabel": {
+    "message": "Enable or disable phrase $1"
+  },
+  "modeToggleLabel": {
+    "message": "Change matching mode for $1, currently $2"
+  },
+  "editPhraseLabel": {
+    "message": "Edit phrase $1"
+  },
+  "deletePhraseLabel": {
+    "message": "Delete phrase $1"
+  },
+  "allowTitle": {
+    "message": "Never-hide Phrases"
+  },
+  "allowHint": {
+    "message": "Posts containing this text are never hidden — even if a pattern or custom phrase matches."
+  },
+  "allowPlaceholder": {
+    "message": "e.g. engagement bait"
+  },
+  "allowInputLabel": {
+    "message": "Add a never-hide phrase"
+  },
+  "allowAddLabel": {
+    "message": "Add never-hide phrase"
+  },
+  "allowAddedToast": {
+    "message": "Never hiding posts with: \"$1\""
+  },
+  "allowLimitToast": {
+    "message": "Never-hide phrase limit reached ($1)."
+  },
+  "allowConflictToast": {
+    "message": "\"$1\" is already a custom phrase — remove it there first."
+  },
+  "allowEmpty": {
+    "message": "No never-hide phrases yet."
+  },
+  "removeAllowPhraseLabel": {
+    "message": "Remove never-hide phrase $1"
+  },
+  "testerTitle": {
+    "message": "Would this be blocked?"
+  },
+  "testerPlaceholder": {
+    "message": "Paste a post's text to test it against your current rules"
+  },
+  "testerButton": {
+    "message": "Test"
+  },
+  "testerNoMatch": {
+    "message": "Would NOT be hidden — nothing matched."
+  },
+  "testerAllowed": {
+    "message": "Would NOT be hidden — allowed by: \"$1\""
+  },
+  "hideOnce": {
+    "message": "Hide this post"
+  },
+  "hiddenManually": {
+    "message": "Hidden at your request"
+  },
+  "popupLead": {
+    "message": "Your LinkedIn, on your terms."
+  },
+  "privacyPromise": {
+    "message": "Private by design. No tracking, no servers."
+  },
+  "quickControlsTitle": {
+    "message": "Quick controls"
+  },
+  "quickControlsSubtitle": {
+    "message": "Change your feed instantly"
+  },
+  "filteredStatCaption": {
+    "message": "Automatic matches only · never manual hides"
+  },
+  "popupHint": {
+    "message": "Hide individual posts directly from your LinkedIn feed."
+  },
+  "advancedSettings": {
+    "message": "Advanced feed settings"
+  }
 }
