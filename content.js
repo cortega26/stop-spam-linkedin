@@ -841,7 +841,8 @@
         : root.querySelectorAll(selector);
       for (const post of posts) {
         if (blockedPosts.has(post) || post.querySelector('[data-ss-control="hide-once"]')) continue;
-        const isLegacyPost = !!getPostKey(post);
+        const isLegacyPost = post.matches(AUTHOR_BLOCK_SELECTORS.join(",")) &&
+          !!getPostKey(post);
         const isModernFeedItem = post.matches('[data-testid="mainFeed"] [role="listitem"]') &&
           !!post.querySelector('[data-testid="expandable-text-box"]') &&
           !post.parentElement?.closest('[role="listitem"]');
@@ -870,7 +871,10 @@
           blockPost(post, null, { reason: "manual" });
         });
         menu.appendChild(button);
-        const authorId = getAuthorId(post);
+        /* The modern React listitem only has enough evidence for manual
+           post hiding, not for claiming a reliably attributed author.
+           Never risk muting the wrong person from a nested/reposted link. */
+        const authorId = isLegacyPost ? getAuthorId(post) : null;
         if (authorId) {
           const mute = document.createElement("button");
           mute.type = "button";

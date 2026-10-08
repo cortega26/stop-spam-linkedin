@@ -3121,6 +3121,7 @@ async function main() {
       feed.dataset.testid = "mainFeed";
       feed.innerHTML =
         '<div role="listitem" id="modern-feed-post">' +
+          '<div class="update-components-actor"><a href="/in/quoted-author/">Unverified author</a></div>' +
           '<div data-testid="expandable-text-box">A normal professional update</div>' +
         '</div>' +
         '<div role="listitem" id="modern-feed-nonpost">Navigation only</div>' +
@@ -3144,6 +3145,8 @@ async function main() {
     assert.equal(await reactFeedPage.locator("#modern-nested-comment [data-ss-control]").count(), 0);
     assert.equal(await reactFeedPage.locator("#outside-react-feed [data-ss-control]").count(), 0);
     await modernDisclosure.locator("summary").click();
+    assert.equal(await modernDisclosure.locator("button").count(), 1,
+      "unverified modern author provenance must never expose Mute");
     await modernDisclosure.getByRole("button", {name:/Hide this post|Ocultar esta publicación/}).click();
     await modernPost.waitFor({ state:"hidden", timeout:10000 });
     await reactFeedPage.locator('[data-ss-ph]').filter({
