@@ -3066,6 +3066,14 @@ async function main() {
     /* Product V2: one click mutes an ordinary author's existing posts.
        The persistent blocklist, not a temporary manual-hide signature,
        governs subsequently arriving feed items. */
+    await setSyncStorage(context, {
+      ss_enabled: true,
+      ss_hide_promoted: false,
+      ss_blocked_authors: [],
+      ss_whitelist: [],
+      ss_phrases: [],
+    });
+    await setLocalStorage(context, { ss_snooze_until: 0 });
     const mutePage = await context.newPage();
     await mutePage.goto("https://www.linkedin.com/feed/", { waitUntil: "domcontentloaded" });
     await mutePage.evaluate(() => {
