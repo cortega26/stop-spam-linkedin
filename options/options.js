@@ -579,10 +579,15 @@
   /* ── Starter Pack ──────────────────────────────────────────── */
 
   function handleStarterPack() {
+    /* Optional examples must express complete bait requests, never generic
+       subjects like Python, Claude, PDF or ChatGPT. Custom "exact" matching
+       means whole-phrase-with-boundaries inside a post, not whole-post only. */
     const defaults = [
-      "CLAUDE", "SKILL", "PROMPTS", "AI PROMPTS", "PDF",
-      "LINK IN BIO", "DM ME", "TEMPLATE", "COMMENT", "10x",
-      "SECRET", "FREE ACCESS", "GROWTH HACK", "CHATGPT", "BOT",
+      "comment below and I'll send",
+      "drop a comment and I'll DM",
+      "comment to receive my free",
+      "comenta para recibir mi plantilla",
+      "comenta y te mando el documento",
     ];
     const limit = Math.floor(chrome.storage.sync.QUOTA_BYTES_PER_ITEM * 0.95);
     let added = 0;
