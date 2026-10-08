@@ -331,6 +331,9 @@
           map.delete(oldest);
         }
       },
+      delete(key) {
+        return map.delete(key);
+      },
     };
   }
 

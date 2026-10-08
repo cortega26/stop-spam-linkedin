@@ -855,7 +855,7 @@
 
   function restoreCosmeticReason(reason) {
     for (const post of [...labelBlockedPosts]) {
-      if (cosmeticReasons.get(post) === reason) restorePost(post);
+      if (cosmeticReasons.get(post) === reason) restorePost(post, { explicit: false });
     }
   }
 
@@ -897,6 +897,12 @@
        shown comment stays shown across SPA node re-creation. */
     const postKey = getPostKey(post);
     const isPostTarget = !!postKey && post.hasAttribute("data-id");
+    /* An explicit manual Hide overrides Show exemptions, including the
+       post-key cooldown shared across recreated DOM nodes. */
+    if (info && info.reason === "manual") {
+      forceShow.delete(post);
+      if (postKey) cooldownStore.delete(postKey);
+    }
     if (postKey && cooldownStore.has(postKey)) return;
     if (processed.has(post) || forceShow.has(post)) return;
 
@@ -927,7 +933,8 @@
     /* Label hides are opt-in cosmetic filters: they must not touch the
        stats, the badge, or the popup's undo list. Everything else below
        (cooldown/forceShow/restore) still applies so Show/disable work. */
-    if (!isLabelBlock && !counted.has(post)) {
+    const countedAutomatically = !isLabelBlock && !counted.has(post);
+    if (countedAutomatically) {
       counted.add(post);
       blockedCount++;
       const key = getTodayKey();
@@ -978,8 +985,8 @@
       }
     }
 
-    /* First-run toast. */
-    if (!onboarded) showFirstRunToast();
+    /* Cosmetic/manual hides are not automatic detections. */
+    if (!onboarded && countedAutomatically) showFirstRunToast();
 
     const placeholder = document.createElement("div");
     placeholder.dataset.ssPh = "1";
@@ -1594,13 +1601,18 @@
     return m ? m[1] : null;
   }
 
-  function restorePost(post) {
-    forceShow.add(post);
+  function restorePost(post, { explicit = true } = {}) {
     processed.delete(post);
-    /* Same parent-post fallback as blockPost (plan 059): a comment
-       element has no data-id, so its cooldown rides on the parent post. */
-    const postKey = getPostKey(post);
-    if (postKey) cooldownStore.set(postKey);
+    /* Explicit Show creates a cooldown; switching a category off must not,
+       otherwise switching it back on leaves matching content visible. */
+    if (explicit) {
+      forceShow.add(post);
+      /* Comment targets inherit the parent post key (plan 059). */
+      const postKey = getPostKey(post);
+      if (postKey) cooldownStore.set(postKey);
+    } else {
+      forceShow.delete(post);
+    }
     post.style.display = "";
     const ph = post.nextElementSibling;
     if (ph && ph.dataset && ph.dataset.ssPh) ph.remove();
