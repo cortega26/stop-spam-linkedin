@@ -87,7 +87,9 @@ async function main() {
     }).getByRole("button", { name: /Show|Mostrar/ }).click();
     await ordinaryPost.waitFor({ state: "visible", timeout: 10000 });
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
-    /* Repeated manual Hide after Show must override the 15-minute cooldown. */
+    /* Repeated manual Hide after Show must override the 15-minute cooldown.
+       Disclosure intentionally closes after a successful Hide. */
+    await ordinaryActions.locator("summary").click();
     await hideOnce.click();
     await ordinaryPost.waitFor({ state: "hidden", timeout: 10000 });
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
@@ -3252,6 +3254,7 @@ async function main() {
     const firstRunPage = await context.newPage();
     await firstRunPage.goto("https://www.linkedin.com/feed/", { waitUntil: "domcontentloaded" });
     const firstRunClean = firstRunPage.locator('[data-id="urn:li:activity:clean-1"]');
+    await firstRunClean.locator('details[data-ss-control="hide-once"] summary').click();
     const firstRunHide = firstRunClean.locator('[data-ss-control="hide-once"] button').first();
     await firstRunHide.waitFor({ state: "visible", timeout: 10000 });
     const beforeManual = await getLocalStorage(context, "ss_blocked_count");
