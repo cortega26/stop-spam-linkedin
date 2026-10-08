@@ -1,5 +1,16 @@
 # Release Notes
 
+## 2.0.0 — Your feed, your rules
+
+A new product experience: **LinkedIn Feed Control** (formerly LinkedIn Spam Blocker). This release shifts from one narrow engagement-bait pattern to everyday, reversible feed control while preserving all existing user preferences.
+
+- **Hide any recognized feed post** directly, even when it is not spam; manual hides don't count as automatically detected spam.
+- **Mute an author from an ordinary post**, using the existing persistent author blocklist and a reversible placeholder.
+- **Promoted-post switch in the popup** with immediate application and selective restoration when turned off.
+- **New popup, settings and messaging**: clearer primary actions, responsive/dark-mode presentation, keyboard focus, personalized EN/ES copy and original visual direction.
+- **Legacy Starter Pack protection**: narrowed optional examples and an explicit review/disable control for potentially broad rules already installed. Nothing is silently deleted.
+- **No new permissions, telemetry, backend or network calls.** Existing custom phrases, exclusions, author lists, import/export, snooze and five detection languages remain available.
+
 ## 1.6.0
 
 Easier missed-spam reporting, in-extension release notes, and accessibility improvements. Key changes:
