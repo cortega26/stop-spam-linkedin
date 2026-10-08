@@ -9,7 +9,7 @@ keys).
 ## Project
 
 LinkedIn Spam Blocker is a vanilla-JavaScript Manifest V3 browser
-extension (Chrome + Firefox) that hides LinkedIn engagement-bait posts
+extension (Chrome + Firefox) that filters LinkedIn engagement-bait posts and supplies manual per-post/author feed controls
 ("comment CLAUDE and I'll send you the framework"). It has zero runtime
 dependencies, makes no network requests of any kind (permissions are
 `storage` + `contextMenus` only), and is source-available proprietary —
@@ -84,6 +84,16 @@ the test suite that covers the change.
   relay is `chrome.runtime.sendMessage({ action: "updateBadge", text })`
   handled in `background.js`; message listeners verify
   `sender.id === chrome.runtime.id`.
+
+### Feed Control V2 implementation notes
+
+- `scanForManualControls` attaches bounded controls to recognized feed-post containers only, on /feed/ and /posts/ routes. It does not enumerate general articles, search results or job cards.
+- **Hide this post** uses `blockPost(...,{reason:"manual"})`: manual hides are cosmetic and **must never increment** automatic spam counters or undo-window statistics; they stay reversible with Show/Show all.
+- **Mute this author** uses the existing persisted `ss_blocked_authors` list and removes that ID from the allowlist if present; the user's explicit last action wins.
+- `cosmeticReasons` tracks manual/promoted/featured hides so turning off one category never restores another. Restoring any hide must also clean up bookkeeping.
+- Popup `quickHidePromoted` writes to the existing option key, not a second state store. Any store error should reverse the UI toggle.
+- V2 ships EN+ES interface labels; FR/PT/DE continue to be *detection languages only*. Marketing illustration `assets/feed-control-promo.svg` is original SVG, **not** a mock screenshot to submit as a real UI capture.
+- The former generic-word Starter Pack could hide legitimate discussions; optional examples must use complete request phrases with narrow false-positive likelihood.
 
 ## Conventions checklist
 

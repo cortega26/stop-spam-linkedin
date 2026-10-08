@@ -31,6 +31,10 @@ Feed Control lets you hide any post with one click, mute authors you no longer w
 
 **What it deliberately doesn't promise:** We cannot change LinkedIn's recommendations server-side, recover posts LinkedIn never delivered, or reliably detect whether text was authored by AI. This is a selective local feed-control utility, not an alternative recommendation algorithm.
 
+![Illustration of the Feed Control experience](assets/feed-control-promo.svg)
+
+*Original promotional illustration. The functional screenshots below show the extension; this artwork does not claim to be a browser screenshot.*
+
 ## At a Glance
 
 - **Private by design** — no analytics, telemetry, remote blocklists, AI APIs, or network requests of any kind

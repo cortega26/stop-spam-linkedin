@@ -556,5 +556,14 @@
   },
   "muteAuthorInline": {
     "message": "Mute this author"
+  },
+  "localOnlyBadge": {
+    "message": "LOCAL ONLY"
+  },
+  "optionsEyebrow": {
+    "message": "PERSONAL FEED CONTROLS"
+  },
+  "settingsSectionsLabel": {
+    "message": "Settings sections"
   }
 }
