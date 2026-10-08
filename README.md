@@ -1,39 +1,44 @@
 # LinkedIn Feed Control
 
-**Make LinkedIn worth opening again.** Fewer distractions, more control, no trackers.
+## LinkedIn, without the feed you didn't ask for.
 
-*The next evolution of LinkedIn Spam Blocker, part of the [Tooltician ecosystem](https://tooltician.com). The existing Chrome/Firefox listing names remain in place until a reviewed store release.*
+LinkedIn is useful for finding opportunities and maintaining professional relationships. The endless stream of distractions is optional. **Hide unwanted posts, mute authors, and filter promoted content—privately, with reversible controls.**
 
-[![Part of Tooltician](https://img.shields.io/badge/Part_of-Tooltician.com-6C47FF?v=2)](https://tooltician.com)
+**[Chrome Web Store](https://chromewebstore.google.com/detail/linkedin-spam-blocker/eolknfnafdodmaaajdiidaanpjbfolfc) · [Firefox Add-ons](https://addons.mozilla.org/addon/linkedin-spam-blocker/) · [Latest source](https://github.com/cortega26/stop-spam-linkedin)**
+
+> **Current availability:** the browser stores still publish **1.6.0**, focused on engagement-bait blocking. Feed Control 2.0 is available in source, and the new first-run experience/contextual controls are under review. These aren't claims about what the old store packages already ship. This notice must be updated alongside the store release.
+
+![Original Feed Control product illustration (not a browser screenshot)](assets/feed-control-promo.svg)
+
+*Original product illustration, not an image of real LinkedIn posts. Genuine screenshots of the next release are an acceptance requirement.*
+
+### Make your feed yours, in under a minute
+
+| Instead of... | Do this |
+| --- | --- |
+| A distracting post | Open **Feed options → Hide this post**; **Show** restores it |
+| The same repetitive author | Open **Feed options → Mute this author** on a recognized post |
+| Paid posts | Enable **Hide promoted posts** and undo it whenever you choose |
+| Comment-for-file engagement bait | Let five-language local rules filter it automatically |
+| An incorrect hide | Choose **Show**, **Not spam**, or protect the author or phrase |
+
+**No new account. No telemetry. No remote AI processing.** Detection takes place in your browser. Saved rules and author IDs stay in extension storage and may be synchronized by your browser, according to its settings.
+
+**How it starts:** Install → open LinkedIn → use the small **Feed options** menu on a recognized post → Hide or Mute. Optional promoted filtering is one clear choice during first-run setup. Advanced rules stay out of your way until you need them.
+
+**Limits:** This does not alter LinkedIn's recommendations on its servers or retrieve posts it never delivers. **Suggested-post and connection-activity filtering have not shipped**; those features require evidence against LinkedIn's real changing DOM, not speculative text matching.
+
+<details>
+<summary>Version, browsers and project details</summary>
+
 [![CI](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml/badge.svg)](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/cortega26/stop-spam-linkedin?label=release)](https://github.com/cortega26/stop-spam-linkedin/releases)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-2ea44f)](manifest.json)
-[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/eolknfnafdodmaaajdiidaanpjbfolfc?label=Chrome%20Web%20Store&logo=googlechrome&logoColor=white&color=4285F4)](https://chromewebstore.google.com/detail/linkedin-spam-blocker/eolknfnafdodmaaajdiidaanpjbfolfc)
-[![Firefox Add-ons](https://img.shields.io/amo/v/linkedin-spam-blocker?label=Firefox%20Add-ons&logo=firefoxbrowser&logoColor=white&color=FF7139)](https://addons.mozilla.org/addon/linkedin-spam-blocker/)
-[![Local only](https://img.shields.io/badge/privacy-local--only-0a7f64)](PRIVACY_POLICY.md)
-[![No telemetry](https://img.shields.io/badge/telemetry-none-0a7f64)](PRIVACY_POLICY.md)
-[![License](https://img.shields.io/badge/license-source--available-lightgrey)](LICENSE)
+[![Source available](https://img.shields.io/badge/license-source--available-lightgrey)](LICENSE)
 
+Part of the [Tooltician](https://tooltician.com) ecosystem. Read in English · [Español](docs/README.es.md) · [Français](docs/README.fr.md) · [Português](docs/README.pt.md) · [Deutsch](docs/README.de.md). Interface: English and Spanish; built-in spam detection: five languages.
 
-**Read this in:** **English** | [Español](docs/README.es.md) | [Français](docs/README.fr.md) | [Português](docs/README.pt.md) | [Deutsch](docs/README.de.md)
-
-LinkedIn can choose what to recommend. **You should get the final say about what stays on your screen.**
-
-Feed Control lets you hide any post with one click, mute authors you no longer want in your feed, hide promoted posts, and keep the familiar engagement-bait blocking in five languages. Every hide is local and reversible. There is no account to create, no AI guesswork, no external API, and no data sent to the developer.
-
-### What's new in the redesign
-
-- **Hide any post.** A discreet control appears on recognized feed posts, not just posts already flagged as spam. Choose **Show** to restore it.
-- **Mute an author in place.** Stop seeing recognized authors directly from ordinary feed posts. The existing author blocklist persists across sessions.
-- **Make changes that actually take effect.** The popup offers an immediate promoted-post toggle. Switching the filter off reveals posts it hid, without undoing other hide reasons.
-- **Make it yours.** Keep custom phrases, author allowlists, protected phrases, safe import/export, per-rule statistics, and multilingual detection.
-- **Keep your privacy.** Everything operates within LinkedIn pages in your browser. No telemetry, tracking, remote blocklist, or new host permissions.
-
-**What it deliberately doesn't promise:** We cannot change LinkedIn's recommendations server-side, recover posts LinkedIn never delivered, or reliably detect whether text was authored by AI. This is a selective local feed-control utility, not an alternative recommendation algorithm.
-
-![Illustration of the Feed Control experience](assets/feed-control-promo.svg)
-
-*Original promotional illustration. The functional screenshots below show the extension; this artwork does not claim to be a browser screenshot.*
+</details>
 
 ## At a Glance
 
@@ -108,7 +113,7 @@ Detection is heuristic, not magic. It can miss new spam formats, and it can occa
 
 ## How To Use
 
-For the fastest setup, install the extension and use LinkedIn normally. A discreet **Hide this post** and, when an author can be identified, **Mute this author** control is available on recognized feed posts. You don't need to configure patterns first.
+For the fastest setup, install the extension and use LinkedIn normally. The discreet **Feed options** menu on recognized posts contains **Hide this post** and, where an author is identifiable, **Mute this author**. No pattern configuration is needed first.
 
 1. Install the extension.
 2. Open LinkedIn and scroll normally.
@@ -145,17 +150,13 @@ The latest packaged zip is attached to the [GitHub release](https://github.com/c
 
 ## Screenshots
 
-### Feed Blocking
+The pictures below are **real captures from an earlier packaged release**. They are retained for historical reference, not passed off as screenshots of this unreleased UX. Current-version, sanitized Chrome and Firefox captures will replace them after real-site acceptance.
 
-![Feed blocking screenshot](screenshots/screenshot-1-feed.png)
+| Previous feed view | Previous settings view |
+| --- | --- |
+| ![Earlier release: LinkedIn feed filtering](screenshots/screenshot-1-feed.png) | ![Earlier release: settings](screenshots/screenshot-2-settings.png) |
 
-### Settings
-
-![Settings screenshot](screenshots/screenshot-2-settings.png)
-
-### Popup
-
-![Popup screenshot](screenshots/screenshot-3-popup-1280x800.png)
+![Earlier release popup, pending accurate recapture](screenshots/screenshot-3-popup-1280x800.png)
 
 ## Development
 
