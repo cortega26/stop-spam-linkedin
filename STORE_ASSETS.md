@@ -67,7 +67,7 @@ La extensión no modifica los servidores ni el algoritmo de LinkedIn. Solo contr
 ## Screenshots
 
 ### Screenshot 1 — Feed with blocked post (screenshots/screenshot-1-feed.png)
-Show the LinkedIn feed with a spam post replaced by the "Blocked by LinkedIn Spam Blocker" placeholder and "Show" button. A second visible post remains untouched to show contrast.
+Show the LinkedIn feed with a spam post replaced by the "Hidden by Feed Control" placeholder and "Show" button. A second visible post remains untouched to show contrast.
 
 ### Screenshot 2 — Popup (screenshots/screenshot-3-popup-1280x800.png)
 The extension popup showing the enabled toggle, blocked count (e.g., "17"), snooze button, and "Manage matching phrases" link.

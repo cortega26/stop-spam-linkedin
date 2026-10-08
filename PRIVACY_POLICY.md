@@ -19,7 +19,7 @@ Synced lists are capped to avoid browser sync quota issues during long-term use.
 Your blocked count, daily stats, per-pattern statistics, snooze state, onboarding flag, and dismissed release-notes state are stored in your browser's `chrome.storage.local`. This runtime data remains on the local browser profile and is not synced by the extension.
 
 ### `contextMenus`
-The extension adds two right-click menu items. "Add to LinkedIn Spam Blocker" reads the text you selected and saves it as a blocking phrase only when you choose that menu action. "Block this author" (shown on LinkedIn profile, company, school, and showcase links) reads the link URL to identify the author and saves their ID to your blocklist only when you choose that menu action. This data is stored in your browser's `chrome.storage.sync`. No selection or link data is ever transmitted externally.
+The extension adds two right-click menu items. "Add to Feed Control" reads the text you selected and saves it as a blocking phrase only when you choose that menu action. "Block this author" (shown on LinkedIn profile, company, school, and showcase links) reads the link URL to identify the author and saves their ID to your blocklist only when you choose that menu action. This data is stored in your browser's `chrome.storage.sync`. No selection or link data is ever transmitted externally.
 
 ### LinkedIn pages (`*.linkedin.com/*`)
 The content script scans recognized LinkedIn content locally to evaluate user-selected and built-in filters, adds in-feed Hide/Mute buttons to recognized posts, and hides matching or manually selected content. It uses author-link IDs only to apply author preferences. It does not transmit page content, profile information, or activity to the developer.

@@ -99,10 +99,10 @@
     "message": "Couldn't copy — please copy the post text manually"
   },
   "blockedToast": {
-    "message": "LinkedIn Spam Blocker blocked $1 post(s) on this page."
+    "message": "Feed Control filtered $1 post(s) on this page."
   },
   "contextMenuTitle": {
-    "message": "Add \"%s\" to LinkedIn Spam Blocker"
+    "message": "Add \"%s\" to Feed Control"
   },
   "blockAuthorMenu": {
     "message": "Block this author"

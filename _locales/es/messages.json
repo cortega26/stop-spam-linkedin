@@ -99,10 +99,10 @@
     "message": "No se pudo copiar — copia el texto de la publicación manualmente"
   },
   "blockedToast": {
-    "message": "LinkedIn Spam Blocker bloqueó $1 post(s) en esta página."
+    "message": "Feed Control filtró $1 publicación(es) en esta página."
   },
   "contextMenuTitle": {
-    "message": "Añadir \"%s\" al bloqueador de LinkedIn"
+    "message": "Añadir \"%s\" a Feed Control"
   },
   "blockAuthorMenu": {
     "message": "Bloquear a este autor"
