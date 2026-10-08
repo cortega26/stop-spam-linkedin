@@ -553,5 +553,8 @@
   },
   "advancedSettings": {
     "message": "Configuración avanzada del feed"
+  },
+  "muteAuthorInline": {
+    "message": "Silenciar a este autor"
   }
 }
