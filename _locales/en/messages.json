@@ -577,5 +577,8 @@
   },
   "riskyRuleDone": {
     "message": "Broad rules paused. You can enable them individually at any time."
+  },
+  "feedActions": {
+    "message": "Feed options"
   }
 }

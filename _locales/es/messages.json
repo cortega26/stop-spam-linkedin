@@ -577,5 +577,8 @@
   },
   "riskyRuleDone": {
     "message": "Reglas amplias pausadas. Puedes reactivarlas individualmente."
+  },
+  "feedActions": {
+    "message": "Opciones del feed"
   }
 }

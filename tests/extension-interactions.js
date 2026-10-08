@@ -58,6 +58,23 @@ async function main() {
     /* Product V2: manual hiding of a legitimate post is reversible and
        does not inflate automatic-detection statistics. */
     const ordinaryPost = linkedInPage.locator('[data-id="urn:li:activity:clean-1"]');
+    const ordinaryActions = ordinaryPost.locator('details[data-ss-control="hide-once"]');
+    await ordinaryActions.locator("summary").waitFor({ state: "visible", timeout: 10000 });
+    assert.equal(await ordinaryActions.locator(".ss-feed-action-menu").isVisible(), false,
+      "action menu stays closed until explicitly requested");
+    await ordinaryActions.locator("summary").click();
+    /* The disclosure can be dismissed with Escape and outside click;
+       direct feed controls are never persistently covering the post. */
+    await ordinaryActions.locator("summary").click();
+    await ordinaryActions.locator("summary").focus();
+    await linkedInPage.keyboard.press("Escape");
+    assert.equal(await ordinaryActions.getAttribute("open"), null,
+      "Escape must close the action disclosure");
+    await ordinaryActions.locator("summary").click();
+    await linkedInPage.locator("main").click({ position: { x: 2, y: 2 } });
+    assert.equal(await ordinaryActions.getAttribute("open"), null,
+      "clicking outside must close the action disclosure");
+    await ordinaryActions.locator("summary").click();
     const hideOnce = ordinaryPost.locator('[data-ss-control="hide-once"] button').first();
     await hideOnce.waitFor({ state: "visible", timeout: 10000 });
     await hideOnce.click();
@@ -3096,6 +3113,8 @@ async function main() {
       }
     });
     const muteCard = mutePage.locator('[data-id="urn:li:activity:mute-smoke-a"]');
+    const muteDetails = muteCard.locator('details[data-ss-control="hide-once"]');
+    await muteDetails.locator("summary").click();
     const muteAction = muteCard.locator('[data-ss-control="hide-once"] button', { hasText: /Mute|Silenciar/ });
     await muteAction.waitFor({ state: "visible", timeout: 10000 });
     await muteAction.click();
