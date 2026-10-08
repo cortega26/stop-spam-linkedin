@@ -508,6 +508,15 @@
       }
     }
 
+    .risk-card {border:1px solid #e4b35b;background:#fff9ef;}
+    .risk-description {color:#775422;line-height:1.55;padding:9px 0 12px;font-size:13px;}
+    .risk-card button {background:#fff;border:1px solid #d3a454;color:#694713;font-weight:700;}
+    @media(prefers-color-scheme:dark) {
+      .risk-card{background:#362b1d;border-color:#977540;}
+      .risk-description{color:#f1d6a5}
+      .risk-card button{background:#423623;border-color:#977540;color:#ffe0a7}
+    }
+
     /* Feed Control design system: dense information, calm hierarchy, discoverability. */
     :root {--text:#14243a;--text-secondary:#60738b;--text-tertiary:#74859d;--text-inverse:#fff;
       --bg:#f5f7fb;--bg-secondary:#fff;--bg-hover:#f0f5fc;--bg-active:#e7eef8;--border:#d9e3f0;
@@ -617,6 +626,14 @@
     <div class="welcome-body">__MSG_whatsNewPoint__</div>
     <button class="action-bar-button" id="whatsNewDismissBtn">__MSG_whatsNewDismiss__</button>
   </div>
+
+  <!-- Existing-install safety: review but never silently delete older broad rules. -->
+  <section class="lang-section risk-card" id="riskyRuleCard" style="display:none"
+    role="region" aria-label="__MSG_riskyRuleTitle__">
+    <div class="lang-section-title">__MSG_riskyRuleTitle__</div>
+    <p id="riskyRuleDetails" class="risk-description"></p>
+    <button type="button" id="pauseRiskyRulesBtn" class="action-bar-button">__MSG_riskyRuleAction__</button>
+  </section>
 
   <!-- Add -->
   <div class="add-row">

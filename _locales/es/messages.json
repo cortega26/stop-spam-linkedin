@@ -565,5 +565,17 @@
   },
   "settingsSectionsLabel": {
     "message": "Secciones de configuración"
+  },
+  "riskyRuleTitle": {
+    "message": "Revisa las reglas de filtrado demasiado amplias"
+  },
+  "riskyRuleBody": {
+    "message": "Tienes $1 reglas cortas activas que pueden ocultar conversaciones legítimas:"
+  },
+  "riskyRuleAction": {
+    "message": "Pausar estas reglas (sin borrarlas)"
+  },
+  "riskyRuleDone": {
+    "message": "Reglas amplias pausadas. Puedes reactivarlas individualmente."
   }
 }

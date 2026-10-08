@@ -565,5 +565,17 @@
   },
   "settingsSectionsLabel": {
     "message": "Settings sections"
+  },
+  "riskyRuleTitle": {
+    "message": "Review overly broad filtering rules"
+  },
+  "riskyRuleBody": {
+    "message": "You have $1 active short rules that may hide legitimate conversations:"
+  },
+  "riskyRuleAction": {
+    "message": "Pause these rules (keep them saved)"
+  },
+  "riskyRuleDone": {
+    "message": "Broad rules paused. You can enable them individually at any time."
   }
 }

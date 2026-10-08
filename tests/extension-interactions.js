@@ -3145,6 +3145,31 @@ async function main() {
     }
     await visualPage.close();
 
+    /* Legacy starter-pack safety: never modify saved rules without an
+       explicit user action. Pausing keeps the entries and clears enabled. */
+    await setSyncStorage(context, { ss_phrases: [
+      { id:"legacy-a", text:"CLAUDE", enabled:true, mode:"exact" },
+      { id:"legacy-b", text:"PDF", enabled:true, mode:"exact" },
+      { id:"legit-a", text:"a carefully chosen very specific phrase", enabled:true, mode:"exact" },
+    ] });
+    const riskPage = await context.newPage();
+    await riskPage.goto(
+      `chrome-extension://${await getExtensionId(context)}/options/options.html`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await riskPage.locator("#riskyRuleCard").waitFor({ state:"visible", timeout:10000 });
+    let beforeRisk = await getSyncStorage(context, "ss_phrases");
+    assert.equal(beforeRisk.filter(x => x.enabled).length, 3,
+      "risk warning must not silently disable user rules");
+    await riskPage.locator("#pauseRiskyRulesBtn").click();
+    await waitForSyncValue(context, "ss_phrases", (xs) =>
+      Array.isArray(xs) && xs.length === 3 && xs.filter(x => x.enabled).length === 1
+    );
+    const afterRisk = await getSyncStorage(context, "ss_phrases");
+    assert.equal(afterRisk.find(x => x.id === "legit-a").enabled, true,
+      "non-starter phrase must remain enabled");
+    await riskPage.close();
+
     console.log("Extension interactions test passed.");
   } finally {
     await context.close();
