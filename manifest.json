@@ -1,33 +1,32 @@
 {
   "manifest_version": 3,
-  "name": "LinkedIn Spam Blocker",
-  "version": "1.6.0",
-  "description": "Blocks LinkedIn engagement-bait spam that asks you to \"Comment X and I will send...\"",
+  "name": "LinkedIn Feed Control",
+  "version": "2.0.0",
+  "description": "Control your LinkedIn feed: hide unwanted posts, mute authors and filter promotions and engagement bait, privately in your browser.",
   "default_locale": "en",
-
   "icons": {
     "16": "icons/icon-16.png",
     "32": "icons/icon-32.png",
     "48": "icons/icon-48.png",
     "128": "icons/icon-128.png"
   },
-
-  "permissions": ["storage", "contextMenus"],
-
+  "permissions": [
+    "storage",
+    "contextMenus"
+  ],
   "content_security_policy": {
     "extension_pages": "script-src 'self'; object-src 'self'"
   },
-
   "background": {
-    "scripts": ["background.js"],
+    "scripts": [
+      "background.js"
+    ],
     "service_worker": "background.js"
   },
-
   "options_ui": {
     "page": "options/options.html",
     "open_in_tab": true
   },
-
   "content_scripts": [
     {
       "matches": [
@@ -45,14 +44,18 @@
         "https://www.linkedin.com/newsletters/*",
         "https://www.linkedin.com/pulse/*"
       ],
-      "js": ["shared/constants.js", "shared/pattern-data.js", "shared/post-container.js", "content.js"],
+      "js": [
+        "shared/constants.js",
+        "shared/pattern-data.js",
+        "shared/post-container.js",
+        "content.js"
+      ],
       "run_at": "document_idle"
     }
   ],
-
   "action": {
     "default_popup": "popup/popup.html",
-    "default_title": "LinkedIn Spam Blocker",
+    "default_title": "LinkedIn Feed Control",
     "default_icon": {
       "16": "icons/icon-16.png",
       "32": "icons/icon-32.png",
@@ -60,11 +63,12 @@
       "128": "icons/icon-128.png"
     }
   },
-
   "browser_specific_settings": {
     "gecko": {
       "data_collection_permissions": {
-        "required": ["none"]
+        "required": [
+          "none"
+        ]
       },
       "id": "linkedin-spam-blocker@carlos",
       "strict_min_version": "142.0"

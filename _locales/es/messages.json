@@ -57,16 +57,16 @@
     "message": "Deshacer"
   },
   "blockedBy": {
-    "message": "Bloqueado por LinkedIn Spam Blocker"
+    "message": "Oculta por Feed Control"
   },
   "blockedByAuthor": {
-    "message": "Bloqueado: has bloqueado a este autor"
+    "message": "Oculta — autor silenciado"
   },
   "blockedPromoted": {
-    "message": "Bloqueado — publicación promocionada"
+    "message": "Oculta — publicación promocionada"
   },
   "blockedFeatured": {
-    "message": "Bloqueado — sección Destacados"
+    "message": "Oculta — sección Destacados"
   },
   "unblockAuthor": {
     "message": "Desbloquear a este autor"
@@ -153,10 +153,10 @@
     "message": "Novedades de esta versión"
   },
   "whatsNewIntro": {
-    "message": "Esta actualización mejora el reporte, los avisos y las notas de versión. Destacados:"
+    "message": "Feed Control ahora te da control directo sobre tu feed. Destacados:"
   },
   "whatsNewPoint": {
-    "message": "Reporta spam no detectado desde cualquier texto seleccionado, ponte al día con las notas de versión dentro de la extensión y mejores anuncios para lectores de pantalla. Nada sale de tu navegador, como siempre."
+    "message": "Oculta publicaciones con un clic, silencia autores desde el feed, controla promociones y revisa reglas antiguas demasiado amplias. Todo sigue siendo local y reversible."
   },
   "whatsNewDismiss": {
     "message": "Entendido"

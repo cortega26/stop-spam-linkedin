@@ -57,16 +57,16 @@
     "message": "Undo"
   },
   "blockedBy": {
-    "message": "Blocked by LinkedIn Spam Blocker"
+    "message": "Hidden by Feed Control"
   },
   "blockedByAuthor": {
-    "message": "Blocked — you've blocked this author"
+    "message": "Hidden — muted author"
   },
   "blockedPromoted": {
-    "message": "Blocked — promoted post"
+    "message": "Hidden — promoted post"
   },
   "blockedFeatured": {
-    "message": "Blocked — Featured section"
+    "message": "Hidden — Featured section"
   },
   "unblockAuthor": {
     "message": "Unblock this author"
@@ -153,10 +153,10 @@
     "message": "What's new in this version"
   },
   "whatsNewIntro": {
-    "message": "This update improves reporting, feedback, and release notes. Highlights:"
+    "message": "Feed Control is now a complete personal feed companion. Highlights:"
   },
   "whatsNewPoint": {
-    "message": "Report missed spam from any selected text, catch up with in-extension release notes after each update, and clearer announcements for screen readers. Nothing leaves your browser, as always."
+    "message": "Hide unwanted posts with one click, mute authors directly, toggle promoted content instantly, and review old broad rules. Everything remains local and reversible."
   },
   "whatsNewDismiss": {
     "message": "Got it"

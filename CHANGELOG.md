@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.0.0 — LinkedIn Feed Control
+
+### Product and experience
+- Repositioned the extension as personal local feed control; updated extension name, metadata and bilingual user-facing copy.
+- Rebuilt the popup and settings experience with improved hierarchy, responsive layouts, clearer actions, dark-mode styles and an original product illustration.
+- Added one-click **Hide this post** on known feed containers. Manual actions are reversible and excluded from automated detection counts.
+- Added **Mute this author** on regular posts with recognized author identity, reusing the stored blocklist and user undo controls.
+- Added a popup promoted-content switch; disabling the filter restores only posts hidden for that reason.
+- Replaced dangerous generic Starter Pack phrases with conservative complete phrases and added an opt-in safety control to pause previously installed broad phrases without deleting them.
+
+### Compatibility and quality
+- No new runtime network requests, dependencies or permissions.
+- Retained preferences, data-format compatibility, Chrome/Firefox support, existing rule identifiers and privacy guarantees.
+- Extended browser regression tests for manual hiding, author muting, cosmetic restoration, legacy-rule review and viewport overflow.
+
 ## 1.6.0 - Missed-Spam Reporting, What's New, Accessibility
 
 ### Features

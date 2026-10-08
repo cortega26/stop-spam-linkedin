@@ -1,10 +1,10 @@
-# Privacy Policy — LinkedIn Spam Blocker
+# Privacy Policy — LinkedIn Feed Control (formerly LinkedIn Spam Blocker)
 
-**Last updated:** 14 September 2026
+**Last updated:** 8 October 2026
 
 ## Data Collection
 
-LinkedIn Spam Blocker **does not collect, store, transmit, or share any personal data**. The extension operates entirely locally within your browser.
+LinkedIn Feed Control does not transmit your LinkedIn content or personal data to the developer, advertisers, or any backend. It operates locally in your browser. **Your explicitly saved preferences (including phrases and author IDs) are stored in browser extension storage**, which may be synced by your browser as described below.
 
 ## What the extension accesses
 
@@ -22,7 +22,7 @@ Your blocked count, daily stats, per-pattern statistics, snooze state, onboardin
 The extension adds two right-click menu items. "Add to LinkedIn Spam Blocker" reads the text you selected and saves it as a blocking phrase only when you choose that menu action. "Block this author" (shown on LinkedIn profile, company, school, and showcase links) reads the link URL to identify the author and saves their ID to your blocklist only when you choose that menu action. This data is stored in your browser's `chrome.storage.sync`. No selection or link data is ever transmitted externally.
 
 ### LinkedIn pages (`*.linkedin.com/*`)
-The content script runs on LinkedIn pages solely to scan post text for spam patterns and remove matching posts from the page. Page content, user data, and LinkedIn activity are not sent anywhere beyond your local browser.
+The content script scans recognized LinkedIn content locally to evaluate user-selected and built-in filters, adds in-feed Hide/Mute buttons to recognized posts, and hides matching or manually selected content. It uses author-link IDs only to apply author preferences. It does not transmit page content, profile information, or activity to the developer.
 
 ## Third-party services
 
