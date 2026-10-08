@@ -587,6 +587,63 @@
     }
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{transition:none!important;animation:none!important;}}
 
+
+    /* An immediate, consent-based first-run choice rather than a tutorial. */
+    .first-run { border-color:#b8d5fb; padding:0; overflow:hidden; background:#fff; }
+    .first-run-heading { padding:26px 27px 23px; color:#eaf4ff;
+      background:radial-gradient(circle at 92% 8%,#2666a4,transparent 46%),
+        linear-gradient(125deg,#101e36,#234a7f); }
+    .first-run-kicker { display:block; color:#a6dfff; font-size:11px; font-weight:800;
+      letter-spacing:1.6px; text-transform:uppercase; margin-bottom:9px; }
+    .first-run-heading h2 { color:#fff; font-size:24px; font-weight:800;
+      letter-spacing:-.6px; line-height:1.15; margin:0 0 10px; }
+    .first-run-heading p { font-size:13px; line-height:1.55; max-width:610px; color:#cadcf3; }
+    .first-run-choices { display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+      padding:21px 23px 13px; gap:13px; }
+    .first-run-choice { display:flex; align-items:flex-start; gap:12px; border:1px solid #dce6f2;
+      background:#f8fbff; border-radius:14px; padding:17px 14px; min-height:157px; }
+    .choice-mark { display:grid;place-items:center; width:29px; height:29px; flex:0 0 29px;
+      border-radius:10px; background:#e0f9ed; color:#117a56; font-weight:900; }
+    .choice-mark-alt { background:#e5efff; color:#1b62bf; }
+    .first-run-choice strong { display:block; font-size:14px; color:#1c3454; line-height:1.35; }
+    .first-run-choice p {font-size:12px; color:#657890; line-height:1.5; margin:7px 0 10px;}
+    .choice-state {display:inline-block;background:#dff5ed;color:#12654d;
+      font-size:10px;padding:5px 9px;border-radius:5px;font-weight:800;}
+    .first-run-opt-in {display:inline-flex; align-items:center; min-height:34px; color:#fff;
+      background:#145fc6; border:1px solid #145fc6; padding:7px 12px; border-radius:9px;
+      font-size:12px;font-weight:750; cursor:pointer;}
+    .first-run-opt-in:hover {background:#0d4c9e;}
+    .first-run-opt-in:disabled {color:#12654d;background:#dff5ed;border-color:#bce6d4;
+      cursor:default;opacity:1;}
+    .first-run-next { display:flex; align-items:center; flex-wrap:wrap; gap:11px;
+      padding:7px 23px 15px;}
+    .first-run-launch {display:inline-flex;align-items:center;gap:9px;padding:11px 16px;
+      border-radius:10px;background:#145fc6;color:#fff;text-decoration:none;font-weight:800;}
+    .first-run-launch:hover {color:#fff;background:#0d4c9e;}
+    .first-run-finish {padding:10px 14px;color:#58718e;background:transparent;
+      border:1px solid #dce6f2;border-radius:10px;cursor:pointer;font-weight:750;}
+    .first-run-finish:hover {color:#1c3454;background:#f1f6fd;}
+    .first-run-footnote {padding:0 23px 18px;color:#73849b;font-size:11px;}
+    .first-run-feedback {color:#1a6554;font-size:12px;padding:0 23px 14px;}
+    .first-run-feedback:empty {display:none;}
+    @media(max-width:650px) {
+      .first-run-heading {padding:22px 19px;}
+      .first-run-heading h2 {font-size:21px;}
+      .first-run-choices {grid-template-columns:1fr;padding:16px 15px 11px;}
+      .first-run-choice {min-height:auto;}
+      .first-run-next {padding:7px 15px 15px;}
+      .first-run-footnote,.first-run-feedback {padding-left:15px;padding-right:15px;}
+    }
+    @media(prefers-color-scheme:dark) {
+      .first-run {background:#1c2a40;}
+      .first-run-choice {background:#1e314b;border-color:#355477;}
+      .first-run-choice strong {color:#f0f7ff;}
+      .first-run-choice p,.first-run-footnote {color:#b8cce5;}
+      .first-run-finish {color:#d1e2f6;border-color:#3a5577;}
+      .first-run-finish:hover {background:#283c5a;color:#fff;}
+      .first-run-feedback {color:#9ae4bf;}
+    }
+
   </style>
 </head>
 <body>
@@ -609,15 +666,40 @@
   </nav>
 
   <!-- First-run welcome (plan 058) -->
-  <div class="lang-section" id="welcomeCard" style="display:none">
-    <div class="lang-section-title">__MSG_welcomeTitle__</div>
-    <div class="welcome-body">__MSG_welcomeIntro__</div>
-    <div class="welcome-body">__MSG_welcomeStepDetect__</div>
-    <div class="welcome-body">__MSG_welcomeStepTune__</div>
-    <div class="welcome-body">__MSG_welcomeStepRestore__</div>
-    <div class="welcome-body">__MSG_welcomeStepPrivacy__</div>
-    <button class="action-bar-button" id="welcomeDismissBtn">__MSG_welcomeDismiss__</button>
-  </div>
+  <section class="lang-section first-run" id="welcomeCard" style="display:none"
+    aria-labelledby="welcomeHeadline">
+    <div class="first-run-heading">
+      <span class="first-run-kicker">__MSG_firstRunKicker__</span>
+      <h2 id="welcomeHeadline">__MSG_firstRunHeadline__</h2>
+      <p>__MSG_firstRunIntro__</p>
+    </div>
+    <div class="first-run-choices">
+      <div class="first-run-choice">
+        <span class="choice-mark" aria-hidden="true">✓</span>
+        <div>
+          <strong>__MSG_firstRunBaitTitle__</strong>
+          <p>__MSG_firstRunBaitBody__</p>
+          <span class="choice-state">__MSG_firstRunAlreadyOn__</span>
+        </div>
+      </div>
+      <div class="first-run-choice">
+        <span class="choice-mark choice-mark-alt" aria-hidden="true">–</span>
+        <div>
+          <strong>__MSG_firstRunPromotedTitle__</strong>
+          <p>__MSG_firstRunPromotedBody__</p>
+          <button id="welcomeEnablePromotedBtn" type="button"
+            class="first-run-opt-in">__MSG_firstRunPromotedAction__</button>
+        </div>
+      </div>
+    </div>
+    <div class="first-run-next">
+      <a href="https://www.linkedin.com/feed/" target="_blank" rel="noopener noreferrer"
+        class="first-run-launch">__MSG_firstRunOpenFeed__ <span aria-hidden="true">↗</span></a>
+      <button type="button" class="first-run-finish" id="welcomeDismissBtn">__MSG_firstRunFinish__</button>
+    </div>
+    <p class="first-run-footnote">__MSG_firstRunFootnote__</p>
+    <div class="first-run-feedback" id="welcomeActionFeedback" role="status" aria-live="polite"></div>
+  </section>
 
   <!-- What's-new on update (plan 072) -->
   <div class="lang-section" id="whatsNewCard" style="display:none">

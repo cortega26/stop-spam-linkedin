@@ -72,6 +72,8 @@
   const testResult = document.getElementById("testResult");
   const welcomeCard = document.getElementById("welcomeCard");
   const welcomeDismissBtn = document.getElementById("welcomeDismissBtn");
+  const welcomeEnablePromotedBtn = /** @type {HTMLButtonElement} */ (document.getElementById("welcomeEnablePromotedBtn"));
+  const welcomeActionFeedback = document.getElementById("welcomeActionFeedback");
   const whatsNewCard = document.getElementById("whatsNewCard");
   const whatsNewDismissBtn = document.getElementById("whatsNewDismissBtn");
   const riskyRuleCard = document.getElementById("riskyRuleCard");
@@ -90,6 +92,21 @@
   loadWelcomeState();
   loadWhatsNewState();
   welcomeDismissBtn.addEventListener("click", dismissWelcome);
+  welcomeEnablePromotedBtn.addEventListener("click", () => {
+    if (welcomeEnablePromotedBtn.disabled) return;
+    welcomeEnablePromotedBtn.disabled = true;
+    chrome.storage.sync.set({ [STORAGE_KEYS.HIDE_PROMOTED]: true }, () => {
+      if (chrome.runtime.lastError) {
+        welcomeEnablePromotedBtn.disabled = false;
+        welcomeActionFeedback.textContent = SS_t("firstRunSaveFailed");
+        return;
+      }
+      hidePromoted = true;
+      hidePromotedCheckbox.checked = true;
+      welcomeEnablePromotedBtn.textContent = SS_t("firstRunPromotedEnabled");
+      welcomeActionFeedback.textContent = SS_t("firstRunEnabledConfirmation");
+    });
+  });
   whatsNewDismissBtn.addEventListener("click", dismissWhatsNew);
   addBtn.addEventListener("click", handleAdd);
   input.addEventListener("keydown", (e) => {
@@ -184,13 +201,23 @@
       (result) => {
       if (result[STORAGE_KEYS.WELCOME_PENDING] === true) {
         welcomeCard.style.display = "block";
+        chrome.storage.sync.get([STORAGE_KEYS.HIDE_PROMOTED], (settings) => {
+          if (chrome.runtime.lastError) return;
+          if (settings[STORAGE_KEYS.HIDE_PROMOTED] === true) {
+            welcomeEnablePromotedBtn.disabled = true;
+            welcomeEnablePromotedBtn.textContent = SS_t("firstRunPromotedEnabled");
+          }
+        });
       }
     });
   }
 
   function dismissWelcome() {
     welcomeCard.style.display = "none";
-    chrome.storage.local.set({ [STORAGE_KEYS.WELCOME_PENDING]: false }, () => {
+    chrome.storage.local.set({
+      [STORAGE_KEYS.WELCOME_PENDING]: false,
+      [STORAGE_KEYS.SEEN_RELEASE]: chrome.runtime.getManifest().version,
+    }, () => {
       if (chrome.runtime.lastError) {
         console.warn("Failed to clear welcome flag (local.set):", chrome.runtime.lastError.message);
       }
@@ -206,9 +233,10 @@
      DOM order). */
   function loadWhatsNewState() {
     const runningVersion = chrome.runtime.getManifest().version;
-    chrome.storage.local.get([STORAGE_KEYS.SEEN_RELEASE],
+    chrome.storage.local.get([STORAGE_KEYS.SEEN_RELEASE, STORAGE_KEYS.WELCOME_PENDING],
       /** @param {{ [key: string]: any }} result */
       (result) => {
+      if (result[STORAGE_KEYS.WELCOME_PENDING] === true) return;
       if (result[STORAGE_KEYS.SEEN_RELEASE] !== runningVersion) {
         whatsNewCard.style.display = "block";
       }

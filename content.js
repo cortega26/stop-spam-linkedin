@@ -46,6 +46,14 @@
     '[data-id*="urn:li:activity:"]',
     ".feed-shared-update-v2",
   ]);
+  /* A narrowly scoped best-effort compatibility fallback for manual
+     controls on LinkedIn's newer React feed. This is NOT used for automatic
+     text, author, Suggested or sponsored filtering: real DOM acceptance is
+     still required before broadening any automatic detection. */
+  const MANUAL_CONTROL_SELECTORS = Object.freeze([
+    ...AUTHOR_BLOCK_SELECTORS,
+    '[data-testid="mainFeed"] [role="listitem"]',
+  ]);
 
   const AUTHOR_LINK_SELECTORS = Object.freeze([
     ".update-components-actor a[href]",
@@ -134,21 +142,60 @@
 
   const manualStyle = document.createElement("style");
   manualStyle.textContent = `
-    .ss-feed-action { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:6px; padding:2px 14px 7px; }
-    .ss-feed-action-button { color:#53677b; background:transparent; border:1px solid transparent;
-      border-radius:20px; padding:5px 12px; font:500 12px/1.4 system-ui,sans-serif;
-      cursor:pointer; opacity:.65; transition:opacity .15s, background .15s; }
-    .ss-feed-action-button:hover, .ss-feed-action-button:focus-visible {
-      opacity:1; color:#0759a9; background:#eaf3fe; border-color:#bcdaf8; }
-    .ss-feed-action-button:focus-visible {outline:2px solid #0759a9; outline-offset:2px;}
+    /* One compact disclosure avoids adding two competing calls-to-action
+       under every post. Native <details> provides keyboard and touch support. */
+    details.ss-feed-action { display:block; position:relative; padding:2px 14px 6px;
+      font:500 12px/1.4 system-ui,sans-serif; color:#53677b; }
+    .ss-feed-action > summary { display:block; width:max-content; max-width:100%;
+      margin-left:auto; padding:5px 12px; list-style:none; border-radius:20px;
+      border:1px solid transparent; opacity:.48; cursor:pointer; user-select:none;
+      transition:opacity .15s, background .15s; }
+    .ss-feed-action > summary::-webkit-details-marker { display:none; }
+    .ss-feed-action > summary::before { content:"⋯"; font-size:17px; font-weight:700;
+      letter-spacing:2px; vertical-align:-1px; margin-right:6px; }
+    .ss-feed-action:hover > summary, .ss-feed-action:focus-within > summary,
+    .ss-feed-action[open] > summary { opacity:1; color:#0759a9; background:#eaf3fe; }
+    .ss-feed-action > summary:focus-visible, .ss-feed-action-button:focus-visible {
+      outline:2px solid #0759a9; outline-offset:2px; opacity:1; }
+    .ss-feed-action-menu { display:flex; flex-wrap:wrap; gap:7px; justify-content:flex-end;
+      padding:7px 0 2px; }
+    .ss-feed-action:not([open]) > .ss-feed-action-menu { display:none; }
+    .ss-feed-action-button { color:#17528c; background:#f0f6ff;
+      border:1px solid #d4e5fa; border-radius:8px; padding:7px 11px;
+      font:600 12px/1.4 system-ui,sans-serif; cursor:pointer; }
+    .ss-feed-action-button:hover { background:#e2efff; border-color:#89b9ef; }
+    @media (hover:none) { .ss-feed-action > summary {opacity:1;} }
     @media (prefers-color-scheme:dark) {
-      .ss-feed-action-button {color:#c2d0df;}
-      .ss-feed-action-button:hover,.ss-feed-action-button:focus-visible {
-        color:#e6f3ff; background:#26384b; border-color:#536d86; }
+      details.ss-feed-action {color:#b8cadf;}
+      .ss-feed-action:hover > summary, .ss-feed-action:focus-within > summary,
+      .ss-feed-action[open] > summary {color:#e3f1ff;background:#26384b;}
+      .ss-feed-action-button {color:#d8eaff;background:#26384b;border-color:#4c6884;}
+      .ss-feed-action-button:hover {background:#345576;}
     }
-    @media (prefers-reduced-motion: reduce) {.ss-feed-action-button {transition:none;}}
+    @media (prefers-reduced-motion:reduce) {.ss-feed-action > summary {transition:none;}}
   `;
   (document.head || document.documentElement).appendChild(manualStyle);
+
+  /* Event delegation: one pair of handlers, not one outside-click/escape
+     listener for each virtualized feed post. */
+  document.addEventListener("click", (event) => {
+    if (!(event.target instanceof Node)) return;
+    for (const control of /** @type {NodeListOf<HTMLDetailsElement>} */ (
+      document.querySelectorAll('details[data-ss-control="hide-once"][open]')
+    )) {
+      if (!control.contains(event.target)) control.open = false;
+    }
+  }, true);
+  document.addEventListener("keydown", (event) => {
+    if (event.key !== "Escape") return;
+    const control = /** @type {HTMLDetailsElement | null} */ (
+      document.querySelector('details[data-ss-control="hide-once"][open]')
+    );
+    if (!control) return;
+    control.open = false;
+    control.querySelector("summary")?.focus();
+    event.stopPropagation();
+  }, true);
 
 
   function migrateRuntimeStorage(syncResult, localResult) {
@@ -788,16 +835,29 @@
     if (!enabled || Date.now() < snoozeUntil) return;
     if (!/^\/(?:feed|posts)\//.test(window.location.pathname)) return;
     root = root || document.body;
-    for (const selector of AUTHOR_BLOCK_SELECTORS) {
+    for (const selector of MANUAL_CONTROL_SELECTORS) {
       const posts = root.matches?.(selector)
         ? [root, ...root.querySelectorAll(selector)]
         : root.querySelectorAll(selector);
       for (const post of posts) {
         if (blockedPosts.has(post) || post.querySelector('[data-ss-control="hide-once"]')) continue;
-        if (!getPostKey(post)) continue;
-        const wrapper = document.createElement("div");
+        const isLegacyPost = post.matches(AUTHOR_BLOCK_SELECTORS.join(",")) &&
+          !!getPostKey(post);
+        const isModernFeedItem = post.matches('[data-testid="mainFeed"] [role="listitem"]') &&
+          !!post.querySelector('[data-testid="expandable-text-box"]') &&
+          !post.parentElement?.closest('[role="listitem"]');
+        if (!isLegacyPost && !isModernFeedItem) continue;
+        const wrapper = document.createElement("details");
         wrapper.dataset.ssControl = "hide-once";
         wrapper.className = "ss-feed-action";
+        const summary = document.createElement("summary");
+        summary.textContent = SS_t("feedActions");
+        summary.addEventListener("click", (event) => event.stopPropagation());
+        wrapper.appendChild(summary);
+        const menu = document.createElement("div");
+        menu.className = "ss-feed-action-menu";
+        menu.setAttribute("role", "group");
+        menu.setAttribute("aria-label", SS_t("feedActions"));
         const button = document.createElement("button");
         button.type = "button";
         button.className = "ss-feed-action-button";
@@ -807,10 +867,14 @@
           event.preventDefault();
           event.stopPropagation();
           if (!enabled || Date.now() < snoozeUntil || blockedPosts.has(post)) return;
+          wrapper.open = false;
           blockPost(post, null, { reason: "manual" });
         });
-        wrapper.appendChild(button);
-        const authorId = getAuthorId(post);
+        menu.appendChild(button);
+        /* The modern React listitem only has enough evidence for manual
+           post hiding, not for claiming a reliably attributed author.
+           Never risk muting the wrong person from a nested/reposted link. */
+        const authorId = isLegacyPost ? getAuthorId(post) : null;
         if (authorId) {
           const mute = document.createElement("button");
           mute.type = "button";
@@ -842,8 +906,9 @@
               }
             });
           });
-          wrapper.appendChild(mute);
+          menu.appendChild(mute);
         }
+        wrapper.appendChild(menu);
         post.appendChild(wrapper);
       }
     }

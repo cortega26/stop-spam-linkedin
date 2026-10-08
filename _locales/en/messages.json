@@ -577,5 +577,53 @@
   },
   "riskyRuleDone": {
     "message": "Broad rules paused. You can enable them individually at any time."
+  },
+  "feedActions": {
+    "message": "Feed options"
+  },
+  "firstRunKicker": {
+    "message": "WELCOME TO YOUR QUIETER LINKEDIN"
+  },
+  "firstRunHeadline": {
+    "message": "Get back to what matters."
+  },
+  "firstRunIntro": {
+    "message": "Useful conversations stay. You choose what gets out of the way. Your first protection is already on."
+  },
+  "firstRunBaitTitle": {
+    "message": "Block obvious engagement bait"
+  },
+  "firstRunBaitBody": {
+    "message": "Posts asking you to comment a magic word are filtered automatically. You can refine every rule later."
+  },
+  "firstRunAlreadyOn": {
+    "message": "ALREADY ACTIVE"
+  },
+  "firstRunPromotedTitle": {
+    "message": "Hide promoted posts"
+  },
+  "firstRunPromotedBody": {
+    "message": "Optional. Hide recognized sponsored updates with one click. Turn it off any time."
+  },
+  "firstRunPromotedAction": {
+    "message": "Hide promotions"
+  },
+  "firstRunPromotedEnabled": {
+    "message": "Promotions hidden"
+  },
+  "firstRunEnabledConfirmation": {
+    "message": "Promoted-post filtering is on. It can be reversed from the extension popup."
+  },
+  "firstRunSaveFailed": {
+    "message": "Couldn't update this setting. Nothing has changed. Please retry."
+  },
+  "firstRunOpenFeed": {
+    "message": "Open my LinkedIn feed"
+  },
+  "firstRunFinish": {
+    "message": "Finish setup"
+  },
+  "firstRunFootnote": {
+    "message": "No extra account, no tracking. On LinkedIn, choose Feed options on a post to hide it or mute its author."
   }
 }

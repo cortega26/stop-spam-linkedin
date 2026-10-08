@@ -58,6 +58,23 @@ async function main() {
     /* Product V2: manual hiding of a legitimate post is reversible and
        does not inflate automatic-detection statistics. */
     const ordinaryPost = linkedInPage.locator('[data-id="urn:li:activity:clean-1"]');
+    const ordinaryActions = ordinaryPost.locator('details[data-ss-control="hide-once"]');
+    await ordinaryActions.locator("summary").waitFor({ state: "visible", timeout: 10000 });
+    assert.equal(await ordinaryActions.locator(".ss-feed-action-menu").isVisible(), false,
+      "action menu stays closed until explicitly requested");
+    await ordinaryActions.locator("summary").click();
+    /* The disclosure can be dismissed with Escape and outside click;
+       direct feed controls are never persistently covering the post. */
+    await ordinaryActions.locator("summary").click();
+    await ordinaryActions.locator("summary").focus();
+    await linkedInPage.keyboard.press("Escape");
+    assert.equal(await ordinaryActions.getAttribute("open"), null,
+      "Escape must close the action disclosure");
+    await ordinaryActions.locator("summary").click();
+    await linkedInPage.locator("main").click({ position: { x: 2, y: 2 } });
+    assert.equal(await ordinaryActions.getAttribute("open"), null,
+      "clicking outside must close the action disclosure");
+    await ordinaryActions.locator("summary").click();
     const hideOnce = ordinaryPost.locator('[data-ss-control="hide-once"] button').first();
     await hideOnce.waitFor({ state: "visible", timeout: 10000 });
     await hideOnce.click();
@@ -70,7 +87,9 @@ async function main() {
     }).getByRole("button", { name: /Show|Mostrar/ }).click();
     await ordinaryPost.waitFor({ state: "visible", timeout: 10000 });
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 1);
-    /* Repeated manual Hide after Show must override the 15-minute cooldown. */
+    /* Repeated manual Hide after Show must override the 15-minute cooldown.
+       Disclosure intentionally closes after a successful Hide. */
+    await ordinaryActions.locator("summary").click();
     await hideOnce.click();
     await ordinaryPost.waitFor({ state: "hidden", timeout: 10000 });
     await assertCount(linkedInPage.locator("[data-ss-ph]"), 2);
@@ -2038,6 +2057,7 @@ async function main() {
 
     /* 1. Fresh install shows the card: flag true → card visible. */
     await setLocalStorage(context, { ss_welcome_pending: true });
+    await setSyncStorage(context, { ss_hide_promoted: false });
     const welcomePage = await context.newPage();
     await welcomePage.goto(
       `chrome-extension://${await getExtensionId(context)}/options/options.html`,
@@ -2048,6 +2068,20 @@ async function main() {
       timeout: 10000,
     });
 
+    /* First-run onboarding has a real optional action, not a decorative
+       illustration or a bundled default that silently changes preferences. */
+    assert.equal(await welcomePage.locator("#welcomeEnablePromotedBtn").isEnabled(), true);
+    assert.equal(await getSyncStorage(context, "ss_hide_promoted"), false,
+      "promoted-post filtering stays opt-in on first install");
+    await welcomePage.locator("#welcomeEnablePromotedBtn").click();
+    await waitForSyncValue(context, "ss_hide_promoted", (v) => v === true);
+    assert.equal(await welcomePage.locator("#hidePromotedCheckbox").isChecked(), true);
+    assert.equal(await welcomePage.locator("#welcomeEnablePromotedBtn").isDisabled(), true);
+    assert.match(await welcomePage.locator("#welcomeActionFeedback").textContent(),
+      /Promoted-post filtering|filtro de promociones/);
+    assert.equal(await welcomePage.locator("#whatsNewCard").isVisible(), false,
+      "first installs must not show an update changelog beside onboarding");
+
     /* 2. Dismiss persists: hide, clear the flag, survive a reload. */
     await welcomePage.locator("#welcomeDismissBtn").click();
     await welcomePage.waitForFunction(
@@ -2056,6 +2090,8 @@ async function main() {
       { timeout: 5000 }
     );
     await waitForLocalValue(context, "ss_welcome_pending", (v) => v === false);
+    const installedVersion = await welcomePage.evaluate(() => chrome.runtime.getManifest().version);
+    await waitForLocalValue(context, "ss_seen_release", (v) => v === installedVersion);
     await welcomePage.reload({ waitUntil: "domcontentloaded" });
     await welcomePage.locator("#langToggles .lang-tog").first().waitFor({
       state: "visible",
@@ -3073,6 +3109,52 @@ async function main() {
     await a11yPopup.close();
     await a11yPage.close();
 
+    /* Best-effort modern React feed support is user-initiated ONLY:
+       require mainFeed + listitem + expandable-text-box, and fail open for
+       unrelated list items or nested comment list items. */
+    const reactFeedPage = await context.newPage();
+    await reactFeedPage.goto("https://www.linkedin.com/feed/", {
+      waitUntil: "domcontentloaded"
+    });
+    await reactFeedPage.evaluate(() => {
+      const feed = document.createElement("div");
+      feed.dataset.testid = "mainFeed";
+      feed.innerHTML =
+        '<div role="listitem" id="modern-feed-post">' +
+          '<div class="update-components-actor"><a href="/in/quoted-author/">Unverified author</a></div>' +
+          '<div data-testid="expandable-text-box">A normal professional update</div>' +
+        '</div>' +
+        '<div role="listitem" id="modern-feed-nonpost">Navigation only</div>' +
+        '<div role="listitem" id="modern-parent">' +
+          '<div data-testid="expandable-text-box">Another useful update</div>' +
+          '<div role="listitem" id="modern-nested-comment">' +
+            '<div data-testid="expandable-text-box">A comment, not its own post</div>' +
+          '</div>' +
+        '</div>';
+      document.querySelector("main").appendChild(feed);
+      const outside = document.createElement("div");
+      outside.setAttribute("role", "listitem");
+      outside.id = "outside-react-feed";
+      outside.innerHTML = '<div data-testid="expandable-text-box">Not in the feed</div>';
+      document.querySelector("main").appendChild(outside);
+    });
+    const modernPost = reactFeedPage.locator("#modern-feed-post");
+    const modernDisclosure = modernPost.locator('details[data-ss-control="hide-once"]');
+    await modernDisclosure.locator("summary").waitFor({ state: "visible", timeout: 10000 });
+    assert.equal(await reactFeedPage.locator("#modern-feed-nonpost [data-ss-control]").count(), 0);
+    assert.equal(await reactFeedPage.locator("#modern-nested-comment [data-ss-control]").count(), 0);
+    assert.equal(await reactFeedPage.locator("#outside-react-feed [data-ss-control]").count(), 0);
+    await modernDisclosure.locator("summary").click();
+    assert.equal(await modernDisclosure.locator("button").count(), 1,
+      "unverified modern author provenance must never expose Mute");
+    await modernDisclosure.getByRole("button", {name:/Hide this post|Ocultar esta publicación/}).click();
+    await modernPost.waitFor({ state:"hidden", timeout:10000 });
+    await reactFeedPage.locator('[data-ss-ph]').filter({
+      hasText:/Hidden at your request|Oculta a petición tuya/
+    }).getByRole("button",{name:/Show|Mostrar/}).click();
+    await modernPost.waitFor({ state:"visible", timeout:10000 });
+    await reactFeedPage.close();
+
     /* Product V2: one click mutes an ordinary author's existing posts.
        The persistent blocklist, not a temporary manual-hide signature,
        governs subsequently arriving feed items. */
@@ -3096,6 +3178,8 @@ async function main() {
       }
     });
     const muteCard = mutePage.locator('[data-id="urn:li:activity:mute-smoke-a"]');
+    const muteDetails = muteCard.locator('details[data-ss-control="hide-once"]');
+    await muteDetails.locator("summary").click();
     const muteAction = muteCard.locator('[data-ss-control="hide-once"] button', { hasText: /Mute|Silenciar/ });
     await muteAction.waitFor({ state: "visible", timeout: 10000 });
     await muteAction.click();
@@ -3216,6 +3300,7 @@ async function main() {
     const firstRunPage = await context.newPage();
     await firstRunPage.goto("https://www.linkedin.com/feed/", { waitUntil: "domcontentloaded" });
     const firstRunClean = firstRunPage.locator('[data-id="urn:li:activity:clean-1"]');
+    await firstRunClean.locator('details[data-ss-control="hide-once"] summary').click();
     const firstRunHide = firstRunClean.locator('[data-ss-control="hide-once"] button').first();
     await firstRunHide.waitFor({ state: "visible", timeout: 10000 });
     const beforeManual = await getLocalStorage(context, "ss_blocked_count");

@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — First-minute activation and low-noise controls
+
+- Replaced persistent per-post Hide/Mute buttons with a keyboard-accessible native Feed options disclosure; added single page-level Escape/outside-click handling.
+- Added best-effort **manual-only** feed controls for React mainFeed/listitem candidates, gated by text metadata and nested-post exclusions; automatic Suggested filtering still needs real DOM evidence.
+- Added choice-based onboarding with promoted opt-in, real feed CTA and persistent suppression of redundant release messaging.
+- Repositioned English/Spanish documentation around immediate value with truthful browser-store version and visual claims; added explicit live site and screenshot release gates.
+
+
 ## 2.0.0 — LinkedIn Feed Control
 
 ### Product and experience

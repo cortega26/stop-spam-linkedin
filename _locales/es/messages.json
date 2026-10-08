@@ -577,5 +577,53 @@
   },
   "riskyRuleDone": {
     "message": "Reglas amplias pausadas. Puedes reactivarlas individualmente."
+  },
+  "feedActions": {
+    "message": "Opciones del feed"
+  },
+  "firstRunKicker": {
+    "message": "BIENVENIDO A UN LINKEDIN MÁS TRANQUILO"
+  },
+  "firstRunHeadline": {
+    "message": "Recupera lo que importa."
+  },
+  "firstRunIntro": {
+    "message": "Conserva las conversaciones útiles. Tú decides qué desaparece. La primera protección ya está activa."
+  },
+  "firstRunBaitTitle": {
+    "message": "Bloquea el contenido que busca interacciones"
+  },
+  "firstRunBaitBody": {
+    "message": "Las publicaciones que piden comentar una palabra para recibir algo se filtran automáticamente. Puedes ajustar cada regla."
+  },
+  "firstRunAlreadyOn": {
+    "message": "YA ACTIVO"
+  },
+  "firstRunPromotedTitle": {
+    "message": "Ocultar publicaciones promocionadas"
+  },
+  "firstRunPromotedBody": {
+    "message": "Opcional. Oculta publicaciones patrocinadas reconocidas con un clic y desactívalo cuando quieras."
+  },
+  "firstRunPromotedAction": {
+    "message": "Ocultar promociones"
+  },
+  "firstRunPromotedEnabled": {
+    "message": "Promociones ocultas"
+  },
+  "firstRunEnabledConfirmation": {
+    "message": "El filtro de promociones está activo. Puedes desactivarlo desde la extensión."
+  },
+  "firstRunSaveFailed": {
+    "message": "No se pudo guardar la opción. Nada cambió. Inténtalo de nuevo."
+  },
+  "firstRunOpenFeed": {
+    "message": "Abrir mi feed de LinkedIn"
+  },
+  "firstRunFinish": {
+    "message": "Terminar configuración"
+  },
+  "firstRunFootnote": {
+    "message": "Sin cuentas adicionales ni seguimiento. En LinkedIn, selecciona Opciones del feed para ocultar una publicación o silenciar al autor."
   }
 }
