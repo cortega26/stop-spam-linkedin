@@ -1,6 +1,6 @@
 # LinkedIn Feed Control — evidence-led product direction
 
-**Research date:** 2026-10-08. **Technical baseline:** \`cortega26/stop-spam-linkedin\`, \`main\`, commit \`5a1ef53d4efdb4f1cff4b94abe7763c1030c1d5b\`. The 2.0.0 revamp from PR #3 is merged. The default branch includes subsequent Codex P2 fixes. **No implementation is authorized merely by this research document.**
+**Research date:** 2026-10-08. **Technical baseline:** `cortega26/stop-spam-linkedin`, `main`, commit `5a1ef53d4efdb4f1cff4b94abe7763c1030c1d5b`. The 2.0.0 revamp from PR #3 is merged. The default branch includes subsequent Codex P2 fixes. **No implementation is authorized merely by this research document.**
 
 ## Executive decision
 
@@ -8,7 +8,7 @@
 
 **Customer-facing promise to validate:** **"See your network. Skip the noise."**
 
-The strongest under-served complaint is not the original \`comment X for a file\` bait; it is **suggested posts from strangers**, followed by **activity-amplified posts from connections' likes/comments**, sponsored material, repetition, and loss of control. These are **user-reported pains**, not yet evidence that any specific filter can be implemented safely on today's LinkedIn DOM.
+The strongest under-served complaint is not the original `comment X for a file` bait; it is **suggested posts from strangers**, followed by **activity-amplified posts from connections' likes/comments**, sponsored material, repetition, and loss of control. These are **user-reported pains**, not yet evidence that any specific filter can be implemented safely on today's LinkedIn DOM.
 
 A strong product should sell an immediate result and deliver it in one session. **Do not add AI classifiers, opaque relevance scores, or elaborate presets to substitute for the missing site-specific evidence.**
 
@@ -50,9 +50,9 @@ A strong product should sell an immediate result and deliver it in one session. 
 
 ## Current repo facts vs research suggestions
 
-**Verified implementation on main (Oct 8):** Manifest V3, Chrome+Firefox, \`storage\` + \`contextMenus\`, no new runtime requests; custom phrase/rule system; author blocklist/allowlist; optional promoted filter; reversible manual hide and author mute; localized EN/ES UI and five detection languages; initial popup/settings redesign; local counters; import/export; safe legacy-rule review. A full browser CI suite exists. The 2.0.0 release remains **unpublished in the public Chrome listing checked** (still 1.6.0, 5 users).
+**Verified implementation on main (Oct 8):** Manifest V3, Chrome+Firefox, `storage` + `contextMenus`, no new runtime requests; custom phrase/rule system; author blocklist/allowlist; optional promoted filter; reversible manual hide and author mute; localized EN/ES UI and five detection languages; initial popup/settings redesign; local counters; import/export; safe legacy-rule review. A full browser CI suite exists. The 2.0.0 release remains **unpublished in the public Chrome listing checked** (still 1.6.0, 5 users).
 
-**Existing solution to reuse:** Plan [068 verdict](../plans/research/068/verdict.json) has 10 synthetic Suggested-label fixtures, 17 detector tests, and **zero real examples**. It concluded \`insufficient-data\`. Plan [067 verdict](../plans/research/067/verdict.json) has evaluator tooling but **no representative independent holdout**. Do **not** relabel synthetic tests as real accuracy. Do not rebuild duplicate modules when those prototypes can be reused.
+**Existing solution to reuse:** Plan [068 verdict](../plans/research/068/verdict.json) has 10 synthetic Suggested-label fixtures, 17 detector tests, and **zero real examples**. It concluded `insufficient-data`. Plan [067 verdict](../plans/research/067/verdict.json) has evaluator tooling but **no representative independent holdout**. Do **not** relabel synthetic tests as real accuracy. Do not rebuild duplicate modules when those prototypes can be reused.
 
 **Not verified:** Stable current LinkedIn Suggested label DOM, connection-activity metadata, all locales, actual user engagement with in-post actions, first-install activation rate, cross-browser current page behaviors, or store listing conversion/retention. Every item is a discovery or acceptance gate, not a shipping claim.
 
@@ -107,11 +107,11 @@ Marketing visuals: original simple icon with readable 16/32/48/128 forms; cohesi
 
 ### B. Suggested README hierarchy (no empty superlatives)
 
-**Headline:** \`LinkedIn, without the feed you didn't ask for.\`
+**Headline:** `LinkedIn, without the feed you didn't ask for.`
 
-**Subhead:** \`Keep LinkedIn useful for work and relationships. Hide unwanted posts and authors in one click, filter promotions, and customize what you see—privately in your browser.\`
+**Subhead:** `Keep LinkedIn useful for work and relationships. Hide unwanted posts and authors in one click, filter promotions, and customize what you see—privately in your browser.`
 
-**Three proof points:** \`One-click Hide & Undo\` • \`No account or analytics\` • \`Chrome + Firefox\`.
+**Three proof points:** `One-click Hide & Undo` • `No account or analytics` • `Chrome + Firefox`.
 
 **Primary visual:** screenshot/GIF of actual use—not badges and text. One screenshot should show the user gets something **today**, without a settings tutorial.
 
