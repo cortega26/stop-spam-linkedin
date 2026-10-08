@@ -1,6 +1,8 @@
-# LinkedIn Spam Blocker
+# LinkedIn Feed Control
 
-*Part of the [Tooltician ecosystem](https://tooltician.com) — privacy-first browser extension that cleans your LinkedIn feed.*
+**Make LinkedIn worth opening again.** Fewer distractions, more control, no trackers.
+
+*The next evolution of LinkedIn Spam Blocker, part of the [Tooltician ecosystem](https://tooltician.com). The existing Chrome/Firefox listing names remain in place until a reviewed store release.*
 
 [![Part of Tooltician](https://img.shields.io/badge/Part_of-Tooltician.com-6C47FF?v=2)](https://tooltician.com)
 [![CI](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml/badge.svg)](https://github.com/cortega26/stop-spam-linkedin/actions/workflows/ci.yml)
@@ -12,17 +14,28 @@
 [![No telemetry](https://img.shields.io/badge/telemetry-none-0a7f64)](PRIVACY_POLICY.md)
 [![License](https://img.shields.io/badge/license-source--available-lightgrey)](LICENSE)
 
+
 **Read this in:** **English** | [Español](docs/README.es.md) | [Français](docs/README.fr.md) | [Português](docs/README.pt.md) | [Deutsch](docs/README.de.md)
 
-Those "comment STRATEGY below and I'll DM you the framework" posts are everywhere. LinkedIn Spam Blocker hides them automatically — entirely in your browser, with nothing sent anywhere.
+LinkedIn can choose what to recommend. **You should get the final say about what stays on your screen.**
 
-It detects posts that ask people to comment a keyword like "CLAUDE", "SKILL", or "PROMPTS" to receive a file, template, prompt pack, or "access." Works in Chrome and Firefox, supports five languages out of the box, and lets you undo or tune blocking when it gets something wrong.
+Feed Control lets you hide any post with one click, mute authors you no longer want in your feed, hide promoted posts, and keep the familiar engagement-bait blocking in five languages. Every hide is local and reversible. There is no account to create, no AI guesswork, no external API, and no data sent to the developer.
+
+### What's new in the redesign
+
+- **Hide any post.** A discreet control appears on recognized feed posts, not just posts already flagged as spam. Choose **Show** to restore it.
+- **Mute an author in place.** Stop seeing recognized authors directly from ordinary feed posts. The existing author blocklist persists across sessions.
+- **Make changes that actually take effect.** The popup offers an immediate promoted-post toggle. Switching the filter off reveals posts it hid, without undoing other hide reasons.
+- **Make it yours.** Keep custom phrases, author allowlists, protected phrases, safe import/export, per-rule statistics, and multilingual detection.
+- **Keep your privacy.** Everything operates within LinkedIn pages in your browser. No telemetry, tracking, remote blocklist, or new host permissions.
+
+**What it deliberately doesn't promise:** We cannot change LinkedIn's recommendations server-side, recover posts LinkedIn never delivered, or reliably detect whether text was authored by AI. This is a selective local feed-control utility, not an alternative recommendation algorithm.
 
 ## At a Glance
 
 - **Private by design** — no analytics, telemetry, remote blocklists, AI APIs, or network requests of any kind
 - **Multilingual** — built-in patterns for English, Spanish, French, Portuguese, and German, all toggleable
-- **Adjustable** — add custom phrases, whitelist authors you trust, and import/export your full settings
+- **Under your control** — hide individual posts, mute authors, manage phrases, and import/export settings
 - **Reversible** — show a hidden post temporarily or mark it as "Not spam" so the same text is never blocked again
 
 ## Why This Exists
@@ -33,7 +46,7 @@ This extension gives you a local, private way to make your own feed less noisy w
 
 ## How It Works
 
-LinkedIn Spam Blocker scans text on supported LinkedIn pages and checks it against built-in engagement-bait patterns plus any custom phrases you add. When a post matches, it is hidden and replaced with a small placeholder so you can restore it immediately.
+Feed Control examines text on supported LinkedIn pages against built-in engagement-bait patterns and the custom phrases you choose. It also adds one-click manual controls to recognized feed posts. When a post matches, it is hidden and replaced with a small placeholder so you can restore it immediately.
 
 Detection is heuristic, not magic. It can miss new spam formats, and it can occasionally hide a post you wanted to see. The extension includes "Show", "Not spam", custom phrases, language toggles, and author whitelisting so you can tune it around your own feed.
 
@@ -50,6 +63,8 @@ Detection is heuristic, not magic. It can miss new spam formats, and it can occa
 - Custom phrases with Exact or Contains matching
 
 **Controls**
+- **Hide this post** — manually hide an ordinary feed post without adding a permanent keyword rule or incrementing spam-detection counters
+- **Mute this author** — persistently suppress a recognized author's feed posts from the post itself
 - Undo any blocked post from the popup or the in-feed placeholder
 - "Show all" from the popup to restore every hidden post for the session
 - "Not spam" exclusion so the same text is never blocked again
@@ -85,9 +100,11 @@ Detection is heuristic, not magic. It can miss new spam formats, and it can occa
 
 - Does not report posts to LinkedIn or interact with LinkedIn servers in any way
 - Does not affect what other people see — changes are local to your browser only
-- Does not read, store, or transmit your LinkedIn account data, browsing history, or post content
+- Does not transmit your LinkedIn account data, browsing history, or post content. Explicitly saved author IDs and phrase preferences remain in browser storage.
 
 ## How To Use
+
+For the fastest setup, install the extension and use LinkedIn normally. A discreet **Hide this post** and, when an author can be identified, **Mute this author** control is available on recognized feed posts. You don't need to configure patterns first.
 
 1. Install the extension.
 2. Open LinkedIn and scroll normally.
@@ -97,7 +114,8 @@ Detection is heuristic, not magic. It can miss new spam formats, and it can occa
 6. Click "Not spam" if a post was incorrectly blocked.
 7. Click "Block this author" on any blocked post to hide that author's posts feed-wide.
 8. Add custom phrases from settings or by selecting text and choosing "Add to LinkedIn Spam Blocker" in the right-click menu when your feed invents a new flavor of bait.
-9. Right-click selected LinkedIn text and choose "Report missed spam" to copy it and open a pre-filled issue when spam slips through.
+9. Use the popup's **Hide promoted posts** checkbox to immediately toggle the filter.
+10. Right-click selected LinkedIn text and choose "Report missed spam" to copy it and open a pre-filled issue when spam slips through.
 
 ## Install
 
