@@ -87,6 +87,24 @@ const META_SELECTOR = [
    JavaScript's \b, so a trailing boundary silently fails to match it. */
 const DEGREE_RE = /^\s*[•·]?\s*\d+\s*(?:º|°|ᵒ|ᵉʳ|ʳᵉ|ᵈ|ⁿᵈ|ʳᵈ|ᵗʰ|ˢᵗ|st|nd|rd|th|er|ème|eme|e)\s*[•·]?\s*$/i;
 
+/* Label FAMILIES per UI language, used ONLY to find candidate posts. A family is
+ * a stem: "Sugerido" matches "Sugerido", "Sugerido para ti", "Sugerido · Acme".
+ *
+ * This is not the "guessed translation" that 071/protocol.md §4 forbids: that
+ * rule governs the DETECTOR's accepted labels, which must be established by
+ * capture. Here the list is a finder. If a family is wrong the tool simply finds
+ * nothing and says so; it never asserts what LinkedIn renders. The capture is
+ * still what establishes the label, and the exact string found is what gets
+ * recorded and preserved.
+ */
+const LABEL_FAMILIES = Object.freeze({
+  en: ["Suggested", "Promoted"],
+  es: ["Sugerido", "Sugerencias", "Recomendado", "Promocionado", "Patrocinado"],
+  fr: ["Suggéré", "Suggestion", "Recommandé", "Sponsorisé"],
+  pt: ["Sugerido", "Sugestão", "Sugestões", "Recomendado", "Patrocinado"],
+  de: ["Vorgeschlagen", "Empfohlen", "Gesponsert", "Anzeige"],
+});
+
 /* Short strings that are never a recommendation label: reaction/comment counts,
    timestamps, and common UI verbs. Keeps the pick list readable. */
 const SHORT_NOISE_RE = /^[\d.,\s]+$|^\d+\s*\p{L}{1,4}$|\b(reacciones?|comentarios?|recompartir|compartir|comentar|me gusta|seguir|reactions?|comments?|reposts?|like|share|comment|follow|followers?|seguidores?)\b/iu;
@@ -470,38 +488,126 @@ function labelClusters(candidates) {
     .slice(0, 15);
 }
 
-/** Post-has-this-label, by exact text equality. Class-independent on purpose. */
-function postHasLabel(candidate, label) {
-  return (candidate.shortTexts || []).includes(label);
+/**
+ * Does a header string belong to a label family? Exact match, or the family as a
+ * stem followed by a space (which covers "Sugerido para ti" and
+ * "Sugerido · Acme"). Class-independent on purpose.
+ */
+function matchLabelText(text, family) {
+  if (!text || !family) return null;
+  if (text === family) return text;
+  if (text.startsWith(family + " ")) return text;
+  return null;
 }
 
-async function resolveSuggestedLabel(opts, locale, clusters, map) {
-  if (opts.suggestedLabel) return { label: opts.suggestedLabel, source: "--suggested-label" };
-  const remembered = map[locale] && map[locale].suggestedLabel;
-  if (remembered) return { label: remembered, source: `remembered for "${locale}"` };
-  if (clusters.length === 0) return { label: null };
+/** The ACTUAL header string for this post, or null. Used verbatim downstream. */
+function postLabelText(candidate, family) {
+  for (const text of candidate.shortTexts || []) {
+    const hit = matchLabelText(text, family);
+    if (hit) return hit;
+  }
+  return null;
+}
 
-  console.error(`\n${DIM}Label strings found in post headers that are NOT a connection degree:${OFF}`);
+function postHasLabel(candidate, family) {
+  return postLabelText(candidate, family) !== null;
+}
+
+/** Which families actually occur, and the exact strings seen for each. */
+function detectFamilies(candidates, locale) {
+  const families = LABEL_FAMILIES[locale] || LABEL_FAMILIES.en;
+  const found = [];
+  for (const family of families) {
+    const seen = new Map();
+    for (const c of candidates) {
+      const text = postLabelText(c, family);
+      if (text) seen.set(text, (seen.get(text) || 0) + 1);
+    }
+    if (seen.size) {
+      found.push({
+        family,
+        posts: [...seen.values()].reduce((a, b) => a + b, 0),
+        variants: [...seen.entries()].map(([text, count]) => ({ text, count })).sort((a, b) => b.count - a.count),
+      });
+    }
+  }
+  /* Longest family first: "Sugerido para ti" is a more specific reading than
+     "Sugerido", and a family that only matches as a stem is reported as such. */
+  return found.sort((a, b) => b.family.length - a.family.length);
+}
+
+/**
+ * Decides which label family to look for, in this order: an explicit flag, a
+ * remembered choice, an AUTOMATIC detection from the page's own language, then
+ * an interactive pick. A declared or remembered family that matches nothing
+ * falls through rather than aborting, because the point is to find the label.
+ */
+async function resolveSuggestedLabel(opts, locale, candidates, clusters, map) {
+  const detected = detectFamilies(candidates, locale);
+
+  const describe = (d) =>
+    d.variants.map((v) => `${JSON.stringify(v.text)} x${v.count}`).join(", ");
+
+  if (opts.suggestedLabel) {
+    const hit = detected.find((d) => d.family.toLowerCase() === opts.suggestedLabel.toLowerCase());
+    if (hit) return { family: hit.family, source: "--suggested-label" };
+    /* The declared string may be a full variant rather than a stem. */
+    const asVariant = detected.find((d) => d.variants.some((v) => v.text === opts.suggestedLabel));
+    if (asVariant) return { family: asVariant.family, source: "--suggested-label" };
+    warn(`--suggested-label ${JSON.stringify(opts.suggestedLabel)} matched nothing on this page.`);
+    if (detected.length) {
+      warn(`but these ${locale} label families DID match: ${detected.map((d) => `${d.family} (${describe(d)})`).join("; ")}`);
+    }
+    /* fall through: auto-detection may still succeed */
+  }
+
+  const remembered = map[locale] && map[locale].suggestedLabel;
+  if (remembered) {
+    const hit = detected.find((d) => d.family.toLowerCase() === remembered.toLowerCase());
+    if (hit) return { family: hit.family, source: `remembered for "${locale}"` };
+  }
+
+  /* AUTO-DETECTION. Families are ordered longest-first, so "Sugerido para ti"
+     wins over "Sugerido" when both could match. */
+  const suggested = detected.filter((d) => !/promocionad|patrocinad|promoted|gesponsert|anzeige|sponsoris/i.test(d.family));
+  if (suggested.length === 1) {
+    return { family: suggested[0].family, source: `auto-detected for "${locale}" (${describe(suggested[0])})` };
+  }
+  if (suggested.length > 1) {
+    return {
+      family: suggested[0].family,
+      source: `auto-detected for "${locale}"; candidates were ${suggested.map((d) => d.family).join(", ")} — took the most specific`,
+    };
+  }
+  if (detected.length === 1 && !suggested.length) {
+    /* Only a Promoted/Sponsored family matched: that is not what we want, but
+       say so plainly rather than silently finding nothing. */
+    warn(`the only label family present is ${JSON.stringify(detected[0].family)} (promoted/sponsored), not a Suggested label.`);
+  }
+
+  if (clusters.length === 0) return { family: null };
+
+  console.error(`\n${DIM}No ${locale} label family matched automatically. Header strings that are NOT a connection degree:${OFF}`);
   clusters.forEach((c, i) =>
     console.error(
       `  ${i + 1}. ${JSON.stringify(c.text)}  ${DIM}(${c.count} post${c.count > 1 ? "s" : ""})${c.labelLike ? " " + GRN + "<- label-like" + OFF + DIM : ""}${OFF}`
     )
   );
-  console.error(`${DIM}Pick the one marking a "Suggested" post (not "Promoted"/"Sponsored").${OFF}`);
 
   if (!process.stdin.isTTY) {
-    console.error(`\n${YEL}not a terminal, so I cannot ask.${OFF} Re-run with the phrase you want:`);
-    clusters.slice(0, 3).forEach((c) => console.error(`  --suggested-label ${JSON.stringify(c.text)}`));
-    return { label: null };
+    console.error(`\n${YEL}not a terminal, so I cannot ask.${OFF} Re-run with the stem you want:`);
+    clusters.slice(0, 3).forEach((c) => console.error(`  --suggested-label ${JSON.stringify(c.text.split(" ")[0])}`));
+    console.error(`${DIM}(pass just the leading word: it is treated as a stem, so "Sugerido" matches "Sugerido para ti".)${OFF}`);
+    return { family: null };
   }
-  const answer = await ask(`\nWhich one? [1-${clusters.length}, or Enter to abort] `);
+  const answer = await ask(`\nWhich one is the Suggested label? [1-${clusters.length}, or Enter to abort] `);
   const pick = Number(answer);
-  if (!Number.isInteger(pick) || pick < 1 || pick > clusters.length) return { label: null };
-  const chosen = clusters[pick - 1].text;
+  if (!Number.isInteger(pick) || pick < 1 || pick > clusters.length) return { family: null };
+  const chosen = clusters[pick - 1].text.split(" ")[0];
   map[locale] = { ...(map[locale] || {}), suggestedLabel: chosen };
   writeLabelMap(map);
-  ok(`remembered ${JSON.stringify(chosen)} for UI locale "${locale}" (at ${LABEL_MAP_PATH})`);
-  return { label: chosen, source: "your choice, now remembered" };
+  ok(`remembered stem ${JSON.stringify(chosen)} for UI locale "${locale}" (at ${LABEL_MAP_PATH})`);
+  return { family: chosen, source: "your choice, now remembered" };
 }
 
 /* ── expectations ───────────────────────────────────────────────────────── */
@@ -642,18 +748,18 @@ async function main() {
 
   const locale = (opts.useLanguage || gathered.uiLocale.split("-")[0] || "en").toLowerCase();
   const clusters = labelClusters(gathered.candidates);
-  const resolved = await resolveSuggestedLabel(opts, locale, clusters, map);
-  const label = resolved.label;
-  if (!label) {
+  const resolved = await resolveSuggestedLabel(opts, locale, gathered.candidates, clusters, map);
+  const family = resolved.family;
+  if (!family) {
     console.error(`\n${YEL}No Suggested label chosen, so nothing was staged.${OFF}`);
     if (opts.quitWhenDone) await browser.close();
     return 1;
   }
-  ok(`UI locale ${JSON.stringify(gathered.uiLocale || "?")} → metadataLocale "${locale}"; label ${JSON.stringify(label)} (${resolved.source})`);
+  ok(`UI locale ${JSON.stringify(gathered.uiLocale || "?")} → metadataLocale "${locale}"; label family ${JSON.stringify(family)} (${resolved.source})`);
 
-  const countWithLabel = (list) => list.filter((c) => postHasLabel(c, label)).length;
+  const countWithLabel = (list) => list.filter((c) => postHasLabel(c, family)).length;
   if (countWithLabel(gathered.candidates) === 0) {
-    console.error(`${DIM}    none yet — scrolling further for ${JSON.stringify(label)}...${OFF}`);
+    console.error(`${DIM}    none yet — scrolling further for ${JSON.stringify(family)}...${OFF}`);
     gathered = await gather(page, opts, {
       accept: (list) => countWithLabel(list) >= Math.min(needed, opts.maxPositives),
       budget: opts.maxScrolls,
@@ -661,43 +767,47 @@ async function main() {
   }
 
   const { candidates } = gathered;
-  const matched = candidates.filter((c) => postHasLabel(c, label));
+  const matched = candidates.filter((c) => postHasLabel(c, family));
   if (matched.length === 0) {
     if (gathered.stoppedReason === "feed-stopped-growing") {
-      warn(`no post carries ${JSON.stringify(label)}, and the feed stopped yielding new posts after ${gathered.stepsRun} scroll(s).`);
+      warn(`no post carries ${JSON.stringify(family)}, and the feed stopped yielding new posts after ${gathered.stepsRun} scroll(s).`);
       console.error("    The scroll budget was NOT the limit, so raising --max-scrolls will not help.");
     } else {
-      warn(`no post carries ${JSON.stringify(label)} after ${gathered.stepsRun} scroll(s) (budget exhausted).`);
+      warn(`no post carries ${JSON.stringify(family)} after ${gathered.stepsRun} scroll(s) (budget exhausted).`);
       console.error(`    Worth retrying with a bigger budget:  --max-scrolls ${opts.maxScrolls * 3}`);
     }
     console.error("");
-    console.error("    The probable cause is that the label is not where I look for it.");
-    console.error("    Run the census and send me the output:");
-    console.error("      node plans/research/079/capture-live.cjs --diagnose");
+    console.error("    These are the header strings I did find on this page — the real label should be among them:");
+    const seen = labelClusters(candidates).filter((c) => c.labelLike).slice(0, 12);
+    if (seen.length) seen.forEach((c) => console.error(`      ${JSON.stringify(c.text)}  (${c.count} post${c.count > 1 ? "s" : ""})`));
+    else console.error("      (none that look label-like)");
+    console.error("");
+    console.error("    Re-run naming the leading word of the right one; it is treated as a stem:");
+    if (seen.length) console.error(`      --suggested-label ${JSON.stringify(seen[0].text.split(" ")[0])}`);
     if (opts.quitWhenDone) await browser.close();
     return 1;
   }
 
-  const positives = matched.filter((c) => !expectationFor(label, c, locale).negative);
+  const positives = matched.filter((c) => !expectationFor(postLabelText(c, family) || family, c, locale).negative);
   const chosen = [];
   /* Matched posts are NOT force-negatived: expectationFor decides, and its reason
      is the precise documented one ("English-only label set", "not enumerable").
      forceNegative is only for the non-matching control posts added below. */
-  for (const c of (positives.length ? positives : matched).slice(0, opts.maxPositives)) chosen.push({ ...c, label });
+  for (const c of (positives.length ? positives : matched).slice(0, opts.maxPositives)) chosen.push({ ...c });
 
-  const others = candidates.filter((c) => !postHasLabel(c, label));
+  const others = candidates.filter((c) => !postHasLabel(c, family));
   const bodyMention = others.find((c) => c.bodyMentionsSuggest);
-  if (bodyMention) chosen.push({ ...bodyMention, label, forceNegative: true });
+  if (bodyMention) chosen.push({ ...bodyMention, forceNegative: true });
   const posShape = chosen[0] ? chosen[0].shape : "legacy";
   const variant = others.find((c) => c.shape !== posShape && c !== bodyMention);
   if (variant && chosen.filter((c) => c.forceNegative).length < opts.maxNegatives) {
-    chosen.push({ ...variant, label, forceNegative: true });
+    chosen.push({ ...variant, forceNegative: true });
   }
 
   if (opts.verbose) {
     console.table(candidates.slice(0, 25).map((c) => ({
       index: c.index,
-      hasLabel: postHasLabel(c, label) ? "YES" : "",
+      hasLabel: postHasLabel(c, family) ? "YES" : "",
       shape: c.shape,
       body: c.bodyMentionsSuggest ? "mentions" : "",
       selected: chosen.some((x) => x.index === c.index) ? "yes" : "",
@@ -708,13 +818,16 @@ async function main() {
   let seq = 0;
   for (const c of chosen) {
     seq += 1;
+    /* The label text may vary per post ("Sugerido para ti" vs "Sugerido · Acme"),
+       so each post is sanitised against the string it actually carries. */
+    const actualLabel = postLabelText(c, family) || family;
     const exp = c.forceNegative
       ? { negative: true, reason: "selected as a fail-open negative control" }
-      : expectationFor(label, c, locale);
+      : expectationFor(actualLabel, c, locale);
     const id = `${opts.prefix}-${exp.negative ? "neg" : "pos"}-${String(seq).padStart(2, "0")}`;
-    const res = sanitizeMarkup(c.html, { keepLabels: [label], caseId: id, caseMarker: id });
+    const res = sanitizeMarkup(c.html, { keepLabels: [actualLabel], caseId: id, caseMarker: id });
     if (res.error) { warn(`skipping index ${c.index}: ${res.error}`); continue; }
-    const leaks = findLeaks(res.markup, { keepLabels: [label] });
+    const leaks = findLeaks(res.markup, { keepLabels: [actualLabel] });
     if (leaks.length > 0) {
       warn(`skipping index ${c.index}: ${leaks.length} leak finding(s)`);
       for (const l of leaks) console.error(`      [${l.rule}] ${l.detail}`);
@@ -735,7 +848,7 @@ async function main() {
         sourceRef: `owner authorized-collector capture, ${new Date().toISOString().slice(0, 7)}, ${locale} UI locale; sanitized per protocol.md §2`,
         sanitization:
           "Captured over CDP and sanitised in memory by plans/research/079/capture-live.cjs; raw markup never written to disk. " +
-          "Declared label phrase preserved verbatim; all other human text replaced with placeholders; element names, classes and nesting verified unchanged; " +
+          "Detected label phrase preserved verbatim; all other human text replaced with placeholders; element names, classes and nesting verified unchanged; " +
           "id/tracking/data-urn/srcset/script/style/comments dropped; URLs stripped of query and fragment; profile slugs and urn payloads sentinelised.",
       },
       reason: exp.reason,
@@ -794,4 +907,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { DEGREE_RE, SHORT_NOISE_RE, labelClusters, postHasLabel, expectationFor, LABEL_MAP_PATH };
+module.exports = { DEGREE_RE, SHORT_NOISE_RE, LABEL_FAMILIES, labelClusters, matchLabelText, postLabelText, postHasLabel, detectFamilies, expectationFor, LABEL_MAP_PATH };

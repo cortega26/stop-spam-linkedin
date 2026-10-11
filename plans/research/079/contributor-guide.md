@@ -73,30 +73,43 @@ label is not in that list, the markup differs from what the script expects — s
 that output and the selectors get fixed. If nothing looks wrong, raise the scroll
 budget with `--max-scrolls 30`.
 
-### Language — nothing assumes English
+### Language — detected, not requested
 
-The UI locale is read from the page, and the label that marks a Suggested post is
-taken from the page as well. It is **never guessed and never translated.** One of
-three things happens:
+**You do not type the label.** The tool reads your UI language from the page
+(`document.documentElement.lang`) and then finds the label itself, using a small
+per-language list of label *families* — stems, not exact strings:
 
-1. **You pass it** — `--suggested-label "Sugerido para ti"`.
-2. **It is remembered** — the first time you confirm a label for a locale it is
-   saved to `~/.cache/ss-capture-labels.json`, so later runs in that locale need
-   nothing. `--forget-labels` clears it.
-3. **It asks** — if neither is available, it prints the label strings it found in
-   post headers (excluding connection degrees like `• 2º` / `• 2nd` / `3ᵉʳ`) and
-   you pick one. One keystroke, once per locale.
+| UI language | families tried |
+|---|---|
+| es | `Sugerido`, `Sugerencias`, `Recomendado`, `Promocionado`, `Patrocinado` |
+| en | `Suggested`, `Promoted` |
+| fr | `Suggéré`, `Suggestion`, `Recommandé`, `Sponsorisé` |
+| pt | `Sugerido`, `Sugestão`, `Sugestões`, `Recomendado`, `Patrocinado` |
+| de | `Vorgeschlagen`, `Empfohlen`, `Gesponsert`, `Anzeige` |
 
-`metadataLocale` on each entry is set from **your** UI locale, not from a
-hardcoded `"en"`.
+A family is a **stem**: `Sugerido` matches `Sugerido`, `Sugerido para ti` and
+`Sugerido · Acme`. When several variants appear, the tool reports each one and
+**preserves the exact string it found** per post, so the recorded markup keeps
+whatever LinkedIn actually rendered.
 
-**Your Spanish feed works out of the box.** There is one important consequence
-worth knowing: the candidate detector is deliberately **English-only**
-(`068/detector.cjs:29-31`), so a Spanish label must *fail open* — it should match
-nothing. The script therefore records a Spanish capture as a **negative control**
-asserting fail-open, and the gate passes. That is not a workaround; the non-English
-label is an explicitly required part of the §3 set, and it is the evidence needed
-before Spanish labels could ever be added deliberately.
+This is not the "guessed translation" that `071/protocol.md` §4 forbids. That
+rule governs the **detector's** accepted labels, which must be established by
+capture. Here the list is only a *finder*: if a family is wrong the tool finds
+nothing and says so. It never asserts what LinkedIn renders — the capture does.
+
+If nothing matches, the tool lists the header strings it did find and suggests
+the stem to use, so the answer is always on screen:
+
+```
+  1. "Sugerido para ti"   (1 post)  <- label-like
+  ...
+Re-run naming the leading word of the right one; it is treated as a stem:
+  --suggested-label "Sugerido"
+```
+
+`--suggested-label` still works if you want to force a family, and the chosen
+stem is remembered per locale in `~/.cache/ss-capture-labels.json`
+(`--forget-labels` clears it).
 
 Progress is reported accordingly:
 

@@ -82,7 +82,7 @@
     },
     "capture-live.cjs": {
       "role": "PRIMARY capture path. Connects over loopback CDP to a browser it launches (dedicated profile; the user's normal Chrome is never touched or closed), reads the posts already rendered, classifies them by Suggested label, extracts and sanitises in memory, and stages ten-key entries.",
-      "sha256": "cc2f9af51f394692bf598e99ded5b417f38335fd38197a04d81309863e0be8f8",
+      "sha256": "9eab4cfcea74f69d137a0804af8f6901e64d5797d1d6f73c8e5eadca34330b63",
       "rawMarkupTouchesDisk": false,
       "doesNot": [
         "click",
@@ -109,11 +109,11 @@
       "scrollReporting": "Honest stop reporting: gather() returns stepsRun and stoppedReason ('target-reached', 'feed-stopped-growing', or 'budget'), and the failure message distinguishes 'the feed stopped yielding new posts, so raising --max-scrolls will not help' from 'budget exhausted, try a larger one'. An earlier version hardcoded the budget into the message and claimed 'scrolled 12 times' after only four iterations -- a user reported the output as suspiciously fast, and the message was simply false.",
       "scrollMechanism": "Growth is detected by the identity of the TAIL post changing, because LinkedIn unmounts posts as it mounts others so a raw count can stay flat while new content loads. Scrolling uses scrollIntoView on the last post rather than window.scrollBy, so it works whether LinkedIn scrolls the window or an inner container. An earlier version compared the deduped seen-count against the raw DOM count, which was incomparable and made the loop give up almost immediately.",
       "selectorOverride": "--meta-selector SEL overrides the header-metadata selector. A selector validity pre-flight asks the browser's own parser, so an invalid selector names the CSS error; a valid-but-zero-match selector is reported explicitly rather than silently finding nothing.",
-      "labelDetection": "CLASS-INDEPENDENT. --diagnose on the reporting user's live feed showed LinkedIn now serves hashed atomic class names (gflljw, gflkzy, gflkxr, ...) that change every deploy, and that its two legacy post selectors match ZERO posts. Any class-based selector for the header slot is therefore worthless. The reader instead collects SHORT TEXT strings from every element in each post and matches the declared label by EXACT equality, which is deploy-proof and language-proof. --meta-selector remains available as an additive source."
+      "labelDetection": "CLASS-INDEPENDENT and LANGUAGE-AUTO-DETECTING. --diagnose on the reporting user's live feed showed LinkedIn now serves hashed atomic class names (gflljw, gflkzy, gflkxr, ...) that change every deploy, and that its two legacy post selectors match ZERO posts, so any class-based header selector is worthless. The reader collects SHORT TEXT from every element in each post and matches a per-language label FAMILY, where a family is a stem: Sugerido matches Sugerido, Sugerido para ti and 'Sugerido . Acme'. The exact string found is preserved per post. Families cover en/es/fr/pt/de and are a FINDER only, never an assertion about what LinkedIn renders - the capture is what establishes that. --suggested-label forces a family; the chosen stem is remembered per locale."
     },
     "capture-live.test.cjs": {
       "role": "Offline tests for the language handling (no browser needed): degree detection across locales, label clustering, and the positive/fail-open-negative decision.",
-      "count": 12
+      "count": 17
     }
   },
   "leakVerifierRules": [
@@ -342,6 +342,21 @@
       "command": "capture-live.cjs against a feed that stops yielding posts",
       "expected": "say the budget was NOT the limit",
       "actual": "exit 1 with 'the feed stopped yielding new posts after 3 scroll(s). The scroll budget was NOT the limit, so raising --max-scrolls will not help.'"
+    },
+    {
+      "command": "capture-live.cjs with NO label flag against a Spanish fixture",
+      "expected": "auto-detect the Spanish label family without being told",
+      "actual": "exit 0; detected family Sugerido for locale es, reported both variants ('Sugerido para ti' x1 and 'Sugerido - Analitica del Norte' x1), and preserved each post's ACTUAL label string verbatim"
+    },
+    {
+      "command": "capture-live.cjs --use-language de against the Spanish fixture",
+      "expected": "find nothing and show the strings it did find",
+      "actual": "exit 0 with the header strings listed and a suggested stem to re-run with"
+    },
+    {
+      "command": "node --test plans/research/079/capture-live.test.cjs",
+      "expected": "exit 0",
+      "actual": "exit 0 (tests 17, pass 17, fail 0)"
     }
   ],
   "productionFiles": [],

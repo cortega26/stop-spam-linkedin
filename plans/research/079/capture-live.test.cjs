@@ -12,7 +12,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { DEGREE_RE, SHORT_NOISE_RE, labelClusters, postHasLabel, expectationFor } = require("./capture-live.cjs");
+const { DEGREE_RE, SHORT_NOISE_RE, LABEL_FAMILIES, labelClusters, matchLabelText, postLabelText, postHasLabel, detectFamilies, expectationFor } = require("./capture-live.cjs");
 
 /* ── connection-degree detection (must never eat a real label) ─────────── */
 
@@ -105,16 +105,18 @@ test("expectationFor is locale-aware and never hardcodes English metadata", () =
 
 /* ── class-independent label detection ────────────────────────────────── */
 
-test("postHasLabel matches by exact text, never by class", () => {
+test("postHasLabel matches by text, never by class", () => {
   /* LinkedIn's current feed uses hashed atomic classes (gflkzy, gflkxr, ...)
      that change every deploy, so the label can only be found by its text. */
   const labelled = { shortTexts: ["• 2º", "Sugerido para ti", "Esta publicacion la sugiere el algoritmo."] };
+  const withSeparator = { shortTexts: ["Sugerido · Analitica del Norte"] };
   const bodyOnly = { shortTexts: ["• 1er", "Un articulo sobre contenido sugerido y como evitarlo."] };
-  assert.equal(postHasLabel(labelled, "Sugerido para ti"), true);
-  assert.equal(postHasLabel(bodyOnly, "Sugerido para ti"), false);
-  /* A substring mention must NOT count as the label. */
-  assert.equal(postHasLabel({ shortTexts: ["Sugerido para ti y algo mas"] }, "Sugerido para ti"), false);
-  assert.equal(postHasLabel({}, "Sugerido para ti"), false);
+  assert.equal(postHasLabel(labelled, "Sugerido"), true);
+  assert.equal(postHasLabel(withSeparator, "Sugerido"), true);
+  assert.equal(postHasLabel(bodyOnly, "Sugerido"), false, "a body mention must not count");
+  /* A bare substring with no separator is not a label occurrence either. */
+  assert.equal(postHasLabel({ shortTexts: ["SugeridoX"] }, "Sugerido"), false);
+  assert.equal(postHasLabel({}, "Sugerido"), false);
 });
 
 test("SHORT_NOISE_RE filters counts, timestamps and UI verbs, not labels", () => {
@@ -140,4 +142,56 @@ test("labelClusters ranks label-like strings above short post bodies", () => {
   assert.equal(clusters.find((c) => c.text === "Una nota normal de mi red.").labelLike, false);
   /* Degrees never appear. */
   assert.ok(!texts.includes("• 2º"));
+});
+
+/* ── language auto-detection ──────────────────────────────────────────── */
+
+test("matchLabelText treats a family as a stem, not an exact string", () => {
+  assert.equal(matchLabelText("Sugerido", "Sugerido"), "Sugerido");
+  assert.equal(matchLabelText("Sugerido para ti", "Sugerido"), "Sugerido para ti");
+  assert.equal(matchLabelText("Sugerido \u00b7 Acme", "Sugerido"), "Sugerido \u00b7 Acme");
+  /* A bare substring must NOT match: "Sugerido" inside a sentence is a body mention. */
+  assert.equal(matchLabelText("Un articulo sobre contenido sugerido", "Sugerido"), null);
+  assert.equal(matchLabelText("", "Sugerido"), null);
+  assert.equal(matchLabelText("Sugerido", ""), null);
+});
+
+test("postLabelText returns the ACTUAL string, so variants keep their own wording", () => {
+  const a = { shortTexts: ["\u2022 2\u00ba", "Sugerido para ti", "cuerpo"] };
+  const b = { shortTexts: ["Sugerido \u00b7 Analitica del Norte"] };
+  const c = { shortTexts: ["\u2022 1er", "Un articulo sobre contenido sugerido"] };
+  assert.equal(postLabelText(a, "Sugerido"), "Sugerido para ti");
+  assert.equal(postLabelText(b, "Sugerido"), "Sugerido \u00b7 Analitica del Norte");
+  assert.equal(postLabelText(c, "Sugerido"), null, "a body mention must not count");
+  assert.equal(postHasLabel(c, "Sugerido"), false);
+});
+
+test("detectFamilies auto-detects without a flag, longest family first", () => {
+  const candidates = [
+    { shortTexts: ["\u2022 2\u00ba", "Una nota normal."] },
+    { shortTexts: ["Sugerido para ti"] },
+    { shortTexts: ["Sugerido \u00b7 Analitica del Norte"] },
+    { shortTexts: ["Promocionado"] },
+  ];
+  const found = detectFamilies(candidates, "es");
+  const families = found.map((f) => f.family);
+  assert.ok(families.includes("Sugerido"));
+  assert.equal(found.find((f) => f.family === "Sugerido").posts, 2);
+  /* Both real variants are reported, so the exact wording is visible. */
+  const variants = found.find((f) => f.family === "Sugerido").variants.map((v) => v.text);
+  assert.deepEqual(variants.sort(), ["Sugerido \u00b7 Analitica del Norte", "Sugerido para ti"].sort());
+});
+
+test("detectFamilies is language-aware and reports nothing for a language that does not apply", () => {
+  const spanishFeed = [{ shortTexts: ["Sugerido para ti"] }];
+  assert.equal(detectFamilies(spanishFeed, "es").length, 1);
+  assert.equal(detectFamilies(spanishFeed, "de").length, 0, "German families must not match Spanish text");
+});
+
+test("every supported language has a family list, and none is empty", () => {
+  for (const [lang, families] of Object.entries(LABEL_FAMILIES)) {
+    assert.ok(Array.isArray(families) && families.length > 0, `${lang} has families`);
+    for (const f of families) assert.equal(typeof f, "string");
+  }
+  for (const lang of ["en", "es", "fr", "pt", "de"]) assert.ok(LABEL_FAMILIES[lang], `${lang} present`);
 });
