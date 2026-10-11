@@ -73,6 +73,7 @@ const nodeGlobals = {
   fetch: "readonly",
   FormData: "readonly",
   Blob: "readonly",
+  AbortSignal: "readonly",
 };
 
 const testBrowserGlobals = {
