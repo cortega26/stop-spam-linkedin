@@ -69,7 +69,7 @@
     },
     "one-shot-capture.sh": {
       "role": "One-command admission for the terminal half: discover capture -> sanitise -> verify zero leaks -> build the ten-key entry -> stage -> report protocol section 3 progress; --admit merges and runs the unmodified 071 gate",
-      "sha256": "343d588eb190ea7ff961b9b208c33d9f03c11c9d83d210aaa3cee9e3a0d25437",
+      "sha256": "a47642de40533d350e8dae543e5d39afaec2a5ef7bd454df7a10afaf9f1165ab",
       "safeByDefault": "Entries go to plans/research/079/staged-entries.json (now gitignored). cases-real.json is never modified until --admit. --dry-run writes nothing.",
       "doesNot": [
         "reach the browser or any LinkedIn session (no CDP endpoint exists, and section 1a permits only an owner-started session)",
@@ -77,7 +77,24 @@
         "hand-patch markup: a leak finding aborts and tells the user to report the shape instead"
       ],
       "verifiedEndToEnd": "Staged one positive and one body-mention negative built from a simulated capture, ran --admit, and the UNMODIFIED 071 gate passed 7/7 (2 per-entry detector outcomes + 5 gate tests: ten-key schema, scanRoot enum, provenance, id dedupe, sanitization). cases-real.json was then reverted to [] so no synthetic entry remains in the real corpus.",
-      "guideMode": "--guide prints the browser-side walkthrough; a missing capture file prints the same walkthrough instead of a bare pointer, because the terminal half cannot run before the browser half."
+      "guideMode": "--guide prints the browser-side walkthrough; a missing capture file prints the same walkthrough instead of a bare pointer, because the terminal half cannot run before the browser half.",
+      "gateFailureOutput": "A failing --admit gate now prints the failing assertion names and the pass/fail counts, then interprets the failure: a 'scan matches expectedTarget' failure on a positive is mapped to the two known causes (label grammar, per F-01; container shape) so it is recorded as a finding rather than read as breakage."
+    },
+    "capture-live.cjs": {
+      "role": "PRIMARY capture path. Connects over loopback CDP to a browser it launches (dedicated profile; the user's normal Chrome is never touched or closed), reads the posts already rendered, classifies them by Suggested label, extracts and sanitises in memory, and stages ten-key entries.",
+      "sha256": "6e5f08189062bc9be457a43b7f4f6109f342a2e4e21478b89d9e0b42f6510b65",
+      "rawMarkupTouchesDisk": false,
+      "doesNot": [
+        "click",
+        "scroll",
+        "navigate",
+        "log in for the user",
+        "send anything off the machine"
+      ],
+      "protocolPosition": "Single-shot, human-invoked, own-session, bounded to the section 3 minimum set - the form permitted by 071/protocol.md section 1a.",
+      "autoDerivedLabel": "The label phrase to preserve is derived from the captured header metadata (text up to a ' - ' separator), so the exact string the detector keys on survives without the user guessing it.",
+      "verified": "Exercised end to end against a synthetic fixture served on loopback with a throwaway Chrome on a debug port (never against LinkedIn): CDP connect, 7 candidates classified, the Suggested post correctly flagged, label auto-derived as 'Suggested for you', entries built, sanitised to 0 leaks, staged. Raw markup never written to disk. Not covered by the automated test suite because it requires a CDP browser; verified by that run.",
+      "testHook": "--url-match exists so the script can be pointed at a local fixture; it is the only reason that flag is a flag."
     }
   },
   "leakVerifierRules": [
@@ -231,6 +248,21 @@
       "command": "plans/research/079/one-shot-capture.sh --id <id> --label <label>  (with a capture present in ~/Downloads)",
       "expected": "auto-discover the newest capture, sanitise, stage, report progress",
       "actual": "exit 0; auto-discovered /home/<user>/Downloads/capture-suggested-01.html, leak findings 0, staged; simulated capture and staged entry removed afterwards and cases-real.json left at []"
+    },
+    {
+      "command": "node plans/research/079/capture-live.cjs --attach --port <test> --dry-run (against a loopback fixture)",
+      "expected": "connect, classify, derive the label, build entries, write nothing",
+      "actual": "exit 0; 7 candidates, 1 positive correctly flagged, label auto-derived 'Suggested for you'; nothing written"
+    },
+    {
+      "command": "node plans/research/079/capture-live.cjs --attach --port <test> (against a loopback fixture)",
+      "expected": "stage sanitised entries; cases-real.json untouched",
+      "actual": "exit 0; 2 entries staged, 0 leaks; corpus confirmed [] afterwards and the staged file removed"
+    },
+    {
+      "command": "plans/research/079/one-shot-capture.sh --admit (with a 'Suggested for you' positive)",
+      "expected": "gate fails and the failure is legible",
+      "actual": "exit 1; failing assertion named, counts shown, failure interpreted as finding F-01 (the label grammar); corpus reverted to [] afterwards"
     }
   ],
   "productionFiles": [],

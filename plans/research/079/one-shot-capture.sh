@@ -159,13 +159,38 @@ if [ "$ADMIT" -eq 1 ]; then
   ok "corpus updated"
   echo
   printf '%s\n' "${DIM}running the unmodified plan-071 gate...${OFF}"
-  if node --test "$GATE"; then
+  GATE_LOG="$(mktemp)"
+  if node --test "$GATE" >"$GATE_LOG" 2>&1; then
+    grep -E "^ℹ (tests|pass|fail)" "$GATE_LOG" | sed 's/^/  /'
     ok "plan-071 gate passed"
+    echo
+    printf '%s\n' "  Next: re-run  plans/research/068/  against the corpus and record the verdict."
+    rm -f "$GATE_LOG"
   else
-    warn "the gate FAILED. That is a finding, not a bug to paper over:"
-    warn "  · if 'scan matches expectedTarget' failed on a positive, the label or container shape"
-    warn "    your capture reveals is not what the detector expects — record it per protocol §5."
-    warn "  · revert with: git checkout -- plans/research/071/cases-real.json"
+    echo
+    printf '%s\n' "${RED}gate FAILED${OFF} — these assertions did not hold:"
+    echo
+    grep -E "^✖ |AssertionError" "$GATE_LOG" | grep -v "failing tests:" | sed 's/^/  /' | head -20
+    echo
+    grep -E "^ℹ (tests|pass|fail)" "$GATE_LOG" | sed 's/^/  /'
+    echo
+    printf '%s\n' "${YEL}This is a FINDING, not a bug to paper over (protocol §5).${OFF}"
+    if grep -q "scan matches expectedTarget" "$GATE_LOG"; then
+      printf '%s\n' "  A 'scan matches expectedTarget' failure on a POSITIVE means the detector did not"
+      printf '%s\n' "  target the post your capture shows. Two known causes, both real results:"
+      printf '%s\n' "    · the label grammar: matchesLabel accepts only 'Suggested' or 'Suggested · x'."
+      printf '%s\n' "      A fuller label such as 'Suggested for you' yields zero targets (finding F-01)."
+      printf '%s\n' "    · the container shape: only [data-id*=urn:li:activity:] and"
+      printf '%s\n' "      .feed-shared-update-v2 are enumerated, not the modern listitem shape."
+      printf '%s\n' "  Record which one your capture shows, then decide whether to widen the detector."
+    else
+      printf '%s\n' "  A schema/provenance/dedupe failure means the entry itself is malformed — send me"
+      printf '%s\n' "  the output above."
+    fi
+    echo
+    printf '%s\n' "  Keep the corpus to inspect, or revert with:"
+    printf '%s\n' "    git checkout -- plans/research/071/cases-real.json"
+    rm -f "$GATE_LOG"
     exit 1
   fi
   exit 0

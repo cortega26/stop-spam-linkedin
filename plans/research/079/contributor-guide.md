@@ -5,12 +5,14 @@ has never had: **a sanitised, real capture from a logged-in feed.** Plans 068 an
 071 both closed `insufficient-data` with zero real samples, so the filter stays
 unbuilt. This guide plus `sanitize.cjs` is the whole ask — about five minutes.
 
-**Rules first.** `plans/research/071/protocol.md` §1 (manual capture) and §2
-(sanitisation) remain the authority on how a capture is made and cleaned. This
-guide only adds the tooling step. The hard rules, unchanged for contributors:
-**manual copy-paste only** — no scrapers, no extensions, no automation against
-LinkedIn, no test accounts, no guessed translations. If you cannot obtain a
-capture class, that is recorded as an attempt, never fabricated.
+**Rules first.** `plans/research/071/protocol.md` §1 (capture) and §2
+(sanitisation) remain the authority on how a capture is made and cleaned; this
+guide only adds tooling. **For outside contributors the rule is unchanged:**
+manual copy-paste only — no scrapers, no extensions, no automation against
+LinkedIn, no test accounts, no guessed translations. The repository owner has one
+additional option: the bounded **authorized collector** in §1a, used by the fast
+path below. If a capture class cannot be obtained, that is recorded as an
+attempt, never fabricated.
 
 > **Note for the repository owner.** `071/protocol.md` §1a defines a narrowly
 > bounded **authorized collector** (owner-only, own logged-in feed, single-shot
@@ -21,29 +23,46 @@ capture class, that is recorded as an attempt, never fabricated.
 
 ---
 
-## Fast path — one command per capture
+## Fast path — two commands, no copy-paste
 
-**The browser step comes first.** The script has no access to your browser, so
-you capture the post yourself (Routes A/B in §1), and the script does the rest.
-If you run it before capturing anything it prints a step-by-step walkthrough
-rather than failing silently — or ask for it any time:
-
-```bash
-plans/research/079/one-shot-capture.sh --guide
-```
-
-Then, once you have a capture file:
+**Recommended.** One command opens a dedicated Chrome (your normal Chrome is never
+touched or closed) and reads the feed directly. A second stages the entries.
 
 ```bash
 cd /path/to/stop-spam-linkedin
 
-# positive (a real Suggested post)
+# 1. capture straight from the browser
+node plans/research/079/capture-live.cjs
+```
+
+First run: a Chrome window opens and you **log into LinkedIn there once**. That
+profile persists, so later runs need nothing. Then:
+
+```bash
+# 2. merge what you captured and run the gate
+plans/research/079/one-shot-capture.sh --admit
+```
+
+`capture-live.cjs` reads the posts already rendered, picks the ones carrying a
+`Suggested` label, and **sanitises them in memory — the raw markup never touches
+disk at all.** It does not click, scroll, navigate, or log in for you. It is the
+single-shot, human-invoked, own-session form permitted by `071/protocol.md` §1a,
+capped at the §3 minimum set.
+
+If it says no Suggested post is in view, scroll the feed and run it again. Add
+`--dry-run` to preview without staging.
+
+### Alternative — file-based route
+
+If you would rather not have a second browser profile, capture the markup
+yourself and stage it from a file. The browser step comes first; the script does
+the rest. Run `plans/research/079/one-shot-capture.sh --guide` for a step-by-step
+walkthrough at any time (a missing capture file prints the same walkthrough
+instead of a bare error).
+
+```bash
 plans/research/079/one-shot-capture.sh --id suggested-01 --label "Suggested for you"
-
-# negative (a post that merely MENTIONS the word; must stay visible)
 plans/research/079/one-shot-capture.sh --id neg-body-01 --label "Suggested" --negative
-
-# non-English label, after switching your LinkedIn UI locale
 plans/research/079/one-shot-capture.sh --id suggested-es-01 --label "Sugerido" --locale es
 ```
 
