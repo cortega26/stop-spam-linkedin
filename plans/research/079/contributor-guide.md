@@ -23,34 +23,55 @@ attempt, never fabricated.
 
 ---
 
-## Fast path — two commands, no copy-paste
-
-**Recommended.** One command opens a dedicated Chrome (your normal Chrome is never
-touched or closed) and reads the feed directly. A second stages the entries.
+## Fast path — two commands, no copy-paste, no scrolling
 
 ```bash
 cd /path/to/stop-spam-linkedin
 
-# 1. capture straight from the browser
+# 1. capture
 node plans/research/079/capture-live.cjs
-```
 
-First run: a Chrome window opens and you **log into LinkedIn there once**. That
-profile persists, so later runs need nothing. Then:
-
-```bash
-# 2. merge what you captured and run the gate
+# 2. merge and check
 plans/research/079/one-shot-capture.sh --admit
 ```
 
-`capture-live.cjs` reads the posts already rendered, picks the ones carrying a
-`Suggested` label, and **sanitises them in memory — the raw markup never touches
-disk at all.** It does not click, scroll, navigate, or log in for you. It is the
-single-shot, human-invoked, own-session form permitted by `071/protocol.md` §1a,
-capped at the §3 minimum set.
+**It reuses your own Chrome profile, so your LinkedIn session is already there —
+no login.** Chrome must be closed for the script to attach to it; the script
+detects that and offers to close and relaunch it for you (same profile, so your
+logins survive). Pass `--close-chrome` to skip the question, or
+`--dedicated-profile` if you would rather use a throwaway profile.
 
-If it says no Suggested post is in view, scroll the feed and run it again. Add
-`--dry-run` to preview without staging.
+**It scrolls the feed itself.** No "scroll and re-run" — it walks down the feed
+until it has enough posts, deduplicating what it saw so earlier posts are not
+lost when LinkedIn unmounts them. You will see it count as it goes:
+
+```
+    2 post(s) collected (scroll 0/12)
+    6 post(s) collected (scroll 1/12)
+```
+
+**Language:** the UI locale and the label both come from the page; neither is
+guessed or translated (details below).
+
+`capture-live.cjs` **sanitises in memory — the raw markup never touches disk.** It
+does not click, navigate, or log in for you. It is the single-shot,
+human-invoked, own-session form permitted by `071/protocol.md` §1a, capped at the
+§3 minimum set. Add `--dry-run` to preview without staging, `--quit-when-done` to
+close the capture window at the end.
+
+### If it finds no Suggested post
+
+Run the census, which reports exactly what the page looks like to the script:
+
+```bash
+node plans/research/079/capture-live.cjs --diagnose
+```
+
+It prints the URL, UI locale, how many posts each selector family matched, and the
+distinct header strings it can read. If a Suggested post is on screen but its
+label is not in that list, the markup differs from what the script expects — send
+that output and the selectors get fixed. If nothing looks wrong, raise the scroll
+budget with `--max-scrolls 30`.
 
 ### Language — nothing assumes English
 

@@ -46,7 +46,7 @@ the finding that justifies the plan; it is pinned as a regression guard in
 |---|---|
 | `sanitize.cjs` | **Producer.** Turns a pasted capture into protocol-§2-clean markup. Zero dependencies, fail-closed. |
 | `sanitize.test.cjs` | 34 tests: the Step-0 gap, §2.1–§2.4 behaviour, §2.2 structural preservation, phrase-level labels, and an end-to-end run against the unmodified 071 gate. |
-| `capture-live.cjs` | **Primary capture path.** Connects over loopback CDP to a browser it launches (dedicated profile; the user's normal Chrome is never touched), reads the rendered feed, and stages sanitised entries. Language-agnostic: the UI locale comes from the page and the label comes from the page or a remembered per-locale choice — never guessed. Raw markup never touches disk. |
+| `capture-live.cjs` | **Primary capture path.** Connects over loopback CDP, **reusing the user's own Chrome profile so the existing LinkedIn session applies — no login**. Scrolls the feed itself (no "scroll and re-run"), deduping across rounds. Stages sanitised entries; raw markup never touches disk. Language-agnostic: UI locale and label both come from the page, never guessed. `--diagnose` reports a selector census when something does not match. |
 | `capture-live.test.cjs` | Offline tests for the language handling: degree detection, label clustering, and the positive/fail-open-negative decision. |
 | `capture-helper.js` | **Optional** DevTools Console snippet: lists recognised post containers, flags which carry a `Suggested` label, and saves one to `~/Downloads`. Not required — §1 manual copy-paste remains sufficient. |
 | `one-shot-capture.sh` | **One command** for the terminal half: discover capture → sanitise → verify 0 leaks → build the ten-key entry → stage → report §3 progress. `--admit` merges and runs the unmodified 071 gate. Safe by default (staging only; `cases-real.json` untouched until `--admit`). |
@@ -206,6 +206,20 @@ page: passed with `--suggested-label`, remembered per locale in
 actually present in the header metadata. It is **never guessed and never
 translated** — the same principle `068/detector.cjs:29-31` and `071/protocol.md`
 §4 apply to the detector.
+
+Two usability decisions worth recording, because the first version got both
+wrong and a tool nobody can run is not a tool:
+
+* **Session reuse beats isolation.** The tool previously defaulted to a throwaway
+  profile, which meant a fresh LinkedIn login (and, in practice, a device
+  challenge). It now defaults to the user's real profile; Chrome must be closed
+  for that, so the script detects a running Chrome and offers to close and
+  relaunch it, aborting if it will not exit. `--dedicated-profile` restores the
+  isolated behaviour.
+* **The tool scrolls, not the user.** "Scroll and re-run" is not an instruction,
+  it is an abdication. The feed is now walked automatically, with candidates
+  deduped across rounds because LinkedIn unmounts posts as they leave the
+  viewport. It stops when the feed stops growing or the budget runs out.
 
 A consequence worth stating plainly: the candidate detector is deliberately
 English-only, so a non-English label must **fail open**. The capture path

@@ -82,11 +82,10 @@
     },
     "capture-live.cjs": {
       "role": "PRIMARY capture path. Connects over loopback CDP to a browser it launches (dedicated profile; the user's normal Chrome is never touched or closed), reads the posts already rendered, classifies them by Suggested label, extracts and sanitises in memory, and stages ten-key entries.",
-      "sha256": "17793482dcd8087a8bc4c65bc93c988a6a385f13eda4a9f208a8b47ecf7a3cd0",
+      "sha256": "5f56d9a8f29d5cc30be9d0253df73532e581ae5fed2689b9f3c84cc68b50eda1",
       "rawMarkupTouchesDisk": false,
       "doesNot": [
         "click",
-        "scroll",
         "navigate",
         "log in for the user",
         "send anything off the machine"
@@ -102,7 +101,11 @@
         "degreeFilter": "Connection degrees (bullet+ordinal) are excluded from the candidate list so the pick is short. Anchored on purpose: a trailing \\b silently fails on Unicode ordinals such as 'º' because that character is not a word character to JavaScript's \\b - a real bug found and fixed during testing.",
         "expectationLogic": "Whether an entry is a positive or a documented fail-open negative is derived from the project's DOCUMENTED intent (English-only labels; legacy-only enumeration), not from the detector's live behaviour - deriving it from live behaviour would make the gate a tautology and unable to catch a regression.",
         "consequenceForNonEnglishUsers": "A Spanish capture is recorded as a negative control asserting fail-open, and the gate passes. The non-English label is an explicitly required part of the 071 section 3 set, so the contribution is legitimate and necessary - it is the evidence needed before non-English labels could be added deliberately."
-      }
+      },
+      "reusesUserProfile": "DEFAULT is the user's own Chrome user-data-dir and profile directory, so the existing LinkedIn session is reused and no login is needed. Chrome must be closed to attach to that profile; the script detects a running Chrome and offers to close+relaunch it (SIGTERM, 20s grace, aborts if it will not exit). --close-chrome/-y skip the question; --dedicated-profile keeps a throwaway profile; --attach uses an existing debug port.",
+      "autoScroll": "Scrolls the feed itself instead of asking the user to scroll and re-run. Dedupes candidates across rounds by HTML prefix because LinkedIn unmounts posts as they leave the viewport; stops when the feed stops growing, an accept predicate is met, or the scroll budget runs out (--max-scrolls, default 12). Progress is printed as 'N post(s) collected (scroll i/budget)'.",
+      "diagnoseMode": "--diagnose prints a selector census (per-family match counts, META_SELECTOR match count, distinct header strings, URL, UI locale) and exits without staging, so a selector mismatch becomes a fact rather than a guess. Output contains header-slot strings only (degree/label), not post bodies.",
+      "extensionsDisabledByDefault": "Extensions are disabled during capture unless --with-extensions: a content script that rewrites the DOM (including this repo's own extension) makes the capture worse evidence about what LinkedIn rendered."
     },
     "capture-live.test.cjs": {
       "role": "Offline tests for the language handling (no browser needed): degree detection across locales, label clustering, and the positive/fail-open-negative decision.",
@@ -285,6 +288,36 @@
       "command": "capture-live.cjs --attach against a Spanish (lang=\"es\") loopback fixture",
       "expected": "detect es, offer the real label strings, record fail-open negatives, pass the gate",
       "actual": "exit 0; clusters were ['Sugerido para ti','Promocionado'] (degree '• 2º' correctly excluded); metadataLocale 'es'; 2 negatives recorded with the fail-open reason; one-shot-capture.sh --admit then ran the unmodified 071 gate and it passed 7/7. Interactive pick verified on a pty and remembered to ~/.cache/ss-capture-labels.json; a later run used the remembered label with no prompt. Corpus reverted to [] and the label map removed afterwards."
+    },
+    {
+      "command": "capture-live.cjs --attach against a fixture whose Suggested post only appears after scrolling",
+      "expected": "scroll, find the label, stage without user scrolling",
+      "actual": "exit 0; collected 2 -> 6 -> 8 posts across scroll steps and found both labelled posts"
+    },
+    {
+      "command": "capture-live.cjs --diagnose against the same fixture",
+      "expected": "selector census, no staging",
+      "actual": "exit 0; 8 matches per selector family, 8 META_SELECTOR matches, distinct header strings listed"
+    },
+    {
+      "command": "capture-live.cjs with a running Chrome and no --close-chrome (non-TTY)",
+      "expected": "abort with instructions, never kill the browser",
+      "actual": "exit 1; Chrome verified still running afterwards"
+    },
+    {
+      "command": "capture-live.cjs with an interactive prompt answered 'n'",
+      "expected": "abort, never kill the browser",
+      "actual": "aborted; Chrome verified still running afterwards. The 'y' path was NOT exercised, deliberately, to avoid closing the user's browser."
+    },
+    {
+      "command": "capture-live.cjs <unknown flag>",
+      "expected": "fail loudly",
+      "actual": "exit 1 with 'unknown option' (an earlier patch silently ignored --diagnose because unknown flags were swallowed)"
+    },
+    {
+      "command": "capture-live.cjs --attach (fixture) then one-shot-capture.sh --admit",
+      "expected": "stage 3 negatives, gate passes",
+      "actual": "exit 0; staged 3 entries, gate 8/8; corpus reverted to [] afterwards"
     }
   ],
   "productionFiles": [],
