@@ -5,11 +5,19 @@ has never had: **a sanitised, real capture from a logged-in feed.** Plans 068 an
 071 both closed `insufficient-data` with zero real samples, so the filter stays
 unbuilt. This guide plus `sanitize.cjs` is the whole ask — about five minutes.
 
-**Rules first.** `plans/research/071/protocol.md` §1 and §2 remain the authority on
-how a capture is made and sanitised. This guide only adds the tooling step. The
-hard rules, unchanged: **manual copy-paste only** — no scrapers, no extensions,
-no automation against LinkedIn, no test accounts, no guessed translations. If you
-cannot obtain a capture class, that is recorded as an attempt, never fabricated.
+**Rules first.** `plans/research/071/protocol.md` §1 (manual capture) and §2
+(sanitisation) remain the authority on how a capture is made and cleaned. This
+guide only adds the tooling step. The hard rules, unchanged for contributors:
+**manual copy-paste only** — no scrapers, no extensions, no automation against
+LinkedIn, no test accounts, no guessed translations. If you cannot obtain a
+capture class, that is recorded as an attempt, never fabricated.
+
+> **Note for the repository owner.** `071/protocol.md` §1a defines a narrowly
+> bounded **authorized collector** (owner-only, own logged-in feed, single-shot
+> and human-invoked, bounded scale, raw capture never committed, only sanitised
+> output admitted). If you use it, everything from §2 onward in this guide is
+> unchanged, and the provenance class stays `user-contributed`. See
+> `plans/research/080/amendment.md` for the bounds and the reversal conditions.
 
 ---
 

@@ -192,9 +192,11 @@ npm run smoke && npm run lint && npm run typecheck && npm run test:unit
 
 ## 8. What this plan does NOT do
 
-* It does not obtain a capture. Only a human with a logged-in feed can do that,
-  and `071/protocol.md` §1.3 forbids automating it. This plan removes every
-  obstacle **after** the human step; it does not move that step.
+* It does not obtain a capture. Only someone with a logged-in LinkedIn feed can
+  do that: either a contributor capturing manually per `071/protocol.md` §1, or
+  the repository owner running the narrowly bounded authorized collector defined
+  in `071/protocol.md` §1a (see `plans/research/080/amendment.md`). This plan removes
+  every obstacle **after** the capture step; it does not move that step.
 * It does not modify 068's detector, 071's protocol or gate, or any production
   file.
 * It does not lower plan 071's §3 minimums (≥3 positives, ≥2 negatives, ≥1 layout

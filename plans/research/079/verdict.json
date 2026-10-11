@@ -207,7 +207,7 @@
     "content": "[] — unchanged; no synthetic entry was admitted, so 068 stays insufficient-data"
   },
   "notDone": [
-    "Obtaining a real capture. Only a human with a logged-in feed can do that, and 071/protocol.md §1.3 forbids automating it. This plan removes every obstacle after the human step; it does not move that step.",
+    "Obtaining a real capture. Only someone with a logged-in LinkedIn feed can do that: a contributor capturing manually per 071/protocol.md section 1, or the repository owner running the narrowly bounded authorized collector defined in 071/protocol.md section 1a. This plan removes every obstacle after the capture step; it does not move that step.",
     "Lowering plan 071 §3 minimums (>=3 positives, >=2 negatives, >=1 layout variant). Untouched.",
     "Any precision, recall or false-positive claim. No real sample exists to compute one from."
   ],
@@ -228,5 +228,13 @@
     "URL paths are preserved: query and fragment are stripped and known identity slugs are rewritten, but the rest of a path survives. Host and route are structural evidence and LinkedIn media paths are opaque CDN hashes. A URL whose path spelled out a human name would not be caught. No heuristic was added because a name-shaped-slug guess would false-positive on ordinary paths and block legitimate donations.",
     "The STRUCTURAL_ATTRS allowlist is not exhaustive; an attribute whose value must survive but is not listed will be placeholdered. This fails visibly in the detector outcome, never silently.",
     "Sanitisation is a text-and-identity transformation, not a proof of non-identification. A capture still reveals that some post existed with some structure at some time; contributors are told to capture only the post container, never anything above it."
-  ]
+  ],
+  "governanceAmendment": {
+    "plan": "080",
+    "date": "2026-10-11",
+    "what": "071/protocol.md section 1.3 was re-specified (not deleted) into a narrowly bounded authorized-collector class (section 1a). Forward-only; 071/verdict.json is NOT edited.",
+    "effectOnThisPlan": "None mechanically. The contributor path, the sanitiser, the leak verifier, the ten-key entry schema and 071 section 3 minimums are all unchanged. The exception is owner-only and does not alter the provenance class.",
+    "record": "plans/research/080/amendment.md",
+    "reversalConditions": 5
+  }
 }

@@ -1,5 +1,15 @@
 # Implementation Plans
 
+## Governance amendment — 080 (authorized collector) at `66b9ec4`, 2026-10-11
+
+Forward-only amendment to plan 071's capture protocol. No production file,
+permission, dependency or release artefact touched. Verdict:
+**`amended-forward-only`**.
+
+| Item | Deliverable | Priority | Effort | Status |
+|---|---|---|---|---|
+| 080 | [Authorized-collector amendment](research/080/amendment.md) | P2 | S | DONE (2026-10-11, branch `research/080-authorized-collector-amendment`, chained on the 079 branch, local only — not pushed; **verdict: `amended-forward-only`** — the owner asked to *delete* `071/protocol.md` §1.3, which was declined as written and executed as a **re-specification** after adversarial review, because the premise was false: §1.3 banned only the *automation* while §1 already permitted capturing one's own feed, and deletion would have gained no capability (071's verdict cites *no contributor session* as the primary blocker) while silently widening the `user-contributed` provenance class, leaving the rule self-contradicting against its duplicate in `Forbidden`, and rotting a frozen SHA-pinned verdict. §1.3 now admits a narrowly bounded authorized-collector class (§1a) bounded on nine axes — owner-only, own logged-in feed, already-running session, single-shot human-invoked, scale-capped to the §3 minimums, raw capture never committed/attached/uploaded, §2 sanitisation plus an independent zero-leak check, **scope pin** (never ship a collector in the extension; zero-network and `data_collection_permissions: ["none"]` must stay true), non-circumvention. `Forbidden` reconciled; `user-contributed` restated in §0 as *source and consent, never transfer tooling*; plan 070's definition explicitly left governing the text corpus only. `071/verdict.json` is **deliberately not edited** (frozen, `baseSha 3aef7b9`): its `insufficient-data` verdict stands on unchanged facts and its citation of the former §1.3 is superseded by a dated note, not retro-amended. Five reversal conditions recorded. No minimum lowered, no provenance value changed, `cases-real.json` still `[]`. 071 5/5, 079 26/26, 068 17/17, full gate green incl. 82/82 unit + test:extension) |
+
 ## Research spike — 079 (Suggested-capture sanitiser) at `2fb25e3`, 2026-10-11
 
 Research-only prototype. No production file changed and no file under
