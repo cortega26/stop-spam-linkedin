@@ -452,6 +452,22 @@
       "uncertainty": "LinkedIn A/B-tests layouts, so this is one account at one time and must not be generalised to all users. Whether the modern listitem shape is a SAFE automatic container is still unproven: the counts show it matches posts, not that it only matches posts. That is exactly the acceptance question a real capture is needed for, and the repo already defers it (content.js:49-52, AGENTS.md:146).",
       "consistency": "This is consistent with AGENTS.md:146: the modern React shape was known only from competitor source because there were 'no first-hand authenticated LinkedIn samples'. It is now measured on a real feed.",
       "disposition": "REPORTED, deliberately not fixed. content.js:49-52 states that the modern selector is 'NOT used for automatic text, author, Suggested or sponsored filtering: real DOM acceptance is still required before broadening any automatic detection', and AGENTS.md:146 says 'do not enable new automatic filtering'. A production plan gated on a real capture should own the change."
+    },
+    {
+      "id": "F-06",
+      "claim": "Broadening the post enumerator was NECESSARY BUT NOT SUFFICIENT for the author blocklist. getAuthorId() resolves the author via AUTHOR_LINK_SELECTORS, which are all class-scoped to the legacy actor wrappers (.update-components-actor, .feed-shared-actor, .entity-result__title-text, [data-control-name*=actor]). On the modern hashed-class layout none match, so getAuthorId returns null and scanForBlockedAuthors can never identify a blocked author.",
+      "classification": "SOURCE-VERIFIED (content.js getAuthorId + shared/pattern-data.js AUTHOR_LINK_SELECTORS) + OBSERVED (proved failing-first: the modern-shape e2e assertion fails on code with only the enumerator fixed)",
+      "implication": "The user-visible Mute feature (persisted author blocklist) still does not work on the current LinkedIn layout, even after the enumerator fix.",
+      "disposition": "REPORTED, deliberately NOT fixed. A fallback to 'the first profile link in the post' would pick a mentioned person when the post body leads with a profile link, and muting the wrong member is worse than not muting. A real sample of the author region is required. The gap is pinned as a characterization test in tests/extension-interactions.js that must be inverted when fixed.",
+      "foundBy": "writing the modern-shape e2e test for F-05's fix"
+    },
+    {
+      "id": "F-07",
+      "claim": "The extension's Spanish promoted label was wrong. PROMOTED_LABELS carried 'Patrocinado', but the label LinkedIn actually rendered on a real es-locale feed was 'Promocionado' (observed 16 times). The opt-in Promoted filter could therefore never match on a Spanish UI, independently of the dead enumerators.",
+      "classification": "OBSERVED on a real feed (plan 079 census output: 'Promocionado' x16) + SOURCE-VERIFIED (shared/pattern-data.js PROMOTED_LABELS)",
+      "implication": "Two independent defects stacked on the same feature: a wrong label AND dead enumeration.",
+      "disposition": "FIXED. 'Promocionado' added to PROMOTED_LABELS; verified by a modern-shape e2e assertion that fails without it.",
+      "note": "This satisfies the protocol's capture-first rule rather than violating it: the label was directly observed on a real feed, not guessed."
     }
   ]
 }
