@@ -114,6 +114,25 @@ async function main() {
   console.log("\n--- summary en-US ---\n" + payload.summary["en-US"]);
   console.log("\n--- description en-US (first 600 chars) ---\n" + payload.description["en-US"].slice(0, 600));
 
+  if (process.argv.includes("--emit")) {
+    /* Chrome has no description API, so its half is a manual paste. Write the
+       plain text where it can be opened and copied, and keep it out of git. */
+    const dir = path.join(REPO_ROOT, "dist");
+    fs.mkdirSync(dir, { recursive: true });
+    const files = {
+      "chrome-short-en.txt": payload.summary["en-US"],
+      "chrome-detail-en.txt": payload.description["en-US"],
+      "chrome-short-es.txt": payload.summary["es-ES"],
+      "chrome-detail-es.txt": payload.description["es-ES"],
+    };
+    for (const [name, text] of Object.entries(files)) {
+      fs.writeFileSync(path.join(dir, name), text + "\n");
+    }
+    console.log(`\nWrote ${Object.keys(files).length} paste-ready files to dist/ (gitignored):`);
+    for (const name of Object.keys(files)) console.log(`  dist/${name}`);
+    return;
+  }
+
   if (checkOnly) {
     console.log("\n--check: nothing sent.");
     return;
