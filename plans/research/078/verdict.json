@@ -1,0 +1,225 @@
+{
+  "plan": "078",
+  "verdict": "inconclusive-live-evidence-unavailable",
+  "decidedAt": "2026-10-11",
+  "branch": "research/078-rea-pilot-evaluation",
+  "baseSha": "2fb25e3e9f893d34a4b2a3df85b415cd8b80a669",
+  "baseBranch": "main",
+  "repo": "https://github.com/cortega26/stop-spam-linkedin",
+  "workingTreeAtStart": "clean",
+  "noteOnBaseSha": "Local checkout was 3 commits behind at start (9b908d9) and was fast-forwarded to the live remote head 2fb25e3 before any inspection. 2fb25e3 == origin/main at execution time; this matched the externally referenced reference SHA.",
+  "tool": {
+    "name": "rea-agents",
+    "version": "6.4.0",
+    "upstream": "https://github.com/morluto/rea",
+    "executionMode": "CLI",
+    "mcpAvailable": false,
+    "mcpEvidence": "No rea_* tools in the active session tool catalog; doctor reports registration:opencode state=missing for /home/carlos/.config/opencode/opencode.jsonc; all 9 client registrations missing.",
+    "doctorHealthy": false,
+    "doctorNodeOk": "24.19.0",
+    "doctorFailures": [
+      "host: unsupported_host (linuxmint 22.3)",
+      "hopper: missing_analysis_engine",
+      "ghidra: missing_analysis_engine",
+      "ida-registration: missing_analysis_engine",
+      "skill:identity: config_drift",
+      "registration:* (9 clients): config_drift"
+    ],
+    "doctorIrrelevantFailures": "hopper/ghidra/ida are native-engine checks; this pilot required no native binary analysis.",
+    "doctorHostGateAssessment": "soft - all four REA operations used ran to completion on this host and returned Evidence"
+  },
+  "liveObservation": {
+    "status": "blocked",
+    "reasons": [
+      "No loopback CDP listener before the spike: ss -ltn showed no 9222/9223/9229; curl http://127.0.0.1:{9222,9223,9229}/json/version all failed.",
+      "The chrome-devtools MCP browser runs with --remote-debugging-pipe (not a TCP port), which list-browser-targets cannot consume, and it held only about:blank.",
+      "The user's main Chrome process tree has no --remote-debugging-port.",
+      "REA CDP surfaces are attach-only and never launch a browser, so they cannot create the missing target."
+    ],
+    "doesReaUnblockDecisiveCases": false,
+    "governanceConstraint": "plans/research/071/protocol.md section 1.3 - 'Manual copy-paste only. Scripts, extensions, scrapers, and bulk extraction are forbidden.' Automated LinkedIn collection is forbidden by this repo's own research governance."
+  },
+  "reaOperationsRun": [
+    {
+      "operation": "list_browser_targets",
+      "surface": "CLI",
+      "target": "http://127.0.0.1:9222 (dedicated fresh-profile Chrome started by this spike)",
+      "evidenceId": "ev_36d6a3ac452a6d400e682cb08adc65b347f62bcf638d9309d59be332846492a2",
+      "provider": "rea-cdp-browser@2",
+      "outcome": "succeeded",
+      "confidence": "observed",
+      "discoveredTargetId": "EB28F85EAD84051E50B68D0DC0957C49",
+      "targetIdNote": "browser-instance-specific, must be re-discovered at runtime; never fabricated"
+    },
+    {
+      "operation": "inspect_web_page",
+      "surface": "CLI",
+      "target": "same page, same target id",
+      "evidenceId": "ev_983c81bb7b90606af9cedbb7a0875117d8848b08b1797a3947dcb49c716210ba",
+      "provider": "rea-cdp-browser@2",
+      "outcome": "succeeded",
+      "confidence": "observed",
+      "completeness": "policy_filtered (conditions: attach_limited, policy_filtered)",
+      "observedFacts": {
+        "domTotalNodes": 103,
+        "accessibilityTotalNodes": 54,
+        "accessibilityRoleCounts": {
+          "RootWebArea": 1,
+          "none": 2,
+          "list": 1,
+          "listitem": 7,
+          "generic": 7,
+          "paragraph": 2,
+          "StaticText": 16,
+          "link": 2,
+          "InlineTextBox": 16
+        },
+        "nodeKeyUnion": [
+          "index",
+          "parent_index",
+          "node_type",
+          "node_name",
+          "node_value_length",
+          "attribute_names"
+        ],
+        "attributeValuesRetained": false,
+        "domTextRetained": false,
+        "accessibilityNamesRetained": false,
+        "hrefUrlsRetained": [
+          "http://127.0.0.1:8788/in/placeholder-a/",
+          "http://127.0.0.1:8788/in/placeholder-f/"
+        ],
+        "markerProbe": {
+          "urn:li:activity": false,
+          "Promoted": false,
+          "Suggested": false,
+          "expandable-text-box": false,
+          "mainFeed": false,
+          "feed-shared-update-v2": false
+        }
+      },
+      "noFlagCanEnableAttributeValuesOrDomText": "inspect-web-page opt-ins are accessibility text, console text, JSON body shapes, WebSocket shapes, script sources, storage keys, storage fingerprints - none enables attribute values or DOM text content"
+    },
+    {
+      "operation": "analyze_web_bundle",
+      "surface": "CLI",
+      "target": "same page, same target id",
+      "evidenceId": "ev_9a06a87e9aeb33e1d9b2e0ba2fdc49e8aa889301208dd66a635911c3c7b96409",
+      "provider": "rea-cdp-browser@2",
+      "outcome": "succeeded-but-not-applicable",
+      "confidence": "observed",
+      "detail": "scripts_observed 0, scripts_analyzed 0 - the synthetic fixture loads no scripts, so the surface is capability-verified but has nothing to analyze. Labelled NOT_APPLICABLE rather than manufactured into a benchmark."
+    },
+    {
+      "operation": "analyze_javascript_application",
+      "surface": "CLI",
+      "target": "/tmp/opencode/rea-pilot/ext-tree (isolated copy of shipped extension: 18 files, 364K)",
+      "evidenceId": "ev_a499b8e132fab26e82002e3a1abd7c51256bcbb551886215716f85f59eb96970",
+      "provider": "rea-javascript-application@1",
+      "outcome": "succeeded",
+      "confidence": "observed",
+      "subjectSha256": "215f586a23528b479f42d6e55cd9bd5236631618d1814eb1efbc76192528ff57",
+      "statistics": {
+        "relevant_files": 13,
+        "parsed_javascript_files": 8,
+        "visited_ast_nodes": 21968,
+        "text_bytes_read": 295588,
+        "parse_failures": 0,
+        "modules": 0,
+        "findings": 13
+      },
+      "highLevelGraph": {
+        "nodes": 27,
+        "edges": 36,
+        "edgeRelations": {"loads": 8, "contains": 23, "exposes": 3, "maps_to": 2},
+        "nodeKinds": {"artifact": 6, "javascript-asset": 8, "javascript-module": 11, "electron-renderer": 2},
+        "coverage": "partial"
+      },
+      "semanticGraph": {
+        "nodes": 14895,
+        "relations": 13597,
+        "relationKinds": {
+          "aliases": 4353,
+          "reads": 3435,
+          "captures": 1561,
+          "defines": 1325,
+          "reads-property": 1317,
+          "writes": 225,
+          "returns-to-call": 273,
+          "calls": 360,
+          "argument-to-parameter": 377,
+          "writes-property": 316,
+          "schedules-timer": 14,
+          "coerces": 14,
+          "detaches-task": 3,
+          "registers-listener": 7,
+          "creates-promise": 7,
+          "returns-task": 4,
+          "cancels-timer": 4,
+          "spreads": 1,
+          "parses": 1
+        },
+        "nodeKindsTop": {"expression": 10318, "call-site": 1754, "property-slot": 1025, "binding": 722, "function": 383, "return-site": 314, "parameter": 298, "literal": 23, "boundary": 15},
+        "unknownsCount": 3424331,
+        "unknownsNote": "3424331 is the JSON payload size in bytes of the unknowns section, not an entry count",
+        "payloadBytes": 24698631
+      },
+      "electronOrientation": "summary fields are Electron-shaped and near-empty for a browser extension: browser_windows 0, preload_entrypoints 0, context_bridge_apis 0, ipc.operations 0, utility_processes 0, native_addon_bindings 0, sender_validation_observations 2 (count only; not present in returned evidence detail)",
+      "providerLimitations": [
+        "CommonJS and ESM binding relationships were recovered from inert syntax and resolved only within the inventoried artifact container.",
+        "Electron relationships are derived from inert syntax; runtime registration, reachability, defaults, and enforcement remain unproven.",
+        "Graph coverage is incomplete; unavailable facts remain explicit and must not be read as absence.",
+        "JavaScript and HTML were parsed as inert text; bundle bootstrap code was never executed.",
+        "Sender, frame, URL, and origin checks are observations only; REA does not claim that they enforce a complete authorization policy."
+      ]
+    }
+  ],
+  "baselineComparison": {
+    "method": "Playwright attached to the SAME CDP browser and SAME page as the REA capture; no clicks, no navigation, read-only DOM reads on synthetic content only.",
+    "probeScript": "/tmp/opencode/rea-pilot/baseline-probe.cjs",
+    "probeSha256": "dffc4b9f8dc8cda256b7389048c00d1113abcec4385fc2360932f0680a357366",
+    "fixtureSha256": "f5c3417eaf2822776c7e7f20ed99528a491c56aa36db04e3fb5e0ef9c0929b0a",
+    "rows": [
+      {"question": "legacy container marker [data-id*=urn:li:activity:] count", "rea": "unrecoverable (attribute values omitted)", "baseline": 2, "incremental": "none - REA strictly less"},
+      {"question": "class selector .feed-shared-update-v2 count", "rea": "unrecoverable (class value omitted)", "baseline": 2, "incremental": "none - REA strictly less"},
+      {"question": "tag selector article count", "rea": "recoverable (tag names retained)", "baseline": 0, "incremental": "none - both recover it"},
+      {"question": "modern candidate [data-testid=mainFeed] [role=listitem] count", "rea": "partial - role=listitem present in accessibility (7); data-testid value omitted", "baseline": 7, "incremental": "none - REA partial, baseline exact"},
+      {"question": "[data-testid=expandable-text-box] count", "rea": "unrecoverable (attribute value omitted)", "baseline": 5, "incremental": "none - REA strictly less"},
+      {"question": "promoted/suggested/activity label text", "rea": "unrecoverable (node_value_length only)", "baseline": "all 6 label strings exactly", "incremental": "none - REA strictly less"},
+      {"question": "actor profile href values", "rea": "partial - metadata.dom_urls, origin-scoped", "baseline": "2 hrefs", "incremental": "none - REA partial, baseline exact"},
+      {"question": "extension SS_matchesLabel envelope over the fixture labels", "rea": "n/a - REA does not execute the extension", "baseline": "Promoted true; 'Promoted . Sponsor' true; 'Promoted by Sponsor' false; 'Suggested for you' false; '<Author> likes this' false; discussion text false", "incremental": "none - baseline executable via node + shared/pattern-data.js"},
+      {"question": "what calls blockPost / covering tests for findPostContainer", "rea": "not exposed by the returned high-level graph (36 containment edges only)", "baseline": "CodeGraph answers in one call with callers, blast radius and covering tests (tests/unit/post-container.test.js, plans/research/075/drift-fixtures.test.cjs)", "incremental": "none - baseline faster and cheaper"}
+    ],
+    "novelFindings": 0,
+    "residualNonRedundantProperty": "REA's passive capture retains a content-addressed, privacy-filtered structural snapshot (tag names, attribute NAMES, accessibility roles, node counts, href URLs) that needs no page JS injection. This is complementary in principle to a drift tripwire, but on the tested case it recovered strictly less than the existing Playwright path, so no incremental value is demonstrated."
+  },
+  "baselineCommands": [
+    {"command": "npm ci", "expected": "exit 0", "actual": "exit 0"},
+    {"command": "npm run smoke", "expected": "exit 0", "actual": "exit 0"},
+    {"command": "npm run lint", "expected": "exit 0", "actual": "exit 0"},
+    {"command": "npm run typecheck", "expected": "exit 0", "actual": "exit 0"},
+    {"command": "npm run test:unit", "expected": "exit 0", "actual": "exit 0 (tests 82, pass 82, fail 0)"},
+    {"command": "npm run test:extension", "expected": "exit 0", "actual": "exit 0 (Extension smoke test passed. Extension interactions test passed.)"}
+  ],
+  "deliverables": [
+    "plans/research/078/design.md",
+    "plans/research/078/REA_PILOT_REPORT.md",
+    "plans/research/078/REA_EVIDENCE_LEDGER.md",
+    "plans/research/078/REA_NEXT_ACTIONS.md",
+    "plans/research/078/verdict.json"
+  ],
+  "productionFiles": [],
+  "permissionsChanged": false,
+  "dependenciesChanged": false,
+  "sensitiveMaterialCommitted": false,
+  "sensitiveMaterialHandling": "All observed page content was synthetic placeholder text authored for this spike. No member names, post bodies, URNs, profile slugs, cookies, tokens or localStorage values from any real LinkedIn session were captured, exported or committed. REA's own capture defaults (values redacted, storage keys off, accessibility text off) were left at their conservative defaults.",
+  "changesToProductOrReleaseLogic": "none",
+  "noCodeChangeRationale": "This repo already asserts the promoted/featured label envelope (tests/unit/pattern-data.test.js:199-226, including rejecting 'Featured by the CEO'), already exercises the promoted toggle on the legacy container shape (tests/extension-interactions.js:1404-1470) and already pins modern-shape fail-open behaviour for manual controls (tests/extension-interactions.js:3113-3150). Adding fixtures for label variants would duplicate existing assertions, and the pilot produced no directly observed LinkedIn false negative to justify new coverage.",
+  "missingEvidence": [
+    "A real, sanctioned Suggested-label capture (feed context, >=3 positives) - blocked by absent contributor session and by plans/research/071/protocol.md section 1.3.",
+    "A real connection-activity provenance sample - same blocker; whether the reason-for-visibility is exposed to the page remains UNKNOWN.",
+    "Any LinkedIn DOM sample whatsoever at the current live head - logged-out pages cannot show feed-post containers.",
+    "Firefox equivalents for every probe - REA browser surfaces used here are Chromium-only in this spike."
+  ],
+  "nextWork": "See plans/research/078/REA_NEXT_ACTIONS.md. Ranked: (1) do not integrate REA now; (2) if a contributor-donated capture ever becomes available, re-run plan 071 first - that unblocks the product question with or without REA; (3) only then consider a bounded REA re-test against the donated capture to decide REA's marginal value."
+}
