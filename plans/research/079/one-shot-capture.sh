@@ -45,6 +45,54 @@ die() { printf '%s\n' "${RED}error:${OFF} $*" >&2; exit 1; }
 ok()  { printf '%s\n' "${GRN}ok${OFF} $*"; }
 warn(){ printf '%s\n' "${YEL}note:${OFF} $*" >&2; }
 
+print_guide() {
+  cat <<'GUIDE'
+
+HOW TO GET A CAPTURE FILE  (once per post, about a minute)
+
+You are already logged into LinkedIn in Chrome. The script cannot do this part:
+it has no access to your browser, and protocol §1a permits only a session you
+started yourself.
+
+  1. Open your LinkedIn feed in Chrome.
+  2. Press F12, then click the "Console" tab.
+  3. Paste the capture helper into the Console. Show it with:
+
+         cat plans/research/079/capture-helper.js
+
+     Select the printed text with the mouse and copy it (Ctrl+Shift+C), or open
+     it in an editor instead:
+
+         code plans/research/079/capture-helper.js
+
+     Then paste into the Console and press Enter.
+  4. The Console prints a table of posts. Find the row marked "suggested: YES"
+     and run, using that row's index:
+
+         SS_capture.download(3, "suggested-01")
+
+     Chrome saves it to  ~/Downloads/capture-suggested-01.html
+  5. Back here, re-run this script with the same --id:
+
+         plans/research/079/one-shot-capture.sh --id suggested-01 --label "Suggested for you"
+
+Notes
+  · If Chrome asks where to save, choose the Downloads folder.
+  · If no row shows "suggested: YES", scroll the feed so more posts render,
+    then paste the helper again.
+  · Prefer doing it by hand? DevTools → Elements → right-click the post
+    container → Copy → Copy outerHTML, then:
+
+        nano ~/capture-01.html      # Ctrl+Shift+V to paste, Ctrl+O Enter, Ctrl+X
+
+    and pass it explicitly with  --file ~/capture-01.html
+  · A "post container" is the element carrying data-id="urn:li:activity:…" or
+    class="feed-shared-update-v2".
+  · Run  plans/research/079/one-shot-capture.sh --guide  to see this again.
+
+GUIDE
+}
+
 # ── arguments ─────────────────────────────────────────────────────────────
 ID=""; LABEL=""; FILE=""; LOCALE="en"; NEGATIVE=0; ADMIT=0; DRY=0; FORCE=0
 while [ $# -gt 0 ]; do
@@ -56,15 +104,18 @@ while [ $# -gt 0 ]; do
     --negative) NEGATIVE=1; shift ;;
     --admit)    ADMIT=1; shift ;;
     --dry-run)  DRY=1; shift ;;
+    --guide)    print_guide; exit 0 ;;
     --force)    FORCE=1; shift ;;
-    -h|--help)  sed -n '2,40p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
+    -h|--help)  sed -n '2,44p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) die "unknown argument: $1 (try --help)" ;;
   esac
 done
 
+# print_guide is defined below but referenced by the arg loop, so declare it first.
 [ -f "$SANITIZER" ] || die "sanitizer not found at $SANITIZER"
 command -v node >/dev/null || die "node is required"
 [ -f "$CASES071" ] || die "corpus not found at $CASES071 (wrong repo root?)"
+
 
 # ── progress report against protocol section 3 ────────────────────────────
 report_progress() {
@@ -131,7 +182,12 @@ if [ -n "$ID" ]; then
     # newest capture from the console helper, or the documented manual name
     FILE="$(ls -t "$HOME"/Downloads/capture-*.html 2>/dev/null | head -n1 || true)"
     [ -n "$FILE" ] || FILE="$(ls -t "$HOME"/capture-*.html 2>/dev/null | head -n1 || true)"
-    [ -n "$FILE" ] || die "no capture file found. Pass --file PATH, or use the console helper first (see contributor-guide.md Route B)."
+    if [ -z "$FILE" ]; then
+      printf '%s\n' "${RED}No capture file found yet.${OFF}" >&2
+      printf '%s\n' "This script only does the terminal half; the browser step has not happened." >&2
+      print_guide >&2
+      exit 1
+    fi
     warn "auto-discovered newest capture: $FILE"
   fi
   [ -f "$FILE" ] || die "capture file not found: $FILE"

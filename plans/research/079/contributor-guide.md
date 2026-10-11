@@ -23,9 +23,16 @@ capture class, that is recorded as an attempt, never fabricated.
 
 ## Fast path — one command per capture
 
-Once you have a capture file (Route A or B below), the script does the rest —
-sanitise, verify zero leaks, build the ten-key entry, stage it, and show progress
-against the §3 minimums:
+**The browser step comes first.** The script has no access to your browser, so
+you capture the post yourself (Routes A/B in §1), and the script does the rest.
+If you run it before capturing anything it prints a step-by-step walkthrough
+rather than failing silently — or ask for it any time:
+
+```bash
+plans/research/079/one-shot-capture.sh --guide
+```
+
+Then, once you have a capture file:
 
 ```bash
 cd /path/to/stop-spam-linkedin

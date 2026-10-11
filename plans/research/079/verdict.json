@@ -69,14 +69,15 @@
     },
     "one-shot-capture.sh": {
       "role": "One-command admission for the terminal half: discover capture -> sanitise -> verify zero leaks -> build the ten-key entry -> stage -> report protocol section 3 progress; --admit merges and runs the unmodified 071 gate",
-      "sha256": "666636ea06350cf79c5fbf3e3688bc30070896655b1637ab6fd51358a81d8487",
+      "sha256": "343d588eb190ea7ff961b9b208c33d9f03c11c9d83d210aaa3cee9e3a0d25437",
       "safeByDefault": "Entries go to plans/research/079/staged-entries.json (now gitignored). cases-real.json is never modified until --admit. --dry-run writes nothing.",
       "doesNot": [
         "reach the browser or any LinkedIn session (no CDP endpoint exists, and section 1a permits only an owner-started session)",
         "handle credentials",
         "hand-patch markup: a leak finding aborts and tells the user to report the shape instead"
       ],
-      "verifiedEndToEnd": "Staged one positive and one body-mention negative built from a simulated capture, ran --admit, and the UNMODIFIED 071 gate passed 7/7 (2 per-entry detector outcomes + 5 gate tests: ten-key schema, scanRoot enum, provenance, id dedupe, sanitization). cases-real.json was then reverted to [] so no synthetic entry remains in the real corpus."
+      "verifiedEndToEnd": "Staged one positive and one body-mention negative built from a simulated capture, ran --admit, and the UNMODIFIED 071 gate passed 7/7 (2 per-entry detector outcomes + 5 gate tests: ten-key schema, scanRoot enum, provenance, id dedupe, sanitization). cases-real.json was then reverted to [] so no synthetic entry remains in the real corpus.",
+      "guideMode": "--guide prints the browser-side walkthrough; a missing capture file prints the same walkthrough instead of a bare pointer, because the terminal half cannot run before the browser half."
     }
   },
   "leakVerifierRules": [
@@ -220,6 +221,16 @@
       "command": "plans/research/079/one-shot-capture.sh --admit (with staged synthetic entries)",
       "expected": "merge then run the unmodified 071 gate",
       "actual": "gate exit 0 (tests 7, pass 7, fail 0); cases-real.json reverted to [] afterwards"
+    },
+    {
+      "command": "plans/research/079/one-shot-capture.sh --guide",
+      "expected": "exit 0, print the browser-side capture walkthrough",
+      "actual": "exit 0"
+    },
+    {
+      "command": "plans/research/079/one-shot-capture.sh --id <id> --label <label>  (with a capture present in ~/Downloads)",
+      "expected": "auto-discover the newest capture, sanitise, stage, report progress",
+      "actual": "exit 0; auto-discovered /home/<user>/Downloads/capture-suggested-01.html, leak findings 0, staged; simulated capture and staged entry removed afterwards and cases-real.json left at []"
     }
   ],
   "productionFiles": [],
