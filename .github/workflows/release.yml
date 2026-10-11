@@ -59,9 +59,21 @@ jobs:
       - name: Create GitHub Release
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          NOTES="$(awk -v v="## $VERSION" '$0==v{f=1;next} f&&/^## /{exit} f' RELEASE_NOTES.md)"
+          # Match the version TOKEN, not the whole line: headings carry a title
+          # suffix ("## 2.0.0 - Your feed, your rules"). The previous exact-line
+          # match silently produced empty notes for 2.0.0 and would have created a
+          # release with no body. Verified by dry-running this awk locally.
+          NOTES="$(awk -v v="$VERSION" '
+            f && /^## / { exit }
+            !f { n = split($0, a, " "); if (a[1] == "##" && a[2] == v) { f = 1; next } }
+            f { print }
+          ' RELEASE_NOTES.md)"
+          if [ -z "$NOTES" ]; then
+            echo "::error::No RELEASE_NOTES.md section found for version $VERSION"
+            exit 1
+          fi
           gh release create "$GITHUB_REF_NAME" dist/*.zip \
-            --title "LinkedIn Spam Blocker $VERSION" \
+            --title "LinkedIn Feed Control $VERSION" \
             --notes "$NOTES"
         env:
           GH_TOKEN: ${{ github.token }}

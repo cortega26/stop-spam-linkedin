@@ -49,9 +49,18 @@
      every enumerating pass was silently doing nothing there. */
   const MODERN_FEED_ITEM_SELECTOR = '[data-testid="mainFeed"] [role="listitem"]';
 
-  const AUTHOR_BLOCK_SELECTORS = Object.freeze([
+  /* The ORIGINAL legacy pair, kept separate on purpose. isLegacyPost (which gates
+     the Mute button's author attribution) must keep meaning exactly what it meant
+     before enumeration was broadened: "matches a legacy post selector AND carries
+     a post key". Deriving it from AUTHOR_BLOCK_SELECTORS would silently widen it
+     the moment that array grows, which is precisely what happened once. */
+  const LEGACY_POST_SELECTORS = Object.freeze([
     '[data-id*="urn:li:activity:"]',
     ".feed-shared-update-v2",
+  ]);
+
+  const AUTHOR_BLOCK_SELECTORS = Object.freeze([
+    ...LEGACY_POST_SELECTORS,
     MODERN_FEED_ITEM_SELECTOR,
   ]);
   /* Manual controls enumerate the same set; kept as its own name because the
@@ -837,7 +846,7 @@
         : root.querySelectorAll(selector);
       for (const post of posts) {
         if (blockedPosts.has(post) || post.querySelector('[data-ss-control="hide-once"]')) continue;
-        const isLegacyPost = post.matches(AUTHOR_BLOCK_SELECTORS.join(",")) &&
+        const isLegacyPost = post.matches(LEGACY_POST_SELECTORS.join(",")) &&
           !!getPostKey(post);
         const isModernFeedItem = post.matches('[data-testid="mainFeed"] [role="listitem"]') &&
           !!post.querySelector('[data-testid="expandable-text-box"]') &&
