@@ -35,11 +35,18 @@ node plans/research/079/capture-live.cjs
 plans/research/079/one-shot-capture.sh --admit
 ```
 
-**It reuses your own Chrome profile, so your LinkedIn session is already there —
-no login.** Chrome must be closed for the script to attach to it; the script
-detects that and offers to close and relaunch it for you (same profile, so your
-logins survive). Pass `--close-chrome` to skip the question, or
-`--dedicated-profile` if you would rather use a throwaway profile.
+**It uses a separate, persistent capture profile — and it has to.** Chrome 136+
+deliberately ignores `--remote-debugging-port` when the user-data-dir is Chrome's
+*default* directory, so your everyday Chrome cannot be attached to; the flag is
+dropped silently by design
+(developer.chrome.com/blog/remote-debugging-port). A non-standard directory also
+uses a different encryption key, so copying your profile would not decrypt
+either. There is no flag that gets around this.
+
+The capture profile lives at `~/.cache/ss-capture-profile` and **persists**, so
+you log into LinkedIn there **once** and never again. It is deliberately a
+different profile from your real one, which is also what keeps your real session
+out of a debugging port. Point it elsewhere with `--dedicated-path DIR`.
 
 **It scrolls the feed itself.** No "scroll and re-run" — it walks down the feed
 until it has enough posts, deduplicating what it saw so earlier posts are not

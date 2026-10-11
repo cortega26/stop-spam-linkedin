@@ -52,6 +52,25 @@ function defaultChromeProfileDir() {
   return path.join(os.homedir(), ".config", "google-chrome");
 }
 
+/* Chrome 136+ does NOT respect --remote-debugging-port when the user-data-dir is
+ * the platform's DEFAULT Chrome directory; the flag is silently ignored. A
+ * non-standard directory also uses a different encryption key, so a copy of a
+ * real profile will not decrypt either. Reusing a real Chrome profile for
+ * debugging is therefore impossible by design, not a matter of the right flag.
+ * Verified against developer.chrome.com/blog/remote-debugging-port (2025-03-17).
+ * We name the default directories only to REFUSE them with an explanation. */
+const DEFAULT_PROFILE_DIRS = Object.freeze([
+  path.join(os.homedir(), ".config", "google-chrome"),
+  path.join(os.homedir(), ".config", "google-chrome-beta"),
+  path.join(os.homedir(), ".config", "google-chrome-unstable"),
+  path.join(os.homedir(), ".config", "chromium"),
+]);
+
+function isDefaultProfileDir(dir) {
+  const resolved = path.resolve(dir);
+  return DEFAULT_PROFILE_DIRS.some((d) => path.resolve(d) === resolved);
+}
+
 const DEFAULTS = {
   port: 9222,
   feedUrl: "https://www.linkedin.com/feed/",
@@ -62,8 +81,9 @@ const DEFAULTS = {
   urlMatch: "linkedin\\.com",
   chromeProfile: defaultChromeProfileDir(),
   profileDirectory: "Default",
-  dedicatedProfile: false,
+  dedicatedProfile: true,
   dedicatedPath: path.join(os.homedir(), ".cache", "ss-capture-profile"),
+  dedicatedPathSet: false,
   closeChrome: false,
   diagnose: false,
   quitWhenDone: false,
@@ -135,6 +155,7 @@ function parseArgs(argv) {
     else if (a === "--quit-when-done") out.quitWhenDone = true;
     else if (a === "--with-extensions") out.withExtensions = true;
     else if (a === "--dedicated-profile") out.dedicatedProfile = true;
+    else if (a === "--dedicated-path") { out.dedicatedPath = argv[++i]; out.dedicatedProfile = true; out.dedicatedPathSet = true; }
     else if (a === "--port") out.port = Number(argv[++i]);
     else if (a === "--prefix") out.prefix = argv[++i];
     else if (a === "--max-positives") out.maxPositives = Number(argv[++i]);
@@ -143,7 +164,7 @@ function parseArgs(argv) {
     else if (a === "--suggested-label") out.suggestedLabel = argv[++i];
     else if (a === "--use-language") out.useLanguage = argv[++i];
     else if (a === "--forget-labels") out.forgetLabels = true;
-    else if (a === "--chrome-profile") out.chromeProfile = argv[++i];
+    else if (a === "--chrome-profile") { out.chromeProfile = argv[++i]; out.dedicatedProfile = false; }
     else if (a === "--profile-directory") out.profileDirectory = argv[++i];
     else if (a === "--url-match") out.urlMatch = argv[++i];
     else if (a === "-h" || a === "--help") out.help = true;
@@ -234,6 +255,20 @@ async function ensureBrowser(opts) {
   const exe = findChrome();
   if (!exe) die("no Chrome/Chromium binary found; start one with --remote-debugging-port and use --attach");
 
+  /* Refuse the default profile immediately and explain, rather than burning the
+     45s timeout on a flag Chrome has already decided to ignore. */
+  if (!opts.dedicatedProfile && isDefaultProfileDir(opts.chromeProfile)) {
+    die(
+      `${opts.chromeProfile} is Chrome's DEFAULT profile directory.\n` +
+        "  Chrome 136+ ignores --remote-debugging-port there, so this cannot work — the flag\n" +
+        "  is silently dropped on purpose (developer.chrome.com/blog/remote-debugging-port).\n" +
+        "  A non-standard directory also uses a different encryption key, so copying your\n" +
+        "  profile would not decrypt either. A separate profile is the only option:\n\n" +
+        `    node plans/research/079/capture-live.cjs --dedicated-profile\n\n` +
+        "  That profile persists, so you log into LinkedIn there once and never again."
+    );
+  }
+
   if (!opts.dedicatedProfile) {
     const running = chromePids(exe);
     if (running.length > 0) {
@@ -256,21 +291,37 @@ async function ensureBrowser(opts) {
     }
   } else {
     fs.mkdirSync(opts.dedicatedPath, { recursive: true });
-    warn("using a dedicated throwaway profile — you will need to log into LinkedIn there once");
+    warn("using the persistent capture profile (a separate profile is required — see below)");
   }
 
   const { args, userDataDir } = launchArgs(opts);
   console.error(`${DIM}    launching: ${args[0]} ${args[1]}${OFF}`);
   console.error(`${DIM}    profile:   ${userDataDir}${OFF}`);
-  const child = spawn(exe, args, { detached: true, stdio: "ignore" });
+  /* Keep Chrome's own diagnostics. An earlier version used stdio:"ignore" and so
+     discarded the very message that explains why the port never opened. */
+  const logPath = path.join(os.tmpdir(), `ss-capture-chrome-${process.pid}.log`);
+  const logFd = fs.openSync(logPath, "a");
+  const child = spawn(exe, args, { detached: true, stdio: ["ignore", logFd, logFd] });
   child.unref();
+  fs.closeSync(logFd);
 
   const deadline = Date.now() + 45000;
   while (Date.now() < deadline) {
-    if (await endpointUp(opts.port)) return { launched: true };
+    if (await endpointUp(opts.port)) return { launched: true, logPath };
     await new Promise((r) => setTimeout(r, 900));
   }
-  die(`Chrome did not expose port ${opts.port} in time. Re-run to retry.`);
+
+  let tail = "";
+  try {
+    tail = fs.readFileSync(logPath, "utf8").trim().split("\n").slice(-8).join("\n");
+  } catch {
+    /* nothing captured */
+  }
+  console.error(`${YEL}Chrome did not expose port ${opts.port} in 45s.${OFF}`);
+  console.error(`  profile: ${userDataDir}`);
+  if (tail) console.error(`  Chrome said:\n${tail}`);
+  else console.error(`  (Chrome produced no output; log: ${logPath})`);
+  die("see the message above");
 }
 
 /* ── reading and scrolling ──────────────────────────────────────────────── */
@@ -646,7 +697,9 @@ async function main() {
         "  --max-scrolls N           scroll budget while looking for posts (default 12)\n" +
         "  --max-positives N         default 3        --max-negatives N   default 2\n" +
         "  --prefix P                entry id prefix (default live)\n" +
-        "  --dedicated-profile       use a throwaway profile instead of your own\n" +
+        "  --dedicated-profile       (DEFAULT) persistent capture profile - required, because\n" +
+        "                            Chrome 136+ blocks debugging on the default dir\n" +
+        "  --dedicated-path DIR      where that persistent profile lives\n" +
         "  --chrome-profile DIR      your Chrome user-data-dir\n" +
         "  --profile-directory NAME  Default, \"Profile 2\", ...\n" +
         "  --close-chrome            close a running Chrome without asking\n" +
