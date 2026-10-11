@@ -56,3 +56,39 @@ Or run locally: `npm run submit:chrome` / `npm run submit:firefox` with the same
 - [ ] Verify new React layout fallback only adds **manual** controls on real feed posts; it must not automatically filter Sponsored/Suggested posts based on unverified metadata.
 - [ ] Inspect options/popup at 320px, 390px, desktop, light/dark themes, in English and Spanish. Check accessible focus and reduced motion.
 - [ ] Update all honest real screenshots, store text and version availability notice. Do not tag and auto-submit stores until these gates pass.
+
+## Waiver record — 2.0.0 (2026-10-11)
+
+The seven acceptance gates above were **not** completed before tagging `v2.0.0`.
+The owner was shown each one, the specific risk, and the store-side consequences,
+and instructed the release to proceed. Recorded here so this file does not
+silently contradict what happened.
+
+Released anyway, on the owner's explicit decision. What that leaves unverified:
+
+- **Real-feed behaviour (gate 4)** — no logged-in pass was run, so "no overlap or
+  damage to posting, messaging, search, jobs, navigation, comments and native
+  buttons" is unconfirmed for this version.
+- **Gate 5 was waived as a decision, not a tick.** The opt-in Promoted filter now
+  enumerates the modern React layout, which it never did before. Only the Spanish
+  label (`Promocionado`) is verified on that layout; `Promoted`, `Promu`,
+  `Promovido` and `Beworben` are unverified there. Manual controls are unchanged
+  and Mute remains deliberately withheld on that layout (see `AGENTS.md`).
+- **Presentation (gate 6)** — 320/390/desktop and light/dark were not inspected by
+  hand.
+- **Store listing (gate 7)** — screenshots and listing text are still 1.6.0-era
+  while the package is named *LinkedIn Feed Control*. This is a review-side risk,
+  not a code defect.
+
+Gate 3's Firefox half is also unverified: `npm run test:firefox` covers install,
+blocking and popup bootstrap, but not the feed-options keyboard/touch behaviours.
+
+Verified before tagging instead: `npm run package` and `npm run test:package`
+(the real distributable zip, loaded in Chromium) both exit 0; the zip matches the
+include and exclude lists above; smoke, lint, typecheck, `test:unit` (82/82) and
+`test:extension` all pass; CI green on the tagged commit.
+
+**Outstanding after this release:** update `README.md`'s availability notice and
+`STORE_ASSETS.md` once the stores accept 2.0.0, and replace the screenshots with
+real captures. If a manual pass later finds a promoted false positive or native-UI
+damage, fix forward with 2.0.1 — a store-accepted version cannot be re-uploaded.
