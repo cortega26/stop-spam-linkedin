@@ -27,7 +27,7 @@
   "deliverables": {
     "sanitize.cjs": {
       "role": "producer",
-      "sha256": "4b6a0f2b3125304a41debaa110d3df2f15b2d9349fb1c212e50ca89ef072233f",
+      "sha256": "732cc86cab8da3bb1b00a0d03af65717176ab39313ffa45464c9668e1c78b6ed",
       "dependencies": 0,
       "failClosed": true,
       "failClosedTrigger": "unterminated quoted attribute, unterminated comment or tag, unparsable tag syntax, or any structural fingerprint mismatch — all return an error and NO markup; there is no override flag",
@@ -40,7 +40,7 @@
     },
     "sanitize.test.cjs": {
       "role": "tests",
-      "count": 31
+      "count": 34
     },
     "step0-gap-demo.cjs": {
       "role": "gap demonstration",
@@ -66,6 +66,17 @@
       "note": "Protocol section 1 (manual copy-paste) remains sufficient. This exists because the host has no xclip/xsel/wl-paste, so the clipboard route needs a workaround. It reads the already-rendered DOM, makes no network request, does not navigate or click, clones the node so the live page is not mutated, and is bounded to one post per invocation.",
       "verifiedInBrowser": true,
       "verificationDetail": "Loaded into a real Chromium via the chrome-devtools MCP and executed against the synthetic fixture: 7 candidates found, index 3 correctly flagged suggested=true. Build output saved to disk and driven through sanitize.cjs to leak findings 0."
+    },
+    "one-shot-capture.sh": {
+      "role": "One-command admission for the terminal half: discover capture -> sanitise -> verify zero leaks -> build the ten-key entry -> stage -> report protocol section 3 progress; --admit merges and runs the unmodified 071 gate",
+      "sha256": "666636ea06350cf79c5fbf3e3688bc30070896655b1637ab6fd51358a81d8487",
+      "safeByDefault": "Entries go to plans/research/079/staged-entries.json (now gitignored). cases-real.json is never modified until --admit. --dry-run writes nothing.",
+      "doesNot": [
+        "reach the browser or any LinkedIn session (no CDP endpoint exists, and section 1a permits only an owner-started session)",
+        "handle credentials",
+        "hand-patch markup: a leak finding aborts and tells the user to report the shape instead"
+      ],
+      "verifiedEndToEnd": "Staged one positive and one body-mention negative built from a simulated capture, ran --admit, and the UNMODIFIED 071 gate passed 7/7 (2 per-entry detector outcomes + 5 gate tests: ten-key schema, scanRoot enum, provenance, id dedupe, sanitization). cases-real.json was then reverted to [] so no synthetic entry remains in the real corpus."
     }
   },
   "leakVerifierRules": [
@@ -108,7 +119,7 @@
     {
       "command": "node --test plans/research/079/sanitize.test.cjs",
       "expected": "exit 0",
-      "actual": "exit 0 (tests 31, pass 31, fail 0)"
+      "actual": "exit 0 (tests 34, pass 34, fail 0)"
     },
     {
       "command": "node plans/research/079/step0-gap-demo.cjs",
@@ -204,6 +215,11 @@
       "command": "npm run test:extension",
       "expected": "exit 0",
       "actual": "exit 0 (smoke + interactions)"
+    },
+    {
+      "command": "plans/research/079/one-shot-capture.sh --admit (with staged synthetic entries)",
+      "expected": "merge then run the unmodified 071 gate",
+      "actual": "gate exit 0 (tests 7, pass 7, fail 0); cases-real.json reverted to [] afterwards"
     }
   ],
   "productionFiles": [],
@@ -247,7 +263,8 @@
   },
   "protocolRulesUpdated": {
     "labelMatching": "Phrase-level, not token-level. Declared label phrases are preserved verbatim wherever they appear; only the remainder is placeholdered. Fixes a defect where realistic metadata such as 'Suggested for you - Acme' reduced to 'Placeholder - Placeholder' and destroyed the exact string the detector keys on.",
-    "footgun": "--label is a declaration of trust: a declared phrase is preserved AND accepted by the verifier, because the verifier checks against the declared set. Declaring a person's name would leak it and pass the leak check. The CLI now echoes declared phrases with an explicit warning, the behaviour is pinned by a test, and the guide states the rule. No heuristic name-detector is used by design: a guess would false-positive on ordinary metadata and block legitimate donations."
+    "footgun": "--label is a declaration of trust: a declared phrase is preserved AND accepted by the verifier, because the verifier checks against the declared set. Declaring a person's name would leak it and pass the leak check. The CLI now echoes declared phrases with an explicit warning, the behaviour is pinned by a test, and the guide states the rule. No heuristic name-detector is used by design: a guess would false-positive on ordinary metadata and block legitimate donations.",
+    "caseMarker": "A missing data-case marker is now injected at admission time via --case-marker, so a Route A manual copy does not need a hand edit for expectedTarget to resolve. Injected AFTER the section 2.2 fingerprint check, so it is deliberately outside the sanitisation guarantee; idempotent when the marker is already present (Route B). Marker ids are restricted to [A-Za-z0-9._-]+ so no escaping is needed."
   },
   "findings": [
     {

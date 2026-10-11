@@ -21,6 +21,45 @@ capture class, that is recorded as an attempt, never fabricated.
 
 ---
 
+## Fast path — one command per capture
+
+Once you have a capture file (Route A or B below), the script does the rest —
+sanitise, verify zero leaks, build the ten-key entry, stage it, and show progress
+against the §3 minimums:
+
+```bash
+cd /path/to/stop-spam-linkedin
+
+# positive (a real Suggested post)
+plans/research/079/one-shot-capture.sh --id suggested-01 --label "Suggested for you"
+
+# negative (a post that merely MENTIONS the word; must stay visible)
+plans/research/079/one-shot-capture.sh --id neg-body-01 --label "Suggested" --negative
+
+# non-English label, after switching your LinkedIn UI locale
+plans/research/079/one-shot-capture.sh --id suggested-es-01 --label "Sugerido" --locale es
+```
+
+It auto-discovers the newest `~/Downloads/capture-*.html`; pass `--file PATH` to
+be explicit. Add `--dry-run` to see the entry without writing anything.
+
+Entries land in a **staging** file — `cases-real.json` is never touched until you
+say so:
+
+```bash
+plans/research/079/one-shot-capture.sh --admit
+```
+
+`--admit` merges the staged entries and runs the unmodified plan-071 gate. If the
+gate fails, that is a **finding**, not a bug to paper over — see §5 of
+`071/protocol.md`. Revert with
+`git checkout -- plans/research/071/cases-real.json`.
+
+Two things the script will not do, by design: reach your browser, and handle your
+credentials. You still capture the post yourself.
+
+---
+
 ## 1. Capture — getting the markup onto disk
 
 You never paste DOM into the terminal. You get it into a **file**, then point the

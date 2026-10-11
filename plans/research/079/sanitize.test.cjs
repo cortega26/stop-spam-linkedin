@@ -27,6 +27,7 @@ const {
   PLACEHOLDER,
   sanitizeMarkup,
   structuralFingerprint,
+  withCaseMarker,
   findLeaks,
   validateSanitizedCase,
   deriveSentinel,
@@ -533,6 +534,59 @@ test("CLI: a JSON-quoted capture file is unwrapped automatically", () => {
   } finally {
     fs.rmSync(tmp, { recursive: true, force: true });
   }
+});
+
+test("commit-time marker: added to the root element, idempotently", () => {
+  /* Marker-free input, as a Route A manual copy would be. */
+  const markerFree = RAW_POSITIVE.replace(/ ?data-case="[^"]*"/, "");
+  assert.ok(!/data-case=/.test(markerFree), "fixture must start markerless");
+
+  const res = sanitizeMarkup(markerFree, { keepLabels: KEEP, caseId: "suggested-01", caseMarker: "suggested-01" });
+  assert.equal(res.error, undefined);
+  assert.equal(res.caseMarkerAdded, true);
+  assert.match(res.markup, /^<section [^>]*data-case="suggested-01"/);
+  /* The marker is exempt vocabulary: a marked capture is still leak-clean. */
+  assert.deepEqual(findLeaks(res.markup, { keepLabels: KEEP }), []);
+
+  /* Re-admission (or a Route B capture that already tagged the root) must not
+     duplicate the marker. */
+  const again = sanitizeMarkup(res.markup, { keepLabels: KEEP, caseId: "suggested-01", caseMarker: "suggested-01" });
+  assert.equal(again.caseMarkerAdded, false);
+  assert.equal((again.markup.match(/data-case=/g) || []).length, 1);
+
+  /* The marker is added AFTER the §2.2 check, so it is not part of the
+     sanitisation guarantee: the fingerprint is expected to differ. */
+  assert.notEqual(
+    structuralFingerprint(res.markup).fingerprint,
+    structuralFingerprint(markerFree).fingerprint
+  );
+});
+
+test("commit-time marker: unsafe ids and markerless input are rejected", () => {
+  assert.ok(withCaseMarker("<p>x</p>", 'a" onload="alert(1)').error);
+  assert.ok(withCaseMarker("<p>x</p>", 'a b').error);
+  assert.ok(withCaseMarker("plain text, no elements", "ok").error);
+
+  const res = sanitizeMarkup(RAW_POSITIVE, { keepLabels: KEEP, caseId: "suggested-01", caseMarker: 'bad"id' });
+  assert.ok(res.error);
+  assert.equal(res.markup, undefined, "no output on an invalid marker");
+});
+
+test("commit-time marker: the marker makes expectedTarget resolvable", () => {
+  const id = "suggested-09";
+  /* Marker-free input, as a Route A manual copy would be. */
+  const raw =
+    '<section data-id="urn:li:activity:7251234567892" class="feed-shared-update-v2">' +
+    '<span class="feed-shared-actor__sub-description">Suggested</span>' +
+    "<p>Body</p></section>";
+  const res = sanitizeMarkup(raw, { keepLabels: KEEP, caseId: id, caseMarker: id });
+  assert.equal(res.error, undefined);
+  assert.equal(res.caseMarkerAdded, true);
+  const doc = new JSDOM(`<main><div id="feed">${res.markup}</div></main>`).window.document;
+  /* This is exactly what the plan-071 gate does to resolve a fixture. */
+  const root = doc.querySelector(`[data-case="${id}"]`);
+  assert.ok(root, "data-case selector must resolve");
+  assert.equal(detector.scanSuggested(doc.querySelector("#feed")).length, 1);
 });
 
 /* ── admission helper ─────────────────────────────────────────────────── */

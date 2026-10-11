@@ -507,11 +507,44 @@ function structuralFingerprint(html) {
   return { fingerprint: parts.join("\n") };
 }
 
+/**
+ * Adds the research `data-case` marker to the root element (protocol §2.3
+ * exempts this marker from dropping as a "commit-time" addition). Applied
+ * AFTER the §2.2 fingerprint check, so it is deliberately outside the
+ * sanitisation guarantee: adding the marker IS a documented structural
+ * addition made at admission time.
+ * @param {string} markup
+ * @param {string} caseId Must match [A-Za-z0-9._-]+ so it needs no escaping.
+ * @returns {{markup: string}|{error: string}}
+ */
+function withCaseMarker(markup, caseId) {
+  if (!/^[A-Za-z0-9._-]+$/.test(caseId)) {
+    return { error: "case marker id must match [A-Za-z0-9._-]+" };
+  }
+  const tok = tokenize(markup);
+  if (tok.error) return { error: tok.error };
+  for (let i = 0; i < tok.tokens.length; i += 1) {
+    const t = tok.tokens[i];
+    if (t.type !== "tag") continue;
+    const tag = parseTag(t.raw);
+    if (!tag || tag.declaration || tag.closing) continue;
+    if (tag.attrs.some((a) => a.name.toLowerCase() === "data-case")) {
+      return { markup }; /* already present (e.g. added by capture-helper.js) */
+    }
+    const marked = renderTag({
+      ...tag,
+      attrs: [...tag.attrs, { name: "data-case", hasValue: true, value: caseId, quote: '"' }],
+    });
+    return { markup: tok.tokens.map((x, j) => (j === i ? marked : x.raw)).join("") };
+  }
+  return { error: "no root element found to carry the case marker" };
+}
+
 /* ── sanitiser ─────────────────────────────────────────────────────────── */
 
 /**
  * @param {string} html
- * @param {{keepLabels?: string[], caseId?: string, sentinel?: string}} [options]
+ * @param {{keepLabels?: string[], caseId?: string, sentinel?: string, caseMarker?: string}} [options]
  * @returns {{markup: string, changes: object[], error?: undefined}|{error: string}}
  */
 function sanitizeMarkup(html, options) {
@@ -641,7 +674,19 @@ function sanitizeMarkup(html, options) {
         "No output was emitted.",
     };
   }
-  return { markup, changes, sentinel, droppedSubtrees };
+
+  /* The commit-time research marker is added after the §2.2 check on purpose:
+     it is an admission-time addition, not part of the sanitisation result. */
+  let finalMarkup = markup;
+  let caseMarkerAdded = false;
+  if (opts.caseMarker) {
+    const marked = withCaseMarker(finalMarkup, String(opts.caseMarker));
+    if (marked.error) return { error: marked.error };
+    caseMarkerAdded = marked.markup !== finalMarkup;
+    finalMarkup = marked.markup;
+  }
+
+  return { markup: finalMarkup, changes, sentinel, droppedSubtrees, caseMarkerAdded };
 }
 
 /** Deterministic two-character sentinel, distinct per case (protocol §2.3). */
@@ -805,6 +850,7 @@ function parseArgs(argv) {
     if (a === "--sanitize") out.sanitize = argv[++i];
     else if (a === "--leaks") out.leaks = argv[++i];
     else if (a === "--id") out.caseId = argv[++i];
+    else if (a === "--case-marker") out.caseMarker = argv[++i];
     else if (a === "--label") out.keepLabels.push(argv[++i]);
     else if (a === "--out") out.out = argv[++i];
     else if (a === "--json") out.json = true;
@@ -828,6 +874,7 @@ function main(argv) {
       "  --id     case id; also derives the deterministic urn sentinel\n" +
       "  --json   machine-readable output\n" +
       "  --out    write the sanitised markup to a file\n" +
+      "  --case-marker <id>  add data-case=\"<id>\" to the root element (admission-time marker)\n" +
       "\n" +
       "  metadataLocale is an entry field, not a markup field: set it in the\n" +
       "  cases-real.json entry, not here."
@@ -880,6 +927,7 @@ function main(argv) {
   const result = sanitizeMarkup(sourceHtml, {
     keepLabels: args.keepLabels,
     caseId: args.caseId || "case",
+    caseMarker: args.caseMarker,
   });
   if (result.error) {
     console.error(result.error);
@@ -900,10 +948,11 @@ function main(argv) {
   const leaks = findLeaks(result.markup, { keepLabels: args.keepLabels });
 
   if (args.json) {
-    console.log(JSON.stringify({ markup: result.markup, changes: result.changes, sentinel: result.sentinel, leaks }, null, 2));
+    console.log(JSON.stringify({ markup: result.markup, changes: result.changes, sentinel: result.sentinel, caseMarkerAdded: !!result.caseMarkerAdded, leaks }, null, 2));
   } else {
     console.log(`sentinel: urn:li:<kind>:${result.sentinel}`);
     console.log(`changes: ${result.changes.length}`);
+    if (args.caseMarker) console.log(`data-case marker: ${args.caseMarker}${result.caseMarkerAdded ? " (added)" : " (already present)"}`);
     for (const c of result.changes.slice(0, 40)) console.log(`  - ${c.kind} ${c.detail}`);
     console.log(`\nleak findings: ${leaks.length}`);
     for (const l of leaks) console.log(`  [${l.rule}] ${l.detail}`);
@@ -938,6 +987,7 @@ module.exports = {
   sentinelizeUrn,
   sanitizeMarkup,
   structuralFingerprint,
+  withCaseMarker,
   deriveSentinel,
   findLeaks,
   validateSanitizedCase,

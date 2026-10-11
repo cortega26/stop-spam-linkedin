@@ -45,8 +45,9 @@ the finding that justifies the plan; it is pinned as a regression guard in
 | File | Role |
 |---|---|
 | `sanitize.cjs` | **Producer.** Turns a pasted capture into protocol-§2-clean markup. Zero dependencies, fail-closed. |
-| `sanitize.test.cjs` | 31 tests: the Step-0 gap, §2.1–§2.4 behaviour, §2.2 structural preservation, phrase-level labels, and an end-to-end run against the unmodified 071 gate. |
+| `sanitize.test.cjs` | 34 tests: the Step-0 gap, §2.1–§2.4 behaviour, §2.2 structural preservation, phrase-level labels, and an end-to-end run against the unmodified 071 gate. |
 | `capture-helper.js` | **Optional** DevTools Console snippet: lists recognised post containers, flags which carry a `Suggested` label, and saves one to `~/Downloads`. Not required — §1 manual copy-paste remains sufficient. |
+| `one-shot-capture.sh` | **One command** for the terminal half: discover capture → sanitise → verify 0 leaks → build the ten-key entry → stage → report §3 progress. `--admit` merges and runs the unmodified 071 gate. Safe by default (staging only; `cases-real.json` untouched until `--admit`). |
 | `step0-gap-demo.cjs` | The reproducible demonstration above. |
 | `dirty-sample.html` | Unsanitised fixture (all values invented) used by `--self-test` and the tests. |
 | `cases-real.template.json` | Ten-key entry skeleton for a contributor to fill in. |
@@ -182,13 +183,15 @@ not destroy the signal the 068 detector keys on.**
 ## 7. Verification
 
 ```bash
-node --test plans/research/079/sanitize.test.cjs        # 26/26
+node --test plans/research/079/sanitize.test.cjs        # 34/34
 node plans/research/079/step0-gap-demo.cjs              # demonstrates the gap
 node plans/research/079/sanitize.cjs --self-test         # round-trip the fixture
 node plans/research/079/sanitize.cjs --leaks plans/research/071/cases-real.json
 node --test plans/research/071/probe-extensions.test.cjs # unchanged: 5/5
 node --test plans/research/068/detector.test.cjs         # unchanged: 17/17
 npm run smoke && npm run lint && npm run typecheck && npm run test:unit
+bash -n plans/research/079/one-shot-capture.sh              # shell syntax
+plans/research/079/one-shot-capture.sh                      # corpus status
 ```
 
 ## 8. Findings from exercising the pipeline

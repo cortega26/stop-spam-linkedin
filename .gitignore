@@ -31,3 +31,7 @@ __pycache__/
 # Generated build artifacts (regenerable from assets/ mockups)
 screenshots/
 dist/
+
+# Plan 079 capture-admission staging (scratch; merged into
+# plans/research/071/cases-real.json by one-shot-capture.sh --admit)
+plans/research/079/staged-entries.json
