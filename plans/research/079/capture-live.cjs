@@ -722,20 +722,59 @@ async function main() {
   ok(`CDP endpoint up on port ${opts.port}${launched ? "" : " (already running)"}`);
 
   const browser = await chromium.connectOverCDP(`http://127.0.0.1:${opts.port}`);
+
+  /* Poll rather than check once. The endpoint comes up before the tab has
+     finished navigating, so a single immediate look races the page load and
+     reports "no matching tab" on a browser that is about to have one. */
   let page;
-  for (const ctx of browser.contexts()) for (const p of ctx.pages()) if (new RegExp(opts.urlMatch).test(p.url())) page = p;
+  const seen = [];
+  const deadline = Date.now() + 25000;
+  const re = new RegExp(opts.urlMatch);
+  while (Date.now() < deadline) {
+    seen.length = 0;
+    for (const ctx of browser.contexts()) {
+      for (const p of ctx.pages()) {
+        let title = "";
+        try {
+          title = await p.title();
+        } catch {
+          /* tab may still be starting */
+        }
+        seen.push(`${p.url()}${title ? `  — ${title}` : ""}`);
+        if (re.test(p.url())) page = p;
+      }
+    }
+    if (page) break;
+    await new Promise((r) => setTimeout(r, 1000));
+  }
+
   if (!page) {
-    warn("no matching tab found in that browser.");
-    console.error(`    Open the feed in the window that launched: ${opts.feedUrl}`);
+    warn(`no tab matching ${JSON.stringify(opts.urlMatch)} after 25s.`);
+    if (seen.length) {
+      console.error("    Tabs that browser actually has:");
+      for (const line of seen.slice(0, 10)) console.error(`      ${line}`);
+      const onlyBlank = seen.every((u) => /^(about:blank|chrome:|devtools:|data:)/.test(u));
+      if (onlyBlank) {
+        console.error("");
+        console.error("    Every tab is still blank, so the feed never loaded in that profile.");
+        console.error("    That profile may need signing in, or the navigation did not happen.");
+        console.error(`    Open it once by hand and sign in, then re-run:`);
+        console.error(`      --dedicated-path ${opts.dedicatedProfile ? opts.dedicatedPath : opts.chromeProfile}`);
+      }
+    } else {
+      console.error("    That browser reports no pages at all.");
+    }
     await browser.close();
     return 1;
   }
 
   const current = page.url();
   if (/linkedin\.com/.test(current) && /\/login|authwall|\/checkpoint|\/uas\//.test(current)) {
-    warn("that window is not logged into LinkedIn.");
-    console.error("    With your own profile this usually means the profile directory is wrong:");
-    console.error(`      --chrome-profile DIR --profile-directory NAME   (tried: ${opts.dedicatedProfile ? opts.dedicatedPath : opts.chromeProfile} / ${opts.profileDirectory})`);
+    warn("that window is not logged into LinkedIn — it is on a login or challenge page.");
+    console.error("    Sign in ONCE in the window that just opened; the capture profile persists,");
+    console.error("    so later runs need nothing.");
+    console.error(`    profile: ${opts.dedicatedProfile ? opts.dedicatedPath : opts.chromeProfile}`);
+    console.error("    If LinkedIn shows a device challenge, complete it in that window and re-run.");
     await browser.close();
     return 1;
   }
