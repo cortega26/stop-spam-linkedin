@@ -45,7 +45,8 @@ the finding that justifies the plan; it is pinned as a regression guard in
 | File | Role |
 |---|---|
 | `sanitize.cjs` | **Producer.** Turns a pasted capture into protocol-§2-clean markup. Zero dependencies, fail-closed. |
-| `sanitize.test.cjs` | 26 tests: the Step-0 gap, §2.1–§2.4 behaviour, §2.2 structural preservation, and an end-to-end run against the unmodified 071 gate. |
+| `sanitize.test.cjs` | 31 tests: the Step-0 gap, §2.1–§2.4 behaviour, §2.2 structural preservation, phrase-level labels, and an end-to-end run against the unmodified 071 gate. |
+| `capture-helper.js` | **Optional** DevTools Console snippet: lists recognised post containers, flags which carry a `Suggested` label, and saves one to `~/Downloads`. Not required — §1 manual copy-paste remains sufficient. |
 | `step0-gap-demo.cjs` | The reproducible demonstration above. |
 | `dirty-sample.html` | Unsanitised fixture (all values invented) used by `--self-test` and the tests. |
 | `cases-real.template.json` | Ten-key entry skeleton for a contributor to fill in. |
@@ -190,7 +191,68 @@ node --test plans/research/068/detector.test.cjs         # unchanged: 17/17
 npm run smoke && npm run lint && npm run typecheck && npm run test:unit
 ```
 
-## 8. What this plan does NOT do
+## 8. Findings from exercising the pipeline
+
+Running a realistic shape through the pipeline (rather than only the synthetic
+`dirty-sample.html`) surfaced three things. The first is a product-relevant
+finding; the other two were defects in this plan's own tooling, now fixed.
+
+### 8.1 The detector's label grammar is narrow, and a fuller label fails silently
+
+Verified in this repo by direct execution:
+
+| Header metadata text | `matchesLabel(text, ["Suggested"])` | 068 detector targets (legacy container) |
+|---|---|---|
+| `Suggested` | true | 1 |
+| `Suggested · Sponsor` | true | 1 |
+| `Suggested for you` | **false** | **0** |
+| `Suggested for you · Sponsor` | **false** | **0** |
+
+So if LinkedIn renders the header as anything longer than `Suggested`, the
+candidate detector produces **zero** targets — a silent false negative, not an
+error. (Container shape is a separate axis: the modern
+`[data-testid="mainFeed"] [role="listitem"]` shape yields 0 regardless, which is
+the documented manual-control-only decision at `AGENTS.md:146`.)
+
+**Deliberately not fixed here.** `071/protocol.md` §4 requires labels to be
+established by contributor capture and forbids guessing them, and
+`068/detector.cjs:29-31` states the English-only, no-guess policy. Widening the
+list to include `Suggested for you` would be a guess about LinkedIn's rendering.
+The correct disposition is that the **first real capture adjudicates**: if the
+gate's `expectedTarget` fails on a genuine entry, that failure *is* the finding
+(`071/protocol.md` §5). Classification: the grammar behaviour is
+`SOURCE-VERIFIED`; the claim that LinkedIn renders a fuller label is
+`UNKNOWN` until a capture exists.
+
+### 8.2 `--label` matched token-wise, destroying combined metadata (fixed)
+
+`sanitizeText` originally compared each whitespace-separated token against the
+declared labels. A realistic header such as
+`Suggested for you · Acme` would therefore placeholder `for you` and reduce the
+text to `Placeholder · Placeholder`, destroying the exact string the detector
+keys on. Label matching is now **phrase-level**: declared phrases are preserved
+verbatim wherever they appear, and only the remainder is placeholdered. Verified:
+`Suggested for you · Acme` → `Suggested for you · Placeholder`.
+
+### 8.3 Two smaller robustness defects (fixed)
+
+* A JSON-quoted capture file (which some capture routes produce) previously failed
+  with a bare `unparsable tag` message. The CLI now unwraps it automatically, and
+  non-markup input returns an explicit, actionable error.
+* `sanitizeText` reported `changed: true` when the replacement was byte-identical,
+  which would have made the idempotence property report phantom changes.
+
+### 8.4 A documented footgun, pinned by a test
+
+`--label` is a **declaration of trust**: a declared phrase is preserved verbatim
+*and* accepted by the verifier, because the verifier checks against the declared
+set. Declaring a person's name would therefore leak it and pass the leak check.
+The CLI now echoes the declared phrases with an explicit warning, the behaviour is
+pinned by a test, and the contributor guide states the rule. There is no
+heuristic name-detector by design: a guess there would false-positive on ordinary
+metadata and block legitimate donations.
+
+## 9. What this plan does NOT do
 
 * It does not obtain a capture. Only someone with a logged-in LinkedIn feed can
   do that: either a contributor capturing manually per `071/protocol.md` §1, or
@@ -205,7 +267,7 @@ npm run smoke && npm run lint && npm run typecheck && npm run test:unit
 * It does not claim any precision, recall or false-positive rate. No real sample
   exists to compute one from.
 
-## 9. Handoff
+## 10. Handoff
 
 The next actor is **a contributor**, not a coding agent. Give them
 `contributor-guide.md`. When a donation satisfies §3, the proceeds are:

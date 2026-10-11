@@ -449,6 +449,92 @@ test("modern-React shape: structure and signal survive, PII does not", () => {
   assert.ok(!/Northwind/.test(res.markup));
 });
 
+test("phrase labels: declared phrases are preserved verbatim, by design", () => {
+  /* Real header metadata is often "Suggested for you · <Sponsor>" — a
+     token-wise matcher would placeholder "for you" and destroy the exact
+     string the detector keys on. */
+  const combined = sanitizeText("Suggested for you \u00b7 Northwind Analytics", ["Suggested for you"]);
+  assert.equal(combined.text, `Suggested for you \u00b7 ${PLACEHOLDER}`);
+
+  /* Several declared phrases, each kept verbatim. */
+  const multi = sanitizeText("Promoted \u00b7 Northwind", ["Promoted", "Northwind"]);
+  assert.equal(multi.text, "Promoted \u00b7 Northwind");
+  const bothKept = sanitizeText("Promoted \u00b7 Suggested", ["Promoted", "Suggested"]);
+  assert.equal(bothKept.text, "Promoted \u00b7 Suggested");
+
+  /* THE FOOTGUN, pinned: --label is a declaration of trust. Declaring a
+     person's name makes the sanitiser preserve it AND makes the verifier
+     accept it, because the verifier checks against the declared set. Only
+     structural metadata may be declared. */
+  const misuse = sanitizeText("Suggested \u00b7 Jane Doe", ["Suggested", "Jane Doe"]);
+  assert.equal(misuse.text, "Suggested \u00b7 Jane Doe");
+
+  /* Already clean text reports no change (idempotence depends on this). */
+  assert.equal(sanitizeText("Suggested for you", ["Suggested for you"]).changed, false);
+  assert.equal(sanitizeText("Suggested \u00b7 Placeholder", ["Suggested"]).changed, false);
+});
+
+test("phrase labels: the verifier accepts declared phrases and nothing else", () => {
+  assert.deepEqual(findLeaks(`<p>Suggested for you \u00b7 ${PLACEHOLDER}</p>`, { keepLabels: ["Suggested for you"] }), []);
+  /* The same text without the phrase declared is a leak. */
+  const leaked = findLeaks(`<p>Suggested for you \u00b7 ${PLACEHOLDER}</p>`, { keepLabels: ["Suggested"] });
+  assert.ok(leaked.some((f) => f.rule === "surviving-text" && f.detail === "for"), JSON.stringify(leaked));
+});
+
+test("CLI: declared labels are echoed so the declaration is auditable", () => {
+  const { spawnSync } = require("node:child_process");
+  const os = require("node:os");
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ss079lbl-"));
+  try {
+    const file = path.join(tmp, "c.html");
+    fs.writeFileSync(
+      file,
+      '<section data-id="urn:li:activity:7251" class="feed-shared-update-v2">' +
+        '<span class="feed-shared-actor__sub-description">Suggested for you</span></section>'
+    );
+    const run = spawnSync(
+      "node",
+      [path.join(__dirname, "sanitize.cjs"), "--sanitize", file, "--id", "lbl-01", "--label", "Suggested for you"],
+      { encoding: "utf8" }
+    );
+    assert.equal(run.status, 0, run.stdout + run.stderr);
+    assert.match(run.stderr, /declared label phrases/i);
+    assert.match(run.stderr, /Suggested for you/);
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
+test("fail-closed: non-markup input is rejected with an actionable message", () => {
+  const res = sanitizeMarkup("just some prose with no tags at all", {});
+  assert.ok(res.error);
+  assert.match(res.error, /no markup/);
+  assert.equal(res.markup, undefined);
+});
+
+test("CLI: a JSON-quoted capture file is unwrapped automatically", () => {
+  const { spawnSync } = require("node:child_process");
+  const os = require("node:os");
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "ss079cli-"));
+  try {
+    const raw = '<section data-id="urn:li:activity:7251" class="feed-shared-update-v2">' +
+      '<span class="feed-shared-actor__sub-description">Suggested for you</span>' +
+      "<p>Body</p></section>";
+    const file = path.join(tmp, "quoted.json");
+    fs.writeFileSync(file, JSON.stringify(raw)); /* JSON-quoted, as some capture routes save it */
+
+    const run = spawnSync("node", [path.join(__dirname, "sanitize.cjs"), "--sanitize", file, "--id", "cli-01", "--label", "Suggested for you", "--json"], { encoding: "utf8" });
+    assert.equal(run.status, 0, run.stdout + run.stderr);
+    assert.match(run.stderr, /JSON-quoted/);
+    const parsed = JSON.parse(run.stdout);
+    assert.deepEqual(parsed.leaks, []);
+    assert.match(parsed.markup, /Suggested for you/);
+    assert.ok(!/Body/.test(parsed.markup));
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true });
+  }
+});
+
 /* ── admission helper ─────────────────────────────────────────────────── */
 
 test("validateSanitizedCase: accepts a sanitised, well-formed entry", () => {

@@ -21,7 +21,13 @@ capture class, that is recorded as an attempt, never fabricated.
 
 ---
 
-## 1. Capture (manual, in your own logged-in browser)
+## 1. Capture — getting the markup onto disk
+
+You never paste DOM into the terminal. You get it into a **file**, then point the
+tool at the file. Two routes; both are permitted (`071/protocol.md` §1 for manual,
+§1a for the owner's one-shot helper).
+
+### Route A — copy/paste (no extra tooling)
 
 1. Open your LinkedIn feed and find a post carrying a **Suggested** header.
 2. Open DevTools → Elements.
@@ -29,9 +35,74 @@ capture class, that is recorded as an attempt, never fabricated.
    `.feed-shared-actor__sub-description` or
    `.update-components-actor__sub-description`).
 4. Walk **up** to the smallest ancestor that is the post container, and copy the
-   `outerHTML` of **that container only**. Nothing above it.
-5. Paste into a local file, e.g. `~/capture-01.html`. Do not paste it into an
-   issue, a chat, or version control — sanitise it first.
+   `outerHTML` of **that container only**. Right-click → Copy → *Copy outerHTML*.
+5. Get it into a file. This machine has **no `xclip`/`xsel`/`wl-paste`**, so use
+   the terminal emulator's own paste instead — it needs no clipboard tool:
+
+   ```bash
+   nano ~/capture-01.html
+   #   Ctrl+Shift+V to paste the outerHTML (or middle-click on X11)
+   #   Ctrl+O, Enter  to save   ·   Ctrl+X to exit
+   ```
+
+   A heredoc works too:
+
+   ```bash
+   cat > ~/capture-01.html <<'EOF'
+   #   Ctrl+Shift+V, then type EOF on its own line and press Enter
+   EOF
+   ```
+
+   Or paste into a GUI editor: `xed ~/capture-01.html` or `code ~/capture-01.html`.
+
+### Route B — the console helper (removes the element hunt)
+
+`plans/research/079/capture-helper.js` is a snippet you paste into the DevTools
+**Console**. It lists the post containers it recognises, marks which carry a
+`Suggested` label, and saves one to `~/Downloads` on request. It makes no network
+request, does not navigate or click, and clones the node so your live page is
+never mutated.
+
+1. Open the feed, press F12 → **Console**.
+2. Paste the **entire contents** of `capture-helper.js` and press Enter. You get a
+   table like:
+
+   | index | suggested | meta | chars |
+   |---|---|---|---|
+   | 0 |  | Promoted | 414 |
+   | 3 | YES | Suggested for you | 230 |
+
+3. Save one post per call — **one post per invocation, not a loop**:
+
+   ```js
+   SS_capture.download(3, "suggested-01")
+   ```
+
+   → writes `~/Downloads/capture-suggested-01.html` and tags it with the
+   commit-time `data-case` marker for you.
+
+4. Continue with §2, then **delete the raw file**:
+   `rm ~/Downloads/capture-suggested-01.html`.
+
+### Declare the label you actually saw
+
+`--label` is a *declaration of trust*: whatever you declare is preserved verbatim
+and will **not** be flagged as a leak. Declare **only** the structural label you
+saw in the header metadata — never a person's name, headline or post text. If the
+metadata rendered a fuller phrase, declare the whole phrase:
+
+```bash
+--label "Suggested for you"      # if that is literally what the header said
+```
+
+> **This is a real finding, not a formality.** The 068 prototype and the shared
+> `matchesLabel` grammar currently accept only `Suggested` or
+> `Suggested · <sponsor>` — verified in this repo. A header rendering as
+> `Suggested for you` produces **zero** targets: a silent false negative. The
+> detector is *deliberately* not widened here, because `071/protocol.md` §4
+> requires labels to be established by capture and forbids guessing them. Your
+> first real capture is what settles it: if the gate's `expectedTarget` fails on a
+> genuine entry, that failure *is* the finding (`071/protocol.md` §5).
 
 ## 2. Sanitise (mechanical)
 
@@ -44,7 +115,8 @@ node plans/research/079/sanitize.cjs \
   --out /tmp/suggested-01.html
 ```
 
-Exit code `0` plus `leak findings: 0` means the output is clean. The tool will:
+Exit code `0` plus `leak findings: 0` means the output is clean. A JSON-quoted
+capture file is unwrapped automatically. The tool will:
 
 * replace every human text run with `Placeholder`, keeping your `--label` and
   punctuation separators (the signal the detector keys on);

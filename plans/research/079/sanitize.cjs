@@ -371,34 +371,92 @@ function sanitizeUrl(value, sentinel) {
 
 /**
  * Replaces human text with the placeholder while preserving:
- *  - the caller's declared structural label(s),
+ *  - any declared label PHRASE verbatim, anywhere in the text,
  *  - punctuation-only tokens (separators such as "·", "|", "-"), and
  *  - leading / trailing whitespace.
  * Runs of placeholders collapse to one token.
+ *
+ * Phrase-level (not token-level) matching matters: real header metadata is
+ * often "Suggested for you · <Sponsor>" or "Promoted · <Advertiser>". A
+ * token-wise matcher would placeholder "for you" and destroy the exact label
+ * string the detector keys on.
  * @param {string} raw
- * @param {string[]} keepLabels
+ * @param {string[]} keepLabels Declared label phrases.
  */
 function sanitizeText(raw, keepLabels) {
   const trimmed = raw.trim();
   if (trimmed === "") return { text: raw, changed: false };
-  if (keepLabels.includes(trimmed) || trimmed === PLACEHOLDER) return { text: raw, changed: false };
+  if (trimmed === PLACEHOLDER) return { text: raw, changed: false };
 
-  const words = trimmed.split(/(\s+)/);
+  const phrases = (keepLabels || [])
+    .filter((l) => typeof l === "string" && l.trim() !== "")
+    .map((l) => l.trim())
+    .sort((a, b) => b.length - a.length);
+
   const out = [];
   let changed = false;
-  for (const w of words) {
-    if (w === "" || /^\s+$/.test(w)) continue;
-    /* The placeholder token is itself approved vocabulary, so an already
-       sanitised run is kept verbatim — this makes sanitisation idempotent. */
-    const keep = keepLabels.includes(w) || !ALNUM_RE.test(w) || w === PLACEHOLDER;
-    const token = keep ? w : PLACEHOLDER;
-    if (!keep) changed = true;
-    if (token === PLACEHOLDER && out.length > 0 && out[out.length - 1] === PLACEHOLDER) continue;
-    out.push(token);
+  let buffer = "";
+
+  /* Emit the buffered non-label text as placeholder / separator tokens. */
+  const flush = () => {
+    if (buffer === "") return;
+    for (const word of buffer.split(/\s+/)) {
+      if (word === "") continue;
+      /* The placeholder is itself sanctioned vocabulary, so an already
+         sanitised run is kept without reporting a change. */
+      if (word === PLACEHOLDER || !ALNUM_RE.test(word)) {
+        out.push(word); /* punctuation-only token: a structural separator */
+        continue;
+      }
+      out.push(PLACEHOLDER);
+      changed = true;
+    }
+    buffer = "";
+  };
+
+  let i = 0;
+  while (i < trimmed.length) {
+    const phrase = phrases.find((p) => trimmed.startsWith(p, i));
+    if (phrase) {
+      flush();
+      out.push(phrase); /* preserved verbatim */
+      i += phrase.length;
+    } else {
+      buffer += trimmed[i];
+      i += 1;
+    }
   }
+  flush();
+
+  const collapsed = [];
+  for (const token of out) {
+    if (token === "") continue;
+    if (token === PLACEHOLDER && collapsed.length > 0 && collapsed[collapsed.length - 1] === PLACEHOLDER) {
+      continue;
+    }
+    collapsed.push(token);
+  }
+
   const lead = raw.match(/^\s*/)[0];
   const trail = raw.match(/\s*$/)[0];
-  return { text: lead + out.join(" ") + trail, changed };
+  return { text: lead + collapsed.join(" ") + trail, changed };
+}
+
+/**
+ * Removes every sanctioned token (placeholder, declared label phrases,
+ * urn sentinels) from a string. Any alphanumeric character left afterwards is
+ * by definition unsanctioned — the verifier's core invariant.
+ * @param {string} value
+ * @param {string[]} keepLabels
+ */
+function stripSanctioned(value, keepLabels) {
+  let residual = String(value).replace(/urn:li:[\w]+:[\w-]+/gi, " ");
+  for (const phrase of keepLabels || []) {
+    if (typeof phrase === "string" && phrase !== "") {
+      residual = residual.split(phrase).join(" ");
+    }
+  }
+  return residual.split(PLACEHOLDER).join(" ");
 }
 
 /* ── structural fingerprint (protocol §2.2 enforcement) ────────────────── */
@@ -460,6 +518,15 @@ function sanitizeMarkup(html, options) {
   const opts = options || {};
   const keepLabels = Array.isArray(opts.keepLabels) ? opts.keepLabels.filter(Boolean) : [];
   const sentinel = opts.sentinel || deriveSentinel(opts.caseId || "case");
+
+  if (!String(html).includes("<")) {
+    return {
+      error:
+        "fail-closed: input contains no markup. Expected the raw HTML of a post " +
+        "container. If you saved a JSON-quoted string, pass the file as-is to the " +
+        "CLI (it auto-unwraps) or unwrap it yourself first.",
+    };
+  }
 
   const tok = tokenize(html);
   if (tok.error) return { error: tok.error };
@@ -596,7 +663,6 @@ function deriveSentinel(caseId) {
 function findLeaks(markup, options) {
   const opts = options || {};
   const keepLabels = Array.isArray(opts.keepLabels) ? opts.keepLabels.filter(Boolean) : [];
-  const approved = new Set([PLACEHOLDER, ...keepLabels]);
   const findings = [];
 
   const tok = tokenize(markup);
@@ -640,24 +706,23 @@ function findLeaks(markup, options) {
         }
       }
       /* Default-deny: any attribute that is neither allowlisted-structural nor
-         a URL must carry only approved vocabulary. URL attributes get the
+         a URL must carry only sanctioned tokens. URL attributes get the
          query/slug/urn checks above instead (their paths are host + route
          evidence; see the documented limitation in design.md). */
       if (!STRUCTURAL_ATTRS.includes(name) && !URL_ATTRS.includes(name)) {
         if (/[\w.+-]+@[\w-]+\.[\w.]+/.test(a.value)) {
           findings.push({ rule: "email", detail: `${lowered}[${name}]` });
         }
-        const runs = a.value.match(/[\p{L}\p{N}][\p{L}\p{N}._'-]*/gu) || [];
+        const residual = stripSanctioned(a.value, keepLabels);
+        const runs = residual.match(/[\p{L}\p{N}][\p{L}\p{N}._'-]*/gu) || [];
         for (const run of runs) {
-          if (!approved.has(run)) {
-            findings.push({ rule: "surviving-attr-text", detail: `${lowered}[${name}]:${run.slice(0, 40)}` });
-          }
+          findings.push({ rule: "surviving-attr-text", detail: `${lowered}[${name}]:${run.slice(0, 40)}` });
         }
       }
     }
   }
 
-  /* Text-node vocabulary check: every alphanumeric run must be approved. */
+  /* Text-node check: after sanctioned tokens are stripped, nothing may remain. */
   let depth = 0;
   let skipDepth = 0;
   for (const t of tok.tokens) {
@@ -681,14 +746,15 @@ function findLeaks(markup, options) {
     if (/[\w.+-]+@[\w-]+\.[\w.]+/.test(t.raw)) {
       findings.push({ rule: "email", detail: "text node" });
     }
-    const withoutSentinels = t.raw.replace(/urn:li:[\w]+:[\w-]+/gi, " ");
-    const runs = withoutSentinels.match(/[\p{L}\p{N}][\p{L}\p{N}._'-]*/gu) || [];
+    /* After every sanctioned token is removed, any surviving alphanumeric run
+       is unsanctioned by definition — stronger and simpler than checking a
+       denylist of looks-like-a-name patterns. */
+    const residual = stripSanctioned(t.raw, keepLabels);
+    const runs = residual.match(/[\p{L}\p{N}][\p{L}\p{N}._'-]*/gu) || [];
     for (const run of runs) {
-      if (!approved.has(run)) {
-        findings.push({ rule: "surviving-text", detail: run.slice(0, 40) });
-      }
+      findings.push({ rule: "surviving-text", detail: run.slice(0, 40) });
     }
-    if (/\d{4,}/.test(withoutSentinels.replace(new RegExp(PLACEHOLDER, "g"), " "))) {
+    if (/\d{4,}/.test(residual)) {
       findings.push({ rule: "long-digit-run", detail: "text node" });
     }
   }
@@ -791,9 +857,25 @@ function main(argv) {
     return failed === 0 ? 0 : 1;
   }
 
-  const sourceHtml = args.selfTest
-    ? require("node:fs").readFileSync(path.join(__dirname, "dirty-sample.html"), "utf8")
-    : fs.readFileSync(path.resolve(args.sanitize), "utf8");
+  let sourceHtml;
+  if (args.selfTest) {
+    sourceHtml = fs.readFileSync(path.join(__dirname, "dirty-sample.html"), "utf8");
+  } else {
+    sourceHtml = fs.readFileSync(path.resolve(args.sanitize), "utf8");
+    /* Tolerate a JSON-quoted string: some capture routes (and the DevTools MCP
+       file output) save the markup JSON-encoded rather than as a raw file. */
+    if (/^\s*"/.test(sourceHtml)) {
+      try {
+        const unwrapped = JSON.parse(sourceHtml);
+        if (typeof unwrapped === "string") {
+          console.error("note: input was JSON-quoted; unwrapped it automatically.");
+          sourceHtml = unwrapped;
+        }
+      } catch (_) {
+        /* fall through and let the sanitiser report the real problem */
+      }
+    }
+  }
 
   const result = sanitizeMarkup(sourceHtml, {
     keepLabels: args.keepLabels,
@@ -802,6 +884,18 @@ function main(argv) {
   if (result.error) {
     console.error(result.error);
     return 1;
+  }
+  if (args.keepLabels.length > 0) {
+    console.error(
+      "note: preserving these declared label phrases verbatim: " +
+        args.keepLabels.map((l) => JSON.stringify(l)).join(", ")
+    );
+    console.error(
+      "      Declare ONLY structural metadata (the Suggested label). Anything you declare here is"
+    );
+    console.error(
+      "      kept and will NOT be flagged as a leak, so never declare a person's name or a post body."
+    );
   }
   const leaks = findLeaks(result.markup, { keepLabels: args.keepLabels });
 
@@ -839,6 +933,7 @@ module.exports = {
   parseTag,
   renderTag,
   sanitizeText,
+  stripSanctioned,
   sanitizeUrl,
   sentinelizeUrn,
   sanitizeMarkup,

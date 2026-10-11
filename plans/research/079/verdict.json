@@ -27,7 +27,7 @@
   "deliverables": {
     "sanitize.cjs": {
       "role": "producer",
-      "sha256": "639ed7a50fcbe41a918a61eeecf700f629b6f80b0f11e36f96f3fe19484f8f90",
+      "sha256": "4b6a0f2b3125304a41debaa110d3df2f15b2d9349fb1c212e50ca89ef072233f",
       "dependencies": 0,
       "failClosed": true,
       "failClosedTrigger": "unterminated quoted attribute, unterminated comment or tag, unparsable tag syntax, or any structural fingerprint mismatch — all return an error and NO markup; there is no override flag",
@@ -40,7 +40,7 @@
     },
     "sanitize.test.cjs": {
       "role": "tests",
-      "count": 26
+      "count": 31
     },
     "step0-gap-demo.cjs": {
       "role": "gap demonstration",
@@ -58,6 +58,14 @@
     },
     "design.md": {
       "role": "design record"
+    },
+    "capture-helper.js": {
+      "role": "optional DevTools Console snippet that lists recognised post containers and saves one to ~/Downloads",
+      "sha256": "d2b824d0d866b7dd1134115eb0def9e0114bd8d8a54b7475d34009b5c0aa03f6",
+      "required": false,
+      "note": "Protocol section 1 (manual copy-paste) remains sufficient. This exists because the host has no xclip/xsel/wl-paste, so the clipboard route needs a workaround. It reads the already-rendered DOM, makes no network request, does not navigate or click, clones the node so the live page is not mutated, and is bounded to one post per invocation.",
+      "verifiedInBrowser": true,
+      "verificationDetail": "Loaded into a real Chromium via the chrome-devtools MCP and executed against the synthetic fixture: 7 candidates found, index 3 correctly flagged suggested=true. Build output saved to disk and driven through sanitize.cjs to leak findings 0."
     }
   },
   "leakVerifierRules": [
@@ -100,7 +108,7 @@
     {
       "command": "node --test plans/research/079/sanitize.test.cjs",
       "expected": "exit 0",
-      "actual": "exit 0 (tests 26, pass 26, fail 0)"
+      "actual": "exit 0 (tests 31, pass 31, fail 0)"
     },
     {
       "command": "node plans/research/079/step0-gap-demo.cjs",
@@ -236,5 +244,43 @@
     "effectOnThisPlan": "None mechanically. The contributor path, the sanitiser, the leak verifier, the ten-key entry schema and 071 section 3 minimums are all unchanged. The exception is owner-only and does not alter the provenance class.",
     "record": "plans/research/080/amendment.md",
     "reversalConditions": 5
-  }
+  },
+  "protocolRulesUpdated": {
+    "labelMatching": "Phrase-level, not token-level. Declared label phrases are preserved verbatim wherever they appear; only the remainder is placeholdered. Fixes a defect where realistic metadata such as 'Suggested for you - Acme' reduced to 'Placeholder - Placeholder' and destroyed the exact string the detector keys on.",
+    "footgun": "--label is a declaration of trust: a declared phrase is preserved AND accepted by the verifier, because the verifier checks against the declared set. Declaring a person's name would leak it and pass the leak check. The CLI now echoes declared phrases with an explicit warning, the behaviour is pinned by a test, and the guide states the rule. No heuristic name-detector is used by design: a guess would false-positive on ordinary metadata and block legitimate donations."
+  },
+  "findings": [
+    {
+      "id": "F-01",
+      "claim": "The 068 prototype detector and the shared matchesLabel grammar accept ONLY 'Suggested' or 'Suggested <middot> <sponsor>'. A header rendering as 'Suggested for you' (or 'Suggested for you <middot> <sponsor>') yields ZERO targets: a silent false negative, not an error.",
+      "classification": "SOURCE-VERIFIED (grammar behaviour), UNKNOWN (whether LinkedIn renders a fuller label)",
+      "reproduce": "node -e with jsdom + plans/research/068/detector.cjs; matchesLabel('Suggested for you', ['Suggested']) === false; scanSuggested over a legacy-shaped container with that label text returns 0 targets",
+      "measured": {
+        "Suggested": 1,
+        "Suggested <middot> Sponsor": 1,
+        "Suggested for you": 0,
+        "Suggested for you <middot> Sponsor": 0
+      },
+      "disposition": "DELIBERATELY NOT FIXED. 071/protocol.md section 4 requires labels to be established by capture and forbids guessing them; 068/detector.cjs:29-31 states the English-only no-guess policy. The first real capture adjudicates: a failing expectedTarget on a genuine entry IS the finding (protocol section 5).",
+      "actionability": "high - the first donated capture will immediately confirm or clear this, because the gate asserts expectedTarget."
+    },
+    {
+      "id": "F-02",
+      "claim": "Label matching was token-wise, so a combined label such as 'Suggested for you <middot> Acme' was reduced to 'Placeholder <middot> Placeholder', destroying the signal.",
+      "classification": "OBSERVED",
+      "disposition": "FIXED - phrase-level matching; verified 'Suggested for you <middot> Acme' -> 'Suggested for you <middot> Placeholder'."
+    },
+    {
+      "id": "F-03",
+      "claim": "A JSON-quoted capture file failed with a bare 'unparsable tag' message, and non-markup input was equally opaque.",
+      "classification": "OBSERVED",
+      "disposition": "FIXED - the CLI auto-unwraps a JSON-quoted string and non-markup input returns an explicit, actionable error."
+    },
+    {
+      "id": "F-04",
+      "claim": "sanitizeText reported changed:true when the replacement was byte-identical, which would have made the idempotence property report phantom changes.",
+      "classification": "OBSERVED",
+      "disposition": "FIXED."
+    }
+  ]
 }
