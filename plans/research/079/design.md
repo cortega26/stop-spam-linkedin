@@ -217,9 +217,28 @@ wrong and a tool nobody can run is not a tool:
   relaunch it, aborting if it will not exit. `--dedicated-profile` restores the
   isolated behaviour.
 * **The tool scrolls, not the user.** "Scroll and re-run" is not an instruction,
-  it is an abdication. The feed is now walked automatically, with candidates
-  deduped across rounds because LinkedIn unmounts posts as they leave the
-  viewport. It stops when the feed stops growing or the budget runs out.
+  it is an abdication. The feed is walked automatically, with candidates deduped
+  across rounds because LinkedIn unmounts posts as they leave the viewport.
+  * Scrolling uses `scrollIntoView` on the last post, not `window.scrollBy`:
+    LinkedIn may scroll the window or an inner container, and only the former is
+    fixed by guessing.
+  * Growth is detected by the *identity of the tail post changing*, not by a
+    count — LinkedIn unmounts posts as it mounts others, so a raw count can stay
+    flat while new content loads. An earlier version compared the deduped
+    seen-count against the raw DOM count, which was incomparable, so the loop gave
+    up almost immediately.
+  * Stop reporting is honest: `gather()` returns `stepsRun` and `stoppedReason`,
+    and the message distinguishes "the feed stopped yielding new posts, so raising
+    `--max-scrolls` will not help" from "budget exhausted, try a larger one". An
+    earlier version hardcoded the budget into the message and claimed "scrolled 12
+    times" after four iterations. **A user noticed the run was suspiciously fast,
+    and was right.**
+* **A selector mismatch must be a fact, not a guess.** `--diagnose` prints a
+  census *and* an element skeleton (tag + class names only, never text), and says
+  "META_SELECTOR matched NOTHING — that is the bug" when the header slot is
+  unreadable. `--meta-selector` accepts a corrected selector immediately, and a
+  validity pre-flight defers to the browser's own CSS parser so a typo names its
+  error instead of silently matching nothing.
 
 A consequence worth stating plainly: the candidate detector is deliberately
 English-only, so a non-English label must **fail open**. The capture path

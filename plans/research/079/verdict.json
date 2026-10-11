@@ -82,7 +82,7 @@
     },
     "capture-live.cjs": {
       "role": "PRIMARY capture path. Connects over loopback CDP to a browser it launches (dedicated profile; the user's normal Chrome is never touched or closed), reads the posts already rendered, classifies them by Suggested label, extracts and sanitises in memory, and stages ten-key entries.",
-      "sha256": "5f56d9a8f29d5cc30be9d0253df73532e581ae5fed2689b9f3c84cc68b50eda1",
+      "sha256": "bc6fa62a3c8458d0fd6d76b4c404220ef6093d0046277a7c7eb0f5e4e28ef79d",
       "rawMarkupTouchesDisk": false,
       "doesNot": [
         "click",
@@ -104,8 +104,11 @@
       },
       "reusesUserProfile": "DEFAULT is the user's own Chrome user-data-dir and profile directory, so the existing LinkedIn session is reused and no login is needed. Chrome must be closed to attach to that profile; the script detects a running Chrome and offers to close+relaunch it (SIGTERM, 20s grace, aborts if it will not exit). --close-chrome/-y skip the question; --dedicated-profile keeps a throwaway profile; --attach uses an existing debug port.",
       "autoScroll": "Scrolls the feed itself instead of asking the user to scroll and re-run. Dedupes candidates across rounds by HTML prefix because LinkedIn unmounts posts as they leave the viewport; stops when the feed stops growing, an accept predicate is met, or the scroll budget runs out (--max-scrolls, default 12). Progress is printed as 'N post(s) collected (scroll i/budget)'.",
-      "diagnoseMode": "--diagnose prints a selector census (per-family match counts, META_SELECTOR match count, distinct header strings, URL, UI locale) and exits without staging, so a selector mismatch becomes a fact rather than a guess. Output contains header-slot strings only (degree/label), not post bodies.",
-      "extensionsDisabledByDefault": "Extensions are disabled during capture unless --with-extensions: a content script that rewrites the DOM (including this repo's own extension) makes the capture worse evidence about what LinkedIn rendered."
+      "diagnoseMode": "--diagnose prints a selector census (per-family match counts, META_SELECTOR match count with an explicit 'matched NOTHING - that is the bug' callout, the distinct header strings, URL, UI locale) PLUS an element skeleton of the first posts: tag and class names only, never text. Class names are structural, not personal data, and they are exactly what is needed to fix a selector that no longer matches the live DOM.",
+      "extensionsDisabledByDefault": "Extensions are disabled during capture unless --with-extensions: a content script that rewrites the DOM (including this repo's own extension) makes the capture worse evidence about what LinkedIn rendered.",
+      "scrollReporting": "Honest stop reporting: gather() returns stepsRun and stoppedReason ('target-reached', 'feed-stopped-growing', or 'budget'), and the failure message distinguishes 'the feed stopped yielding new posts, so raising --max-scrolls will not help' from 'budget exhausted, try a larger one'. An earlier version hardcoded the budget into the message and claimed 'scrolled 12 times' after only four iterations -- a user reported the output as suspiciously fast, and the message was simply false.",
+      "scrollMechanism": "Growth is detected by the identity of the TAIL post changing, because LinkedIn unmounts posts as it mounts others so a raw count can stay flat while new content loads. Scrolling uses scrollIntoView on the last post rather than window.scrollBy, so it works whether LinkedIn scrolls the window or an inner container. An earlier version compared the deduped seen-count against the raw DOM count, which was incomparable and made the loop give up almost immediately.",
+      "selectorOverride": "--meta-selector SEL overrides the header-metadata selector. A selector validity pre-flight asks the browser's own parser, so an invalid selector names the CSS error; a valid-but-zero-match selector is reported explicitly rather than silently finding nothing."
     },
     "capture-live.test.cjs": {
       "role": "Offline tests for the language handling (no browser needed): degree detection across locales, label clustering, and the positive/fail-open-negative decision.",
@@ -297,7 +300,7 @@
     {
       "command": "capture-live.cjs --diagnose against the same fixture",
       "expected": "selector census, no staging",
-      "actual": "exit 0; 8 matches per selector family, 8 META_SELECTOR matches, distinct header strings listed"
+      "actual": "exit 0; census plus element skeleton. Against a fixture whose header class was deliberately renamed, it reported 'META_SELECTOR matched NOTHING - that is the bug' and printed the real class name."
     },
     {
       "command": "capture-live.cjs with a running Chrome and no --close-chrome (non-TTY)",
@@ -318,6 +321,26 @@
       "command": "capture-live.cjs --attach (fixture) then one-shot-capture.sh --admit",
       "expected": "stage 3 negatives, gate passes",
       "actual": "exit 0; staged 3 entries, gate 8/8; corpus reverted to [] afterwards"
+    },
+    {
+      "command": "capture-live.cjs --suggested-label X --meta-selector '[['",
+      "expected": "name the CSS error",
+      "actual": "exit 1; reported the browser's own message: \"'[[' is not a valid selector\", plus the bare-class-name hint"
+    },
+    {
+      "command": "capture-live.cjs --meta-selector '.nope' (valid CSS, matches nothing)",
+      "expected": "report the zero-match explicitly",
+      "actual": "exit 1 with '--meta-selector matched no header elements on this page'"
+    },
+    {
+      "command": "capture-live.cjs --meta-selector '.actor__subtitle-new-name' against the renamed-class fixture",
+      "expected": "find the label once the selector is corrected",
+      "actual": "exit 0; staged the labelled post"
+    },
+    {
+      "command": "capture-live.cjs against a feed that stops yielding posts",
+      "expected": "say the budget was NOT the limit",
+      "actual": "exit 1 with 'the feed stopped yielding new posts after 3 scroll(s). The scroll budget was NOT the limit, so raising --max-scrolls will not help.'"
     }
   ],
   "productionFiles": [],

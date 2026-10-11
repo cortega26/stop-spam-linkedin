@@ -106,6 +106,7 @@ function parseArgs(argv) {
     const a = argv[i];
     if (a === "--attach") out.attach = true;
     else if (a === "--diagnose") out.diagnose = true;
+    else if (a === "--meta-selector") out.metaSelector = argv[++i];
     else if (a === "--dry-run") out.dry = true;
     else if (a === "--yes" || a === "-y") out.yes = true;
     else if (a === "--close-chrome") out.closeChrome = true;
@@ -256,7 +257,7 @@ async function ensureBrowser(opts) {
  * Per-selector census, so a selector mismatch is a fact rather than a guess.
  * Read-only. Reports counts and short header strings only.
  */
-async function selectorCensus(page) {
+async function selectorCensus(page, metaSelector) {
   return page.evaluate(
     ({ families, metaSelector }) => {
       const counts = {};
@@ -278,12 +279,65 @@ async function selectorCensus(page) {
         '[data-testid="mainFeed"] [role="listitem"]',
         '[role="listitem"]',
       ],
-      metaSelector: META_SELECTOR,
+      metaSelector: metaSelector || META_SELECTOR,
+      skeletonLimit: 28,
     }
   );
 }
 
-async function readPage(page) {
+/**
+ * Element skeleton (tag + class only, never text) for the first couple of
+ * candidates. Class names are structural, not personal data, and they are
+ * exactly what is needed to fix a selector that no longer matches.
+ */
+async function headerSkeleton(page) {
+  return page.evaluate(
+    ({ postSelector, limit }) => {
+      const posts = Array.from(document.querySelectorAll(postSelector)).slice(0, 2);
+      return posts.map((post) => {
+        const lines = [];
+        const walk = (el, depth) => {
+          if (lines.length >= limit) return;
+          const cls = (el.getAttribute("class") || "").trim();
+          const testid = el.getAttribute("data-testid");
+          const parts = [`${"  ".repeat(depth)}<${el.tagName.toLowerCase()}`];
+          if (cls) parts.push(` class="${cls}"`);
+          if (testid) parts.push(` data-testid="${testid}"`);
+          parts.push(">");
+          lines.push(parts.join(""));
+          for (const child of el.children) walk(child, depth + 1);
+        };
+        walk(post, 0);
+        return lines.join("\n");
+      });
+    },
+    { postSelector: POST_SELECTOR, limit: 28 }
+  );
+}
+
+/**
+ * Asks the browser whether each selector is even valid. A typo'd
+ * --meta-selector should name the CSS error, not silently match nothing.
+ * (A bare class name such as `actor__subtitle` is valid CSS meaning a TAG, so it
+ * parses and matches nothing — which is why the zero-match check below also
+ * exists.)
+ */
+async function checkSelectors(page, selectors) {
+  return page.evaluate((sels) => {
+    const bad = [];
+    for (const sel of sels) {
+      if (!sel) continue;
+      try {
+        document.querySelectorAll(sel);
+      } catch (err) {
+        bad.push({ sel, message: err.message });
+      }
+    }
+    return bad;
+  }, selectors);
+}
+
+async function readPage(page, metaSelector) {
   return page.evaluate(
     ({ postSelector, metaSelector }) => {
       const uiLocale = (document.documentElement.getAttribute("lang") || "").trim();
@@ -301,9 +355,9 @@ async function readPage(page) {
           html: el.outerHTML,
         };
       });
-      return { uiLocale, candidates, atBottom: window.scrollY + window.innerHeight >= document.body.scrollHeight - 200 };
+      return { uiLocale, candidates };
     },
-    { postSelector: POST_SELECTOR, metaSelector: META_SELECTOR }
+    { postSelector: POST_SELECTOR, metaSelector: metaSelector || META_SELECTOR }
   );
 }
 
@@ -316,10 +370,13 @@ async function gather(page, opts, { target, accept, budget }) {
   const seen = new Map();
   let locale = "";
   let quiet = 0;
+  let stepsRun = 0;
+  let stoppedReason = "target-reached";
   const key = (c) => `${c.html.length}:${c.html.slice(0, 160)}`;
 
   for (let step = 0; step <= budget; step += 1) {
-    const data = await readPage(page);
+    stepsRun = step;
+    const data = await readPage(page, opts.metaSelector);
     if (data.uiLocale) locale = data.uiLocale;
     let added = 0;
     for (const c of data.candidates) {
@@ -330,16 +387,46 @@ async function gather(page, opts, { target, accept, budget }) {
     if (added > 0) {
       console.error(`${DIM}    ${list.length} post(s) collected (scroll ${step}/${budget})${OFF}`);
     }
-    if (accept && accept(list)) break;
-    if (!accept && target && list.length >= target) break;
+    if (accept && accept(list)) { stoppedReason = "target-reached"; break; }
+    if (!accept && target && list.length >= target) { stoppedReason = "target-reached"; break; }
+    if (step === budget) { stoppedReason = "budget"; break; }
+    if (quiet >= 3) { stoppedReason = "feed-stopped-growing"; break; }
 
-    quiet = added === 0 ? quiet + 1 : 0;
-    if (quiet >= 3 || data.atBottom || step === budget) break;
-
-    await page.evaluate(() => window.scrollBy(0, Math.round(window.innerHeight * 1.4)));
-    await page.waitForTimeout(900);
+    /* Scroll the LAST POST into view rather than window.scrollBy: LinkedIn may
+       scroll the window or an inner container, and scrollIntoView works either
+       way. Growth is detected by the identity of the tail post changing, because
+       LinkedIn unmounts posts as it mounts others, so a raw count can stay flat
+       while new content loads. (An earlier version compared the deduped count
+       against the raw DOM count, which was simply incomparable.) */
+    const grew = await page.evaluate(
+      async ({ postSelector, beforeKey, timeoutMs }) => {
+        const tailKey = () => {
+          const all = document.querySelectorAll(postSelector);
+          const tail = all[all.length - 1];
+          return tail ? `${all.length}:${tail.outerHTML.slice(0, 160)}` : "0:";
+        };
+        const before = tailKey();
+        const all = document.querySelectorAll(postSelector);
+        const tail = all[all.length - 1];
+        if (tail) tail.scrollIntoView({ block: "end" });
+        else window.scrollBy(0, window.innerHeight);
+        const deadline = Date.now() + timeoutMs;
+        while (Date.now() < deadline) {
+          if (tailKey() !== before) return true;
+          await new Promise((r) => setTimeout(r, 150));
+        }
+        return false;
+      },
+      { postSelector: POST_SELECTOR, timeoutMs: 2500 }
+    );
+    if (!grew) quiet += 1; else quiet = 0;
   }
-  return { uiLocale: locale, candidates: [...seen.values()].map((c, i) => ({ ...c, index: i })) };
+  return {
+    uiLocale: locale,
+    candidates: [...seen.values()].map((c, i) => ({ ...c, index: i })),
+    stepsRun,
+    stoppedReason,
+  };
 }
 
 /* ── label resolution (never guessed) ───────────────────────────────────── */
@@ -424,7 +511,8 @@ async function main() {
         "  --with-extensions         do not disable extensions\n" +
         "  --attach                  use an already-running debug port instead of launching\n" +
         "  --dry-run                 show what would be staged, write nothing\n" +
-        "  --diagnose                report which selectors match your feed, then exit"
+        "  --diagnose                report which selectors match your feed, then exit" +
+        "  --meta-selector SEL       override the header-metadata selector"
     );
     return 0;
   }
@@ -457,7 +545,7 @@ async function main() {
   }
 
   if (opts.diagnose) {
-    const census = await selectorCensus(page);
+    const census = await selectorCensus(page, opts.metaSelector);
     console.log(`\npage        : ${census.url}`);
     console.log(`title       : ${census.title}`);
     console.log(`ui locale   : ${census.uiLocale || "(none)"}`);
@@ -472,10 +560,26 @@ async function main() {
       console.log(`\n${YEL}META_SELECTOR matched NOTHING — that is the bug.${OFF}`);
       console.log("A Suggested post may be visible while I cannot read its header slot.");
     }
+    const skeletons = await headerSkeleton(page);
+    if (skeletons.length) {
+      console.log(`\n${DIM}element skeleton of the first post(s) — tag + class only, no text:${OFF}`);
+      console.log(skeletons[0]);
+    }
     console.log(`\n${DIM}These are header-slot strings (connection degree or label), not post bodies.${OFF}`);
     console.log(`${DIM}If a Suggested post is on screen but its label is not listed above, send me this output.${OFF}`);
     if (opts.quitWhenDone) await browser.close();
     return 0;
+  }
+
+  const metaSel = opts.metaSelector || META_SELECTOR;
+  const badSelectors = await checkSelectors(page, [POST_SELECTOR, metaSel]);
+  if (badSelectors.length) {
+    for (const b of badSelectors) warn(`invalid CSS selector ${JSON.stringify(b.sel)}: ${b.message}`);
+    if (opts.metaSelector) {
+      console.error("    A bare class name is valid CSS but means a TAG. Use a dot: --meta-selector \".my-class\"");
+    }
+    await browser.close();
+    return 1;
   }
 
   const needed = opts.maxPositives + opts.maxNegatives;
@@ -487,6 +591,14 @@ async function main() {
     warn(`no post containers found on ${current}`);
     console.error("    (If posts are clearly visible and this still says none, the feed shape is");
     console.error("     outside the known selectors — that itself is worth reporting.)");
+    if (opts.quitWhenDone) await browser.close();
+    return 1;
+  }
+
+  const metaElementsSeen = gathered.candidates.reduce((n, c) => n + c.meta.length, 0);
+  if (metaElementsSeen === 0 && opts.metaSelector) {
+    warn(`--meta-selector ${JSON.stringify(opts.metaSelector)} matched no header elements on this page.`);
+    console.error("    Run --diagnose to see the real element skeleton and pick the right class.");
     if (opts.quitWhenDone) await browser.close();
     return 1;
   }
@@ -514,9 +626,17 @@ async function main() {
   const { candidates } = gathered;
   const matched = candidates.filter((c) => c.meta.includes(label));
   if (matched.length === 0) {
-    warn(`scrolled ${opts.maxScrolls} times and found no post carrying ${JSON.stringify(label)}.`);
-    console.error("    If it exists on your feed, it may be further down. Raise the budget:");
-    console.error(`      --max-scrolls ${opts.maxScrolls * 3}`);
+    if (gathered.stoppedReason === "feed-stopped-growing") {
+      warn(`no post carries ${JSON.stringify(label)}, and the feed stopped yielding new posts after ${gathered.stepsRun} scroll(s).`);
+      console.error("    The scroll budget was NOT the limit, so raising --max-scrolls will not help.");
+    } else {
+      warn(`no post carries ${JSON.stringify(label)} after ${gathered.stepsRun} scroll(s) (budget exhausted).`);
+      console.error(`    Worth retrying with a bigger budget:  --max-scrolls ${opts.maxScrolls * 3}`);
+    }
+    console.error("");
+    console.error("    The probable cause is that the label is not where I look for it.");
+    console.error("    Run the census and send me the output:");
+    console.error("      node plans/research/079/capture-live.cjs --diagnose");
     if (opts.quitWhenDone) await browser.close();
     return 1;
   }
