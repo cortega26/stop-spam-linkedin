@@ -88,6 +88,8 @@ Verified before tagging instead: `npm run package` and `npm run test:package`
 include and exclude lists above; smoke, lint, typecheck, `test:unit` (82/82) and
 `test:extension` all pass; CI green on the tagged commit.
 
+**Tracked follow-ups:** [#7](https://github.com/cortega26/stop-spam-linkedin/issues/7) carries the post-approval steps (Chrome listing copy, availability notices, screenshots) with the command that says when they are due: `node scripts/check-store-versions.js` exits `0` once every store matches `manifest.json`.
+
 **Outstanding after this release:** update `README.md`'s availability notice and
 `STORE_ASSETS.md` once the stores accept 2.0.0, and replace the screenshots with
 real captures. If a manual pass later finds a promoted false positive or native-UI
