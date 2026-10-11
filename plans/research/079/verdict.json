@@ -1,0 +1,473 @@
+{
+  "plan": "079",
+  "verdict": "proceed",
+  "decidedAt": "2026-10-11",
+  "branch": "research/079-suggested-capture-sanitiser",
+  "baseSha": "2fb25e3e9f893d34a4b2a3df85b415cd8b80a669",
+  "baseBranch": "main",
+  "scope": "Research prototype only. Adds a sanitiser (protocol §2 producer) and a leak verifier (§2.4) for plan-071 Suggested-post captures. Modifies no production file and no file under plans/research/068/ or /071/.",
+  "summary": "Plan 071 asks a contributor to hand-sanitise real markup and to state the exact grep proving no real name, sentence or URN remains. Plan 071's own gate does not verify that sanitisation happened. This plan mechanises both halves and proves end to end that sanitised output is admissible to the unmodified 071 gate without destroying the detector signal.",
+  "stepZeroFinding": {
+    "claim": "The plan-071 'sanitization:' gate accepts an entry that still contains a person's name, a full post body, a global id attribute, a profile slug with a tracking parameter, a srcset, and identifying alt text.",
+    "classification": "OBSERVED",
+    "method": "Ran the exact content assertions from plans/research/071/probe-extensions.test.cjs against a crafted PII-shaped entry; the gate's only content check is a urn sentinel prefix.",
+    "reproduce": "node plans/research/079/step0-gap-demo.cjs",
+    "result": "gate passed: true; 7 of 7 PII-shaped classes survived",
+    "piiClassesUsed": [
+      "person name in text",
+      "post body sentence",
+      "global id attribute",
+      "profile slug with tracking parameter",
+      "srcset descriptors",
+      "identifying alt text",
+      "non-sentinel urn:li payload"
+    ],
+    "note": "All values in the demonstration are invented. This is a gap in gate coverage, not a claim that any real capture was ever leaked."
+  },
+  "deliverables": {
+    "sanitize.cjs": {
+      "role": "producer",
+      "sha256": "732cc86cab8da3bb1b00a0d03af65717176ab39313ffa45464c9668e1c78b6ed",
+      "dependencies": 0,
+      "failClosed": true,
+      "failClosedTrigger": "unterminated quoted attribute, unterminated comment or tag, unparsable tag syntax, or any structural fingerprint mismatch — all return an error and NO markup; there is no override flag",
+      "protocolRules": {
+        "§2.1 text": "every alphanumeric run becomes 'Placeholder'; the declared --label, punctuation-only tokens such as '·', and surrounding whitespace survive; consecutive placeholders collapse to one",
+        "§2.2 structure": "element names, class values and nesting are enforced identical by comparing a structural fingerprint of input vs output before emitting",
+        "§2.3 identity": "drops id/nonce/integrity/crossorigin/referrerpolicy/srcset/imagesrcset/data-urn/ping/on*/data-tracking*/data-trk*/data-impression*/data-*-ref/data-*-id/style; strips URL query and fragment; rewrites in|company|school|showcase|groups slugs; sentinelises urn:li payloads in ANY attribute incl. data-id; DEFAULT-DENY: only names on the STRUCTURAL_ATTRS allowlist keep values verbatim, every other valued attribute is placeholdered as untrusted text",
+        "§2.4 verification": "findLeaks() returns per-violation findings; empty is the pass condition"
+      }
+    },
+    "sanitize.test.cjs": {
+      "role": "tests",
+      "count": 34
+    },
+    "step0-gap-demo.cjs": {
+      "role": "gap demonstration",
+      "sha256": "dbd85e8c1a010333bb2ec97d509904c635ac338cd8577136b1624db54a73cdcb"
+    },
+    "dirty-sample.html": {
+      "role": "unsanitised fixture (invented values)",
+      "sha256": "766b89f9200195694f26c86e64eb4505646698edc21f13a65e2639291f09eb1c"
+    },
+    "cases-real.template.json": {
+      "role": "ten-key entry skeleton for a contributor"
+    },
+    "contributor-guide.md": {
+      "role": "operational capture→sanitise→verify→send path"
+    },
+    "design.md": {
+      "role": "design record"
+    },
+    "capture-helper.js": {
+      "role": "optional DevTools Console snippet that lists recognised post containers and saves one to ~/Downloads",
+      "sha256": "d2b824d0d866b7dd1134115eb0def9e0114bd8d8a54b7475d34009b5c0aa03f6",
+      "required": false,
+      "note": "Protocol section 1 (manual copy-paste) remains sufficient. This exists because the host has no xclip/xsel/wl-paste, so the clipboard route needs a workaround. It reads the already-rendered DOM, makes no network request, does not navigate or click, clones the node so the live page is not mutated, and is bounded to one post per invocation.",
+      "verifiedInBrowser": true,
+      "verificationDetail": "Loaded into a real Chromium via the chrome-devtools MCP and executed against the synthetic fixture: 7 candidates found, index 3 correctly flagged suggested=true. Build output saved to disk and driven through sanitize.cjs to leak findings 0."
+    },
+    "one-shot-capture.sh": {
+      "role": "One-command admission for the terminal half: discover capture -> sanitise -> verify zero leaks -> build the ten-key entry -> stage -> report protocol section 3 progress; --admit merges and runs the unmodified 071 gate",
+      "sha256": "a47642de40533d350e8dae543e5d39afaec2a5ef7bd454df7a10afaf9f1165ab",
+      "safeByDefault": "Entries go to plans/research/079/staged-entries.json (now gitignored). cases-real.json is never modified until --admit. --dry-run writes nothing.",
+      "doesNot": [
+        "reach the browser or any LinkedIn session (no CDP endpoint exists, and section 1a permits only an owner-started session)",
+        "handle credentials",
+        "hand-patch markup: a leak finding aborts and tells the user to report the shape instead"
+      ],
+      "verifiedEndToEnd": "Staged one positive and one body-mention negative built from a simulated capture, ran --admit, and the UNMODIFIED 071 gate passed 7/7 (2 per-entry detector outcomes + 5 gate tests: ten-key schema, scanRoot enum, provenance, id dedupe, sanitization). cases-real.json was then reverted to [] so no synthetic entry remains in the real corpus.",
+      "guideMode": "--guide prints the browser-side walkthrough; a missing capture file prints the same walkthrough instead of a bare pointer, because the terminal half cannot run before the browser half.",
+      "gateFailureOutput": "A failing --admit gate now prints the failing assertion names and the pass/fail counts, then interprets the failure: a 'scan matches expectedTarget' failure on a positive is mapped to the two known causes (label grammar, per F-01; container shape) so it is recorded as a finding rather than read as breakage."
+    },
+    "capture-live.cjs": {
+      "role": "PRIMARY capture path. Connects over loopback CDP to a browser it launches (dedicated profile; the user's normal Chrome is never touched or closed), reads the posts already rendered, classifies them by Suggested label, extracts and sanitises in memory, and stages ten-key entries.",
+      "sha256": "9eab4cfcea74f69d137a0804af8f6901e64d5797d1d6f73c8e5eadca34330b63",
+      "rawMarkupTouchesDisk": false,
+      "doesNot": [
+        "click",
+        "navigate",
+        "log in for the user",
+        "send anything off the machine"
+      ],
+      "protocolPosition": "Single-shot, human-invoked, own-session, bounded to the section 3 minimum set - the form permitted by 071/protocol.md section 1a.",
+      "autoDerivedLabel": "The label phrase to preserve is derived from the captured header metadata (text up to a ' - ' separator), so the exact string the detector keys on survives without the user guessing it.",
+      "verified": "Exercised end to end against a synthetic fixture served on loopback with a throwaway Chrome on a debug port (never against LinkedIn): CDP connect, 7 candidates classified, the Suggested post correctly flagged, label auto-derived as 'Suggested for you', entries built, sanitised to 0 leaks, staged. Raw markup never written to disk. Not covered by the automated test suite because it requires a CDP browser; verified by that run.",
+      "testHook": "--url-match exists so the script can be pointed at a local fixture; it is the only reason that flag is a flag.",
+      "languageHandling": {
+        "noHardcodedEnglish": true,
+        "uiLocaleFromPage": "document.documentElement.lang, normalised to a base subtag; becomes each entry's metadataLocale",
+        "labelSource": "never guessed and never translated - either --suggested-label, or a value remembered per locale in ~/.cache/ss-capture-labels.json, or an interactive pick from the label strings actually found in post headers",
+        "degreeFilter": "Connection degrees (bullet+ordinal) are excluded from the candidate list so the pick is short. Anchored on purpose: a trailing \\b silently fails on Unicode ordinals such as 'º' because that character is not a word character to JavaScript's \\b - a real bug found and fixed during testing.",
+        "expectationLogic": "Whether an entry is a positive or a documented fail-open negative is derived from the project's DOCUMENTED intent (English-only labels; legacy-only enumeration), not from the detector's live behaviour - deriving it from live behaviour would make the gate a tautology and unable to catch a regression.",
+        "consequenceForNonEnglishUsers": "A Spanish capture is recorded as a negative control asserting fail-open, and the gate passes. The non-English label is an explicitly required part of the 071 section 3 set, so the contribution is legitimate and necessary - it is the evidence needed before non-English labels could be added deliberately."
+      },
+      "reusesUserProfile": "DEFAULT is the user's own Chrome user-data-dir and profile directory, so the existing LinkedIn session is reused and no login is needed. Chrome must be closed to attach to that profile; the script detects a running Chrome and offers to close+relaunch it (SIGTERM, 20s grace, aborts if it will not exit). --close-chrome/-y skip the question; --dedicated-profile keeps a throwaway profile; --attach uses an existing debug port.",
+      "autoScroll": "Scrolls the feed itself instead of asking the user to scroll and re-run. Dedupes candidates across rounds by HTML prefix because LinkedIn unmounts posts as they leave the viewport; stops when the feed stops growing, an accept predicate is met, or the scroll budget runs out (--max-scrolls, default 12). Progress is printed as 'N post(s) collected (scroll i/budget)'.",
+      "diagnoseMode": "--diagnose prints a selector census (per-family match counts, META_SELECTOR match count with an explicit 'matched NOTHING - that is the bug' callout, the distinct header strings, URL, UI locale) PLUS an element skeleton of the first posts: tag and class names only, never text. Class names are structural, not personal data, and they are exactly what is needed to fix a selector that no longer matches the live DOM.",
+      "extensionsDisabledByDefault": "Extensions are disabled during capture unless --with-extensions: a content script that rewrites the DOM (including this repo's own extension) makes the capture worse evidence about what LinkedIn rendered.",
+      "scrollReporting": "Honest stop reporting: gather() returns stepsRun and stoppedReason ('target-reached', 'feed-stopped-growing', or 'budget'), and the failure message distinguishes 'the feed stopped yielding new posts, so raising --max-scrolls will not help' from 'budget exhausted, try a larger one'. An earlier version hardcoded the budget into the message and claimed 'scrolled 12 times' after only four iterations -- a user reported the output as suspiciously fast, and the message was simply false.",
+      "scrollMechanism": "Growth is detected by the identity of the TAIL post changing, because LinkedIn unmounts posts as it mounts others so a raw count can stay flat while new content loads. Scrolling uses scrollIntoView on the last post rather than window.scrollBy, so it works whether LinkedIn scrolls the window or an inner container. An earlier version compared the deduped seen-count against the raw DOM count, which was incomparable and made the loop give up almost immediately.",
+      "selectorOverride": "--meta-selector SEL overrides the header-metadata selector. A selector validity pre-flight asks the browser's own parser, so an invalid selector names the CSS error; a valid-but-zero-match selector is reported explicitly rather than silently finding nothing.",
+      "labelDetection": "CLASS-INDEPENDENT and LANGUAGE-AUTO-DETECTING. --diagnose on the reporting user's live feed showed LinkedIn now serves hashed atomic class names (gflljw, gflkzy, gflkxr, ...) that change every deploy, and that its two legacy post selectors match ZERO posts, so any class-based header selector is worthless. The reader collects SHORT TEXT from every element in each post and matches a per-language label FAMILY, where a family is a stem: Sugerido matches Sugerido, Sugerido para ti and 'Sugerido . Acme'. The exact string found is preserved per post. Families cover en/es/fr/pt/de and are a FINDER only, never an assertion about what LinkedIn renders - the capture is what establishes that. --suggested-label forces a family; the chosen stem is remembered per locale."
+    },
+    "capture-live.test.cjs": {
+      "role": "Offline tests for the language handling (no browser needed): degree detection across locales, label clustering, and the positive/fail-open-negative decision.",
+      "count": 17
+    }
+  },
+  "leakVerifierRules": [
+    "surviving-text",
+    "surviving-attr-text",
+    "dropped-attr-survives",
+    "script-or-style",
+    "html-comment",
+    "non-sentinel-urn",
+    "url-query-or-fragment",
+    "real-profile-slug",
+    "email",
+    "long-digit-run",
+    "unparsable"
+  ],
+  "coreInvariant": "Vocabulary check, not a name denylist: every alphanumeric run in every text node and every text-bearing attribute must be either the placeholder token or a declared label.",
+  "protocolDeviation": {
+    "clause": "071/protocol.md §2.3 words the urn sentinel as shape urn:li:activity:71XX",
+    "deviation": "This implementation preserves the urn entity kind (urn:li:company:71XX stays a company urn) instead of collapsing every kind to 'activity'.",
+    "reason": "POST_SELECTORS matches the literal substring 'urn:li:activity:'. Collapsing a company payload to an activity payload would make a capture match a selector it never matched, i.e. fabricate a positive — the exact failure 071/protocol.md forbids ('fabricated provenance poisons the very gate this plan serves'). Sentinel shape is preserved; only the kind is retained.",
+    "requiresSignoff": true,
+    "enforcement": "findLeaks enforces the 71 sentinel prefix on any urn:li value regardless of kind."
+  },
+  "endToEndProof": {
+    "what": "A two-entry cases-real.json built entirely from sanitize.cjs output (one label positive, one body-mention negative) was written into a temp mirror of the repo and the UNMODIFIED plans/research/071/probe-extensions.test.cjs was run against it.",
+    "result": "071 gate exit 0, 5/5 tests pass: ten-key schema, scanRoot enum, provenance user-contributed, validationStatus real-donated, id dedupe against 068's ten, sanitization check, and per-entry detector outcomes (positive targeted, negative fails open).",
+    "also": "068's unmodified detector still returns exactly the post for the sanitised positive and zero targets for the sanitised body-mention negative.",
+    "reproduce": "node --test plans/research/079/sanitize.test.cjs (test 'end-to-end: a sanitised capture satisfies the existing plan-071 gate')"
+  },
+  "propertiesAssertedDirectly": [
+    "round trip: sanitizeMarkup output always yields findLeaks === []",
+    "idempotence: re-sanitising emits no further changes",
+    "structural fingerprint equals an independent jsdom walk",
+    "class attributes and nesting survive verbatim",
+    "fail-closed: no partial output on unparsable input",
+    "default-deny: an unknown attribute carrying text is placeholdered and is flagged by findLeaks",
+    "modern-React shape: data-testid/role/class survive while person and sponsor text do not"
+  ],
+  "checks": [
+    {
+      "command": "node --test plans/research/079/sanitize.test.cjs",
+      "expected": "exit 0",
+      "actual": "exit 0 (tests 34, pass 34, fail 0)"
+    },
+    {
+      "command": "node plans/research/079/step0-gap-demo.cjs",
+      "expected": "exit 0 and demonstrate the gap",
+      "actual": "exit 0 (gate passed: true; 7/7 PII classes survived)"
+    },
+    {
+      "command": "node plans/research/079/sanitize.cjs --self-test --id case-01 --label Suggested",
+      "expected": "exit 0, leak findings: 0",
+      "actual": "exit 0, 15 changes, leak findings: 0"
+    },
+    {
+      "command": "node plans/research/079/sanitize.cjs --leaks plans/research/071/cases-real.json",
+      "expected": "exit 0",
+      "actual": "exit 0 (0 entries checked, 0 with leaks)"
+    },
+    {
+      "command": "node plans/research/079/sanitize.cjs --leaks <polluted corpus>",
+      "expected": "exit 1",
+      "actual": "exit 1 (surviving-text findings; fail-closed as intended)"
+    },
+    {
+      "command": "node --test plans/research/071/probe-extensions.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (tests 5, pass 5, fail 0)"
+    },
+    {
+      "command": "node --test plans/research/068/detector.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (tests 17, pass 17, fail 0)"
+    },
+    {
+      "command": "node --test plans/research/070/curate.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (tests 18, pass 18, fail 0)"
+    },
+    {
+      "command": "node --test plans/research/067/evaluate.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (tests 14, pass 14, fail 0)"
+    },
+    {
+      "command": "node --test plans/research/075/health-probe.test.cjs plans/research/075/drift-fixtures.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (tests 11, pass 11, fail 0)"
+    },
+    {
+      "command": "node --test plans/research/064/*.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (15/15)"
+    },
+    {
+      "command": "node --test plans/research/065/*.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (14/14)"
+    },
+    {
+      "command": "node --test plans/research/066/*.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (9/9)"
+    },
+    {
+      "command": "node --test plans/research/069/*.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (14/14)"
+    },
+    {
+      "command": "node --test plans/research/073/receipts.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (16/16)"
+    },
+    {
+      "command": "npm run smoke",
+      "expected": "exit 0",
+      "actual": "exit 0"
+    },
+    {
+      "command": "npm run lint",
+      "expected": "exit 0",
+      "actual": "exit 0"
+    },
+    {
+      "command": "npm run typecheck",
+      "expected": "exit 0",
+      "actual": "exit 0"
+    },
+    {
+      "command": "npm run test:unit",
+      "expected": "exit 0",
+      "actual": "exit 0 (tests 82, pass 82, fail 0)"
+    },
+    {
+      "command": "npm run test:extension",
+      "expected": "exit 0",
+      "actual": "exit 0 (smoke + interactions)"
+    },
+    {
+      "command": "plans/research/079/one-shot-capture.sh --admit (with staged synthetic entries)",
+      "expected": "merge then run the unmodified 071 gate",
+      "actual": "gate exit 0 (tests 7, pass 7, fail 0); cases-real.json reverted to [] afterwards"
+    },
+    {
+      "command": "plans/research/079/one-shot-capture.sh --guide",
+      "expected": "exit 0, print the browser-side capture walkthrough",
+      "actual": "exit 0"
+    },
+    {
+      "command": "plans/research/079/one-shot-capture.sh --id <id> --label <label>  (with a capture present in ~/Downloads)",
+      "expected": "auto-discover the newest capture, sanitise, stage, report progress",
+      "actual": "exit 0; auto-discovered /home/<user>/Downloads/capture-suggested-01.html, leak findings 0, staged; simulated capture and staged entry removed afterwards and cases-real.json left at []"
+    },
+    {
+      "command": "node plans/research/079/capture-live.cjs --attach --port <test> --dry-run (against a loopback fixture)",
+      "expected": "connect, classify, derive the label, build entries, write nothing",
+      "actual": "exit 0; 7 candidates, 1 positive correctly flagged, label auto-derived 'Suggested for you'; nothing written"
+    },
+    {
+      "command": "node plans/research/079/capture-live.cjs --attach --port <test> (against a loopback fixture)",
+      "expected": "stage sanitised entries; cases-real.json untouched",
+      "actual": "exit 0; 2 entries staged, 0 leaks; corpus confirmed [] afterwards and the staged file removed"
+    },
+    {
+      "command": "plans/research/079/one-shot-capture.sh --admit (with a 'Suggested for you' positive)",
+      "expected": "gate fails and the failure is legible",
+      "actual": "exit 1; failing assertion named, counts shown, failure interpreted as finding F-01 (the label grammar); corpus reverted to [] afterwards"
+    },
+    {
+      "command": "node --test plans/research/079/capture-live.test.cjs",
+      "expected": "exit 0",
+      "actual": "exit 0 (tests 9, pass 9, fail 0)"
+    },
+    {
+      "command": "capture-live.cjs --attach against a Spanish (lang=\"es\") loopback fixture",
+      "expected": "detect es, offer the real label strings, record fail-open negatives, pass the gate",
+      "actual": "exit 0; clusters were ['Sugerido para ti','Promocionado'] (degree '• 2º' correctly excluded); metadataLocale 'es'; 2 negatives recorded with the fail-open reason; one-shot-capture.sh --admit then ran the unmodified 071 gate and it passed 7/7. Interactive pick verified on a pty and remembered to ~/.cache/ss-capture-labels.json; a later run used the remembered label with no prompt. Corpus reverted to [] and the label map removed afterwards."
+    },
+    {
+      "command": "capture-live.cjs --attach against a fixture whose Suggested post only appears after scrolling",
+      "expected": "scroll, find the label, stage without user scrolling",
+      "actual": "exit 0; collected 2 -> 6 -> 8 posts across scroll steps and found both labelled posts"
+    },
+    {
+      "command": "capture-live.cjs --diagnose against the same fixture",
+      "expected": "selector census, no staging",
+      "actual": "exit 0; census plus element skeleton. Against a fixture whose header class was deliberately renamed, it reported 'META_SELECTOR matched NOTHING - that is the bug' and printed the real class name."
+    },
+    {
+      "command": "capture-live.cjs with a running Chrome and no --close-chrome (non-TTY)",
+      "expected": "abort with instructions, never kill the browser",
+      "actual": "exit 1; Chrome verified still running afterwards"
+    },
+    {
+      "command": "capture-live.cjs with an interactive prompt answered 'n'",
+      "expected": "abort, never kill the browser",
+      "actual": "aborted; Chrome verified still running afterwards. The 'y' path was NOT exercised, deliberately, to avoid closing the user's browser."
+    },
+    {
+      "command": "capture-live.cjs <unknown flag>",
+      "expected": "fail loudly",
+      "actual": "exit 1 with 'unknown option' (an earlier patch silently ignored --diagnose because unknown flags were swallowed)"
+    },
+    {
+      "command": "capture-live.cjs --attach (fixture) then one-shot-capture.sh --admit",
+      "expected": "stage 3 negatives, gate passes",
+      "actual": "exit 0; staged 3 entries, gate 8/8; corpus reverted to [] afterwards"
+    },
+    {
+      "command": "capture-live.cjs --suggested-label X --meta-selector '[['",
+      "expected": "name the CSS error",
+      "actual": "exit 1; reported the browser's own message: \"'[[' is not a valid selector\", plus the bare-class-name hint"
+    },
+    {
+      "command": "capture-live.cjs --meta-selector '.nope' (valid CSS, matches nothing)",
+      "expected": "report the zero-match explicitly",
+      "actual": "exit 1 with '--meta-selector matched no header elements on this page'"
+    },
+    {
+      "command": "capture-live.cjs --meta-selector '.actor__subtitle-new-name' against the renamed-class fixture",
+      "expected": "find the label once the selector is corrected",
+      "actual": "exit 0; staged the labelled post"
+    },
+    {
+      "command": "capture-live.cjs against a feed that stops yielding posts",
+      "expected": "say the budget was NOT the limit",
+      "actual": "exit 1 with 'the feed stopped yielding new posts after 3 scroll(s). The scroll budget was NOT the limit, so raising --max-scrolls will not help.'"
+    },
+    {
+      "command": "capture-live.cjs with NO label flag against a Spanish fixture",
+      "expected": "auto-detect the Spanish label family without being told",
+      "actual": "exit 0; detected family Sugerido for locale es, reported both variants ('Sugerido para ti' x1 and 'Sugerido - Analitica del Norte' x1), and preserved each post's ACTUAL label string verbatim"
+    },
+    {
+      "command": "capture-live.cjs --use-language de against the Spanish fixture",
+      "expected": "find nothing and show the strings it did find",
+      "actual": "exit 0 with the header strings listed and a suggested stem to re-run with"
+    },
+    {
+      "command": "node --test plans/research/079/capture-live.test.cjs",
+      "expected": "exit 0",
+      "actual": "exit 0 (tests 17, pass 17, fail 0)"
+    }
+  ],
+  "productionFiles": [],
+  "permissionsChanged": false,
+  "dependenciesAdded": 0,
+  "casesRealJsonUnchanged": {
+    "path": "plans/research/071/cases-real.json",
+    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "content": "[] — unchanged; no synthetic entry was admitted, so 068 stays insufficient-data"
+  },
+  "notDone": [
+    "Obtaining a real capture. Only someone with a logged-in LinkedIn feed can do that: a contributor capturing manually per 071/protocol.md section 1, or the repository owner running the narrowly bounded authorized collector defined in 071/protocol.md section 1a. This plan removes every obstacle after the capture step; it does not move that step.",
+    "Lowering plan 071 §3 minimums (>=3 positives, >=2 negatives, >=1 layout variant). Untouched.",
+    "Any precision, recall or false-positive claim. No real sample exists to compute one from."
+  ],
+  "missingEvidence": [
+    "One or more real, sanction-provided Suggested-post captures (blocked on a human contributor; see contributor-guide.md).",
+    "A non-English label capture obtained by a contributor switching their UI locale.",
+    "A layout variant differing from the 068 synthetic shapes.",
+    "Firefox equivalents for the en-end probe; the verifier and sanitiser are runtime-agnostic Node, so this is only about the browser probe."
+  ],
+  "nextWork": "Hand plans/research/079/contributor-guide.md to a contributor. On a §3-satisfying donation: (1) sanitize.cjs --leaks must report 0 leaks; (2) the 071 gate must stay green; (3) 068 may leave insufficient-data and the opt-in 'Reduce suggested posts' filter becomes plannable.",
+  "selfExposedGap": {
+    "what": "The first test pass exposed a hole in this module's own design: attributes outside a known-text list kept their values verbatim, so PII could hide in an unrecognised attribute and pass both sanitise AND verify — the same class of gap as Step 0.",
+    "fix": "Default-deny STRUCTURAL_ATTRS allowlist; every non-allowlisted valued attribute is placeholdered as untrusted text, and findLeaks checks it.",
+    "classification": "OBSERVED",
+    "rationale": "Recorded rather than hidden because it is the same failure mode this plan criticises in the 071 gate, and the fix is the reason the verifier can be trusted."
+  },
+  "documentedLimitations": [
+    "URL paths are preserved: query and fragment are stripped and known identity slugs are rewritten, but the rest of a path survives. Host and route are structural evidence and LinkedIn media paths are opaque CDN hashes. A URL whose path spelled out a human name would not be caught. No heuristic was added because a name-shaped-slug guess would false-positive on ordinary paths and block legitimate donations.",
+    "The STRUCTURAL_ATTRS allowlist is not exhaustive; an attribute whose value must survive but is not listed will be placeholdered. This fails visibly in the detector outcome, never silently.",
+    "Sanitisation is a text-and-identity transformation, not a proof of non-identification. A capture still reveals that some post existed with some structure at some time; contributors are told to capture only the post container, never anything above it."
+  ],
+  "governanceAmendment": {
+    "plan": "080",
+    "date": "2026-10-11",
+    "what": "071/protocol.md section 1.3 was re-specified (not deleted) into a narrowly bounded authorized-collector class (section 1a). Forward-only; 071/verdict.json is NOT edited.",
+    "effectOnThisPlan": "None mechanically. The contributor path, the sanitiser, the leak verifier, the ten-key entry schema and 071 section 3 minimums are all unchanged. The exception is owner-only and does not alter the provenance class.",
+    "record": "plans/research/080/amendment.md",
+    "reversalConditions": 5
+  },
+  "protocolRulesUpdated": {
+    "labelMatching": "Phrase-level, not token-level. Declared label phrases are preserved verbatim wherever they appear; only the remainder is placeholdered. Fixes a defect where realistic metadata such as 'Suggested for you - Acme' reduced to 'Placeholder - Placeholder' and destroyed the exact string the detector keys on.",
+    "footgun": "--label is a declaration of trust: a declared phrase is preserved AND accepted by the verifier, because the verifier checks against the declared set. Declaring a person's name would leak it and pass the leak check. The CLI now echoes declared phrases with an explicit warning, the behaviour is pinned by a test, and the guide states the rule. No heuristic name-detector is used by design: a guess would false-positive on ordinary metadata and block legitimate donations.",
+    "caseMarker": "A missing data-case marker is now injected at admission time via --case-marker, so a Route A manual copy does not need a hand edit for expectedTarget to resolve. Injected AFTER the section 2.2 fingerprint check, so it is deliberately outside the sanitisation guarantee; idempotent when the marker is already present (Route B). Marker ids are restricted to [A-Za-z0-9._-]+ so no escaping is needed."
+  },
+  "findings": [
+    {
+      "id": "F-01",
+      "claim": "The 068 prototype detector and the shared matchesLabel grammar accept ONLY 'Suggested' or 'Suggested <middot> <sponsor>'. A header rendering as 'Suggested for you' (or 'Suggested for you <middot> <sponsor>') yields ZERO targets: a silent false negative, not an error.",
+      "classification": "SOURCE-VERIFIED (grammar behaviour), UNKNOWN (whether LinkedIn renders a fuller label)",
+      "reproduce": "node -e with jsdom + plans/research/068/detector.cjs; matchesLabel('Suggested for you', ['Suggested']) === false; scanSuggested over a legacy-shaped container with that label text returns 0 targets",
+      "measured": {
+        "Suggested": 1,
+        "Suggested <middot> Sponsor": 1,
+        "Suggested for you": 0,
+        "Suggested for you <middot> Sponsor": 0
+      },
+      "disposition": "DELIBERATELY NOT FIXED. 071/protocol.md section 4 requires labels to be established by capture and forbids guessing them; 068/detector.cjs:29-31 states the English-only no-guess policy. The first real capture adjudicates: a failing expectedTarget on a genuine entry IS the finding (protocol section 5).",
+      "actionability": "high - the first donated capture will immediately confirm or clear this, because the gate asserts expectedTarget."
+    },
+    {
+      "id": "F-02",
+      "claim": "Label matching was token-wise, so a combined label such as 'Suggested for you <middot> Acme' was reduced to 'Placeholder <middot> Placeholder', destroying the signal.",
+      "classification": "OBSERVED",
+      "disposition": "FIXED - phrase-level matching; verified 'Suggested for you <middot> Acme' -> 'Suggested for you <middot> Placeholder'."
+    },
+    {
+      "id": "F-03",
+      "claim": "A JSON-quoted capture file failed with a bare 'unparsable tag' message, and non-markup input was equally opaque.",
+      "classification": "OBSERVED",
+      "disposition": "FIXED - the CLI auto-unwraps a JSON-quoted string and non-markup input returns an explicit, actionable error."
+    },
+    {
+      "id": "F-04",
+      "claim": "sanitizeText reported changed:true when the replacement was byte-identical, which would have made the idempotence property report phantom changes.",
+      "classification": "OBSERVED",
+      "disposition": "FIXED."
+    },
+    {
+      "id": "F-05",
+      "claim": "On the reporting user's live LinkedIn feed (/feed/foryou/, es locale), the two legacy post selectors match ZERO posts: '[data-id*=\"urn:li:activity:\"]' = 0 and '.feed-shared-update-v2' = 0 out of 11 detected posts; the third POST_SELECTORS entry 'article' = 0. The modern shape matches: '[data-testid=\"mainFeed\"] [role=\"listitem\"]' = 11 and '[data-testid=\"expandable-text-box\"]' = 9, and the legacy header-meta classes match 0.",
+      "classification": "OBSERVED (selector counts, via --diagnose against the user's own feed) + SOURCE-VERIFIED (the selector values at content.js:34-48)",
+      "evidence": "Two --diagnose runs on the user's own feed. Run 1: 0 [data-id*=urn:li:activity:], 0 .feed-shared-update-v2, 16 [data-testid=mainFeed] [role=listitem], 0 article. Run 2: 0 / 0 / 11 / 11 / 0 article / 9 expandable-text-box. Header classes are hashed atomic names (gflljw, gflkzy, gflkxr, ...).",
+      "implication": {
+        "authorBlocklistPass": "BROKEN on this shape. scanForBlockedAuthors enumerates only via AUTHOR_BLOCK_SELECTORS (content.js:45-48, used at content.js:761-779), both 0 matches, so the persisted author blocklist and the Mute feature have nothing to enumerate.",
+        "promotedFilter": "BROKEN on this shape. scanForLabeledPosts uses the same pair (content.js:788-805), so the opt-in Promoted filter has nothing to enumerate. Note the label matcher it uses (SS_matchesLabel over el.textContent) is already class-independent - only the ENUMERATOR is dead.",
+        "selectorBasedContainerLookup": "BROKEN on this shape. All three POST_SELECTORS entries are 0, so findByKnownSelectors (shared/post-container.js:111-121) resolves nothing.",
+        "baitDetection": "UNKNOWN, and deliberately not claimed broken. Text-based blocking runs the selector-free sibling heuristic FIRST (shared/post-container.js:44-99) and only falls back to the selectors, so it may still resolve containers.",
+        "manualControls": "WORKING on this shape, now measured rather than assumed. 9 of 11 listitems carry an [data-testid=expandable-text-box] descendant, which is what the isModernFeedItem gate requires (content.js:844-849), so Hide/Mute attach.",
+        "suggestedDetector068": "Cannot target anything on this shape: it shares the same two POST_SELECTORS (068/detector.cjs:37-40)."
+      },
+      "uncertainty": "LinkedIn A/B-tests layouts, so this is one account at one time and must not be generalised to all users. Whether the modern listitem shape is a SAFE automatic container is still unproven: the counts show it matches posts, not that it only matches posts. That is exactly the acceptance question a real capture is needed for, and the repo already defers it (content.js:49-52, AGENTS.md:146).",
+      "consistency": "This is consistent with AGENTS.md:146: the modern React shape was known only from competitor source because there were 'no first-hand authenticated LinkedIn samples'. It is now measured on a real feed.",
+      "disposition": "REPORTED, deliberately not fixed. content.js:49-52 states that the modern selector is 'NOT used for automatic text, author, Suggested or sponsored filtering: real DOM acceptance is still required before broadening any automatic detection', and AGENTS.md:146 says 'do not enable new automatic filtering'. A production plan gated on a real capture should own the change."
+    },
+    {
+      "id": "F-06",
+      "claim": "Broadening the post enumerator was NECESSARY BUT NOT SUFFICIENT for the author blocklist. getAuthorId() resolves the author via AUTHOR_LINK_SELECTORS, which are all class-scoped to the legacy actor wrappers (.update-components-actor, .feed-shared-actor, .entity-result__title-text, [data-control-name*=actor]). On the modern hashed-class layout none match, so getAuthorId returns null and scanForBlockedAuthors can never identify a blocked author.",
+      "classification": "SOURCE-VERIFIED (content.js getAuthorId + shared/pattern-data.js AUTHOR_LINK_SELECTORS) + OBSERVED (proved failing-first: the modern-shape e2e assertion fails on code with only the enumerator fixed)",
+      "implication": "The user-visible Mute feature (persisted author blocklist) still does not work on the current LinkedIn layout, even after the enumerator fix.",
+      "disposition": "REPORTED, deliberately NOT fixed. A fallback to 'the first profile link in the post' would pick a mentioned person when the post body leads with a profile link, and muting the wrong member is worse than not muting. A real sample of the author region is required. The gap is pinned as a characterization test in tests/extension-interactions.js that must be inverted when fixed.",
+      "foundBy": "writing the modern-shape e2e test for F-05's fix"
+    },
+    {
+      "id": "F-07",
+      "claim": "The extension's Spanish promoted label was wrong. PROMOTED_LABELS carried 'Patrocinado', but the label LinkedIn actually rendered on a real es-locale feed was 'Promocionado' (observed 16 times). The opt-in Promoted filter could therefore never match on a Spanish UI, independently of the dead enumerators.",
+      "classification": "OBSERVED on a real feed (plan 079 census output: 'Promocionado' x16) + SOURCE-VERIFIED (shared/pattern-data.js PROMOTED_LABELS)",
+      "implication": "Two independent defects stacked on the same feature: a wrong label AND dead enumeration.",
+      "disposition": "FIXED. 'Promocionado' added to PROMOTED_LABELS; verified by a modern-shape e2e assertion that fails without it.",
+      "note": "This satisfies the protocol's capture-first rule rather than violating it: the label was directly observed on a real feed, not guessed."
+    }
+  ]
+}

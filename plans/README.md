@@ -1,5 +1,28 @@
 # Implementation Plans
 
+## Governance amendment — 080 (authorized collector) at `66b9ec4`, 2026-10-11
+
+Forward-only amendment to plan 071's capture protocol. No production file,
+permission, dependency or release artefact touched. Verdict:
+**`amended-forward-only`**.
+
+| Item | Deliverable | Priority | Effort | Status |
+|---|---|---|---|---|
+| 080 | [Authorized-collector amendment](research/080/amendment.md) | P2 | S | DONE (2026-10-11, branch `research/080-authorized-collector-amendment`, chained on the 079 branch, local only — not pushed; **verdict: `amended-forward-only`** — the owner asked to *delete* `071/protocol.md` §1.3, which was declined as written and executed as a **re-specification** after adversarial review, because the premise was false: §1.3 banned only the *automation* while §1 already permitted capturing one's own feed, and deletion would have gained no capability (071's verdict cites *no contributor session* as the primary blocker) while silently widening the `user-contributed` provenance class, leaving the rule self-contradicting against its duplicate in `Forbidden`, and rotting a frozen SHA-pinned verdict. §1.3 now admits a narrowly bounded authorized-collector class (§1a) bounded on nine axes — owner-only, own logged-in feed, already-running session, single-shot human-invoked, scale-capped to the §3 minimums, raw capture never committed/attached/uploaded, §2 sanitisation plus an independent zero-leak check, **scope pin** (never ship a collector in the extension; zero-network and `data_collection_permissions: ["none"]` must stay true), non-circumvention. `Forbidden` reconciled; `user-contributed` restated in §0 as *source and consent, never transfer tooling*; plan 070's definition explicitly left governing the text corpus only. `071/verdict.json` is **deliberately not edited** (frozen, `baseSha 3aef7b9`): its `insufficient-data` verdict stands on unchanged facts and its citation of the former §1.3 is superseded by a dated note, not retro-amended. Five reversal conditions recorded. No minimum lowered, no provenance value changed, `cases-real.json` still `[]`. 071 5/5, 079 26/26, 068 17/17, full gate green incl. 82/82 unit + test:extension) |
+
+## Research spike — 079 (Suggested-capture sanitiser) at `2fb25e3`, 2026-10-11
+
+Research-only prototype. No production file changed and no file under
+`plans/research/068/` or `/071/` modified (both read in place). Verdict:
+**`proceed`**.
+
+| Item | Deliverable | Priority | Effort | Status |
+|---|---|---|---|---|
+| 079 | [Suggested-capture sanitiser + leak verifier](research/079/design.md) | P1 | S–M | DONE (2026-10-11, branch `research/079-suggested-capture-sanitiser`, local only — not pushed; **verdict: `proceed`** — Step 0 demonstrates that the plan-071 `sanitization:` gate accepts an entry still containing a person's name, a post body, a global `id`, a profile slug with a tracking param, a `srcset` and identifying `alt` text (its only content check is a urn sentinel prefix), so sanitisation was previously unverified; `sanitize.cjs` (zero deps, fail-closed, no override) mechanises protocol §2.1–§2.3 and `findLeaks()` mechanises §2.4 as a vocabulary check; §2.2 structural preservation is *enforced* via an input/output fingerprint cross-checked against jsdom; end-to-end proof: output fed to the **unmodified** 071 gate passes 5/5 incl. ten-key schema + dedupe, and 068's unmodified detector still targets the sanitised positive and fails open on the sanitised negative. 51/51 new tests; all 10 existing research suites unchanged and green; full gate green incl. 82/82 unit + test:extension. `cases-real.json` stays `[]` — no synthetic entry admitted, so 068 stays `insufficient-data`. **Protocol deviation flagged for sign-off**: §2.3's sentinel preserves the urn *entity kind* rather than collapsing to `activity`, because collapsing would make a `urn:li:company:*` payload match `POST_SELECTORS` and fabricate a positive. Next actor is a human contributor: `research/079/contributor-guide.md`) |
+
+Baseline at spike time: `npm ci`, `smoke`, `lint`, `typecheck`, `test:unit`
+(82/82) and `test:extension` all exit 0.
+
 ## Current direction queue — 2026-09-14 at `3aef7b9`
 
 Third `next`/direction-only survey (no other category audited). All prior

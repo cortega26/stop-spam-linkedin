@@ -1,0 +1,21 @@
+<!--
+  Plan 079 test fixture — deliberately UNSANITISED. All values are invented
+  for testing; no real person, profile, post, URN or media URL appears here.
+  Used by sanitize.cjs --self-test and sanitize.test.cjs to prove the
+  sanitiser removes every PII-shaped item while preserving DOM structure.
+-->
+<section id="ember1234" data-id="urn:li:activity:7251234567890" class="feed-shared-update-v2">
+  <div class="feed-shared-actor">
+    <a class="feed-shared-actor__container-link" href="/in/jane-doe-9b3f?trk=feed_main-feed-card_actor">
+      <span class="feed-shared-actor__title">Jane Doe</span>
+    </a>
+    <span class="feed-shared-actor__sub-description">Suggested</span>
+    <span class="feed-shared-actor__sub-description">1,204 reactions &middot; 2d</span>
+  </div>
+  <p class="post-body">Excited to share that I have accepted a new role as Head of Data at Northwind Analytics starting next month.</p>
+  <img src="https://media.example/x.jpg?trk=feed" srcset="https://media.example/x.jpg 1x, https://media.example/x2.jpg 2x" alt="Photo of Jane Doe speaking at the 2025 summit">
+  <div data-urn="urn:li:company:987654321" data-tracking-id="abc-123"></div>
+  <script>window.__trackedUser = "jane.doe@northwind.example";</script>
+  <style>.post-body { color: #333; }</style>
+  <!-- reviewer note: this comment must not survive sanitisation -->
+</section>

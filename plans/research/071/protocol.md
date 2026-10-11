@@ -35,9 +35,11 @@ from their sources (Step 1 reconciliation):
 
 DOM mapping for this plan:
 
-- `provenance: "user-contributed"` means donated by a contributor from
-  their own logged-in feed, captured manually per §1 below. No other
-  provenance value is admitted to `cases-real.json`.
+- `provenance: "user-contributed"` means the capture came from a
+  contributor's own logged-in feed, with that contributor's consent, and was
+  transferred per §1 (manual copy-paste) or §1a (authorized collector). The
+  class describes the **source and the consent**, never the transfer tooling.
+  No other provenance value is admitted to `cases-real.json`.
 - `sourceRef` names the capture context without personal data, e.g.
   `"contributor capture, 2026-09, en UI locale; sanitized per
   protocol.md §2"`. No names, no profile URLs, no account identifiers.
@@ -58,10 +60,41 @@ DOM mapping for this plan:
    element plus its post container only* — the smallest subtree that still
    contains the post root the selectors key on. Nothing above the post
    container is copied.
-3. Manual copy-paste only. Scripts, extensions, scrapers, and bulk
-   extraction are forbidden (see the forbidden list below).
+3. Capture transfer is either manual copy-paste (the default) or a
+   single-shot run of an authorized collector under §1a. No other method is
+   admitted: no unattended collection, no bulk extraction, no test accounts,
+   no credentials.
 4. One capture per entry. Each entry records its capture context in
    `sourceRef` and its sanitization in `sanitization` (one line each).
+
+### 1a. Authorized collector — the only exception, and its bounds
+
+This exception exists so the repository owner can obtain §3's minimum set from
+their **own** feed without hand-copying thousands of characters per post. It is
+bounded on every axis; anything outside these bounds is still forbidden (see
+the forbidden list below).
+
+| Axis | Bound |
+|---|---|
+| Who | The repository owner, acting as the contributor. Not a third party, not a second or test account. |
+| Whose feed | The collector's own logged-in feed only. Never another member's profile, feed or activity. |
+| Session | An already-running, owner-started browser session. No credential entry or storage by tooling, no session export, no copying a private browser profile into an agent-owned browser. |
+| Invocation | Single-shot and human-invoked: one run per explicit owner command. |
+| Scale | Bounded to what §3 needs (≥3 positives, ≥2 negatives, ≥1 layout variant). No crawling, no schedulers, no polling, no iteration over routes, profiles or member lists. |
+| Retention | The raw capture exists only in a local scratch file: never committed, never attached to an issue, never uploaded, and deleted once sanitised. Only §2-clean output may be committed. |
+| Sanitisation | §2 applies unchanged, and an independent verifier must report zero leaks before commit. |
+| **Scope pin** | This exception does **not** authorise shipping any collector inside the extension. The extension makes zero network requests and declares `data_collection_permissions: ["none"]`; both must remain true. |
+| Non-circumvention | This exception does **not** authorise bypassing authentication, anti-bot systems, CAPTCHAs, access restrictions or rate limits. |
+
+**Collection method never changes provenance.** An entry produced under §1a is
+still `user-contributed` (§0) because the class describes *whose feed the capture
+came from and whose consent it carries*, not the tooling used to transfer it.
+`real-donated` still requires the contributor to confirm the committed structure
+matches what they saw, and the maintainer to confirm §2 sanitisation — unchanged
+(§3).
+
+Plan 070's `user-contributed` definition is untouched by this section and
+continues to govern the **text** corpus (`holdout-seed.json`) only.
 
 ## 2. Sanitization (mandatory, before commit)
 
@@ -129,10 +162,53 @@ a future build plan gated on this plan's proceed verdict.
 
 ## Forbidden
 
-The following are forbidden in this plan, without exception: scraping, bulk extraction, guessed translations, real post text, live accounts.
-Concretely: no automated fetching of linkedin.com, no test accounts, no
-credentials, no automation scripts run against LinkedIn, no retaining of
-real post wording in any committed file, and no restyled synthetic
-markup presented as a real capture — fabricated provenance poisons the
-very gate this plan serves. An unobtainable capture class is recorded as
+The following are forbidden in this plan, without exception: **unattended or
+bulk collection**, collection from any feed other than the contributor's own
+logged-in feed, test accounts, credentials, guessed translations, real post
+text in any committed file, and any restyled synthetic markup presented as a
+real capture.
+
+Concretely: no scraping at scale, no schedulers or polling, no collection
+outside the §1a bounds, no raw capture in git or attached to an issue, no
+collector shipped inside the extension (the extension makes zero network
+requests and declares `data_collection_permissions: ["none"]` — both must remain
+true), no retaining of real post wording in any committed file, and no restyled
+synthetic markup presented as a real capture — fabricated provenance poisons
+the very gate this plan serves. An unobtainable capture class is recorded as
 an attempt in `verdict.json`, and the verdict follows §3.
+
+## Amendment — 2026-10-11 (forward-only; supersedes §1.3 as originally written)
+
+§1.3 previously banned **all** automation. It now admits the narrowly bounded
+authorized-collector class in §1a and continues to ban everything unattended,
+bulk, off-session, or scale-driven. The `Forbidden` section above was
+reconciled in the same change so the two no longer diverge.
+
+This amendment is **forward-only**.
+
+- `plans/research/071/verdict.json` is a frozen, SHA-pinned artefact
+  (`baseSha 3aef7b9`) and is **not** edited. Its verdict remains
+  `insufficient-data` on facts that have not changed: `realSampleCount: 0`,
+  `cases-real.json: []`, and no contributor session available in the
+  environment where it was decided. Its citation of the former §1.3 is
+  **superseded** by this note, not retro-amended.
+- Neither §1a nor this note lowers §3's minimums, changes any provenance value,
+  or admits any capture that has not passed §2 sanitisation and an independent
+  leak check.
+- Record: `plans/research/080/amendment.md`.
+- The archived plan text `plans/archive/071-suggested-sample-gate.md` contains
+  the pre-amendment wording ("no automated fetching", "Manual copy-paste only —
+  forbid …"). Archives are frozen historical records and are **not** edited; that
+  wording is superseded by this amendment.
+
+**Reversal conditions.** Revert this amendment if any of the following holds:
+
+1. Any raw or real capture containing third-party personal data is committed,
+   attached to an issue, or uploaded.
+2. The relaxation is cited to justify anything beyond a single owner-run,
+   own-session, human-invoked capture.
+3. The extension ships or references any network access, contradicting the
+   zero-network and `data_collection_permissions: ["none"]` claims.
+4. An entry enters `cases-real.json` without a clean independent leak check.
+5. The manual path (§1) turns out to be sufficient — then the exception was
+   unnecessary and must be removed.

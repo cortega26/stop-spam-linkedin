@@ -1480,6 +1480,125 @@ async function main() {
       "expected a placeholder as the next sibling of the hidden promoted post"
     );
 
+    /* ── Modern (React) container enumeration + the real es label ────
+       Two defects observed on a real es-locale feed via the plan-079 census:
+       (a) LinkedIn renders "Promocionado", which the label list did not carry
+           (it guessed "Patrocinado"), and
+       (b) both legacy enumerators — [data-id*=urn:li:activity:] and
+           .feed-shared-update-v2 — matched 0 of 11 posts on that layout, so the
+           opt-in Promoted filter and the author blocklist enumerated nothing.
+       These assertions fail on the previous code. */
+    /* Keep the preceding whitelist baseline: clearing it would un-whitelist a
+       fixture post and change the expected placeholder count. */
+    await setSyncStorage(context, {
+      ss_hide_promoted: true,
+      ss_whitelist: ["trusted"],
+      ss_blocked_authors: ["modern-blocked"],
+      ss_phrases: [],
+    });
+    await linkedInPage.reload({ waitUntil: "domcontentloaded" });
+    await placeholder.waitFor({ state: "visible", timeout: 10000 });
+    const baselinePh = await linkedInPage.locator("[data-ss-ph]").count();
+
+    await linkedInPage.evaluate(() => {
+      /* A feed container shaped like the current React layout: hashed atomic
+         classes, no data-id, no legacy class, role=listitem inside mainFeed. */
+      const feed = document.createElement("div");
+      feed.setAttribute("data-testid", "mainFeed");
+      feed.setAttribute("role", "list");
+
+      const mk = (id, metaText, authorId, body) => {
+        const item = document.createElement("div");
+        item.setAttribute("role", "listitem");
+        item.setAttribute("data-modern-id", id);
+        item.className = "gflk0d gflaq3 gfllgi";
+        const actor = document.createElement("div");
+        actor.className = "gflj44";
+        const link = document.createElement("a");
+        link.href = "/in/" + authorId + "/";
+        link.textContent = "Someone";
+        actor.appendChild(link);
+        const meta = document.createElement("span");
+        meta.className = "gflkzy";
+        meta.textContent = metaText;
+        actor.appendChild(meta);
+        item.appendChild(actor);
+        const p = document.createElement("div");
+        p.className = "gflkxr";
+        p.textContent = body;
+        item.appendChild(p);
+        /* A reply is itself a listitem nested inside the post listitem: the
+           outermost-only guard must keep it from being treated as its own post. */
+        const reply = document.createElement("div");
+        reply.setAttribute("role", "listitem");
+        reply.setAttribute("data-modern-id", id + "-reply");
+        reply.textContent = "A nested reply, not a post.";
+        item.appendChild(reply);
+        return item;
+      };
+
+      feed.appendChild(
+        mk("promoted-es", "Promocionado", "advertiser",
+          "Un anuncio patrocinado con texto suficientemente largo para no ser bait.")
+      );
+      feed.appendChild(
+        mk("blocked-author", "• 2º", "modern-blocked",
+          "Una actualizacion profesional ordinaria sobre resultados trimestrales.")
+      );
+      feed.appendChild(
+        mk("ordinary", "• 1er", "ordinary",
+          "Otra nota profesional normal que no deberia ocultarse en absoluto.")
+      );
+      document.querySelector("main").appendChild(feed);
+    });
+
+    /* The promocionado post is hidden purely by its label. */
+    await linkedInPage.waitForFunction(
+      () => {
+        const el = document.querySelector('[data-modern-id="promoted-es"]');
+        return el && getComputedStyle(el).display === "none";
+      },
+      undefined,
+      { timeout: 5000 }
+    );
+    /* KNOWN GAP (finding F-06) pinned as a characterization test.
+       Broadening the enumerator was necessary but NOT sufficient for the author
+       blocklist: getAuthorId() resolves the author through
+       AUTHOR_LINK_SELECTORS, which are class-scoped to the legacy actor
+       wrappers (.update-components-actor, .feed-shared-actor). On the modern
+       hashed-class layout none of them match, so it returns null and the
+       blocklist cannot identify the author. Asserting the CURRENT behaviour so
+       the gap is visible and executable; this must be INVERTED when the
+       author-region selectors are corrected.
+       Deliberately not guessed: the post body can also contain profile links, so
+       a fallback to "first profile link" could pick a mentioned person and mute
+       the wrong one. That needs a real sample of the author region. */
+    assert.notEqual(
+      await linkedInPage
+        .locator('[data-modern-id="blocked-author"]')
+        .evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "F-06 known gap: the author blocklist cannot identify authors on the modern layout"
+    );
+    /* The ordinary post and both nested replies stay visible. */
+    assert.notEqual(
+      await linkedInPage.locator('[data-modern-id="ordinary"]').evaluate((el) => getComputedStyle(el).display),
+      "none",
+      "an ordinary modern post must survive the broadened enumerators"
+    );
+    for (const reply of ["promoted-es-reply", "blocked-author-reply"]) {
+      assert.notEqual(
+        await linkedInPage.locator(`[data-modern-id="${reply}"]`).evaluate((el) => getComputedStyle(el).display),
+        "none",
+        `the nested reply ${reply} must not be treated as its own post`
+      );
+    }
+    /* Only the promocionado post is hidden; the blocked-author one is the F-06 gap. */
+    assert.equal(await linkedInPage.locator("[data-ss-ph]").count(), baselinePh + 1);
+
+    /* Reset for the following scenarios. */
+    await setSyncStorage(context, { ss_hide_promoted: false, ss_blocked_authors: [] });
+
     /* ── Opt-in hide: "Featured" section on profiles (label-hide) ── */
 
     const mockProfilePage = `<!doctype html>

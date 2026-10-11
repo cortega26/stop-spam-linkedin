@@ -1,0 +1,86 @@
+{
+  "plan": "080",
+  "verdict": "amended-forward-only",
+  "decidedAt": "2026-10-11",
+  "branch": "research/080-authorized-collector-amendment",
+  "baseSha": "66b9ec4",
+  "baseBranch": "research/079-suggested-capture-sanitiser",
+  "baseNote": "Chained on the plan-079 branch because this amendment updates plan-079 documents in the same change. Merge order: 079 then 080.",
+  "type": "governance-amendment",
+  "request": "Owner: 'Remove rule 1.3 that forbids automating it.'",
+  "requestDisposition": "Declined as a literal deletion; executed as a re-specification after adversarial review. Reason: the premise was false (section 1.3 banned only automation, while section 1 already permitted manual capture) and deletion alone would have gained no capability while widening the user-contributed provenance class, leaving the rule self-contradicting against its duplicate, and rotting a frozen SHA-pinned verdict.",
+  "verifiedConstraints": [
+    "Section 1.3 never forbade capturing one's own feed; section 1 already permitted it. Only the automation of the transfer was banned.",
+    "071/verdict.json records the primary blocker as 'no contributor session available in this environment', citing the rule only as a secondary cause.",
+    "No authenticated LinkedIn session is reachable by tooling: no loopback CDP listener, the chrome-devtools MCP browser uses --remote-debugging-pipe, and the owner's Chrome runs without --remote-debugging-port (verified in plan 078).",
+    "An agent deleting the rule gains no capability: the operating constraints binding the agent forbid circumvention independently of the repository's text."
+  ],
+  "changed": {
+    "plans/research/071/protocol.md": [
+      "section 1.3 re-specified: manual copy-paste OR single-shot authorized collector (section 1a); still bans unattended collection, bulk extraction, test accounts, credentials",
+      "section 1a added: authorized-collector class bounded on nine axes",
+      "section 0: user-contributed restated to describe source and consent, not transfer tooling; plan 070's definition explicitly left governing the text corpus only",
+      "Forbidden section reconciled with section 1.3 so the two no longer diverge; scope pin and no-raw-capture rule added",
+      "new forward-only amendment section with five reversal conditions"
+    ],
+    "plans/research/079/design.md": "section 8 no longer cites section 1.3 as the blocker; points at section 1a and plan 080",
+    "plans/research/079/verdict.json": "notDone entry updated; governanceAmendment block added",
+    "plans/research/079/contributor-guide.md": "contributor rules unchanged; owner-facing note added pointing at section 1a and plan 080"
+  },
+  "authorizedCollectorBounds": {
+    "who": "repository owner, acting as the contributor; not a third party, not a second or test account",
+    "whoseFeed": "the collector's own logged-in feed only",
+    "session": "already-running, owner-started browser session; no credential handling or storage by tooling, no session export, no private profile copied into an agent-owned browser",
+    "invocation": "single-shot, human-invoked; one run per explicit owner command",
+    "scale": "bounded to plan 071 section 3 minimums (>=3 positives, >=2 negatives, >=1 layout variant); no crawling, schedulers, polling, or iteration over routes/profiles/member lists",
+    "retention": "raw capture lives only in a local scratch file; never committed, attached, or uploaded; deleted once sanitised; only section-2-clean output may be committed",
+    "sanitisation": "section 2 unchanged plus an independent leak check reporting zero before commit",
+    "scopePin": "does NOT authorise shipping any collector inside the extension; zero network requests and data_collection_permissions ['none'] must remain true",
+    "nonCircumvention": "does NOT authorise bypassing authentication, anti-bot systems, CAPTCHAs, access restrictions or rate limits"
+  },
+  "provenanceSemanticsPreserved": {
+    "claim": "Collection method never changes provenance.",
+    "reasoning": "user-contributed describes whose feed the capture came from and whose consent it carries, not the tool used to transfer it. An entry produced under section 1a remains user-contributed and still requires real-donated validation (contributor confirms the structure; maintainer confirms sanitisation).",
+    "plan070Untouched": true
+  },
+  "supersededNotEdited": {
+    "artifact": "plans/research/071/verdict.json",
+    "status": "frozen, SHA-pinned at baseSha 3aef7b9, NOT edited",
+    "verdictUnchanged": "insufficient-data",
+    "why": "Its verdict rests on facts that have not changed (realSampleCount 0, cases-real.json [], no contributor session in that environment). section 1.3 was one cited cause among those, not the load-bearing one. Editing it would retro-amend a closed record; the protocol carries a dated superseding note instead.",
+    "verified": "git diff -- plans/research/071/verdict.json is empty"
+  },
+  "reversalConditions": [
+    "Any raw or real capture containing third-party personal data is committed, attached to an issue, or uploaded.",
+    "The relaxation is cited to justify anything beyond a single owner-run, own-session, human-invoked capture.",
+    "The extension ships or references any network access, contradicting the zero-network and data_collection_permissions ['none'] claims.",
+    "An entry enters cases-real.json without a clean independent leak check.",
+    "The manual path (section 1) turns out to be sufficient — then the exception was unnecessary and must be removed."
+  ],
+  "residualRiskAccepted": {
+    "irreversibleSurface": "Public git history. A revert restores the file, but the record of the relaxation — and any capture committed under it — persists and forks retain it.",
+    "mitigation": "The retention bound and the leak check exist so that no raw capture ever enters history at all.",
+    "definitionalDrift": "Mitigated by restating user-contributed in section 0 as source-and-consent.",
+    "brandRisk": "Guarded by the scope pin; tripwired by reversal condition 3."
+  },
+  "productionFiles": [],
+  "permissionsChanged": false,
+  "dependenciesChanged": false,
+  "extensionRuntimeTouched": false,
+  "casesRealJsonUnchanged": true,
+  "section3MinimumsLowered": false,
+  "provenanceValuesChanged": false,
+  "checks": [
+    {"command": "git diff -- plans/research/071/verdict.json", "expected": "empty", "actual": "empty (frozen artefact untouched)"},
+    {"command": "node --test plans/research/071/probe-extensions.test.cjs", "expected": "exit 0, gate unchanged", "actual": "exit 0 (tests 5, pass 5, fail 0)"},
+    {"command": "node --test plans/research/079/sanitize.test.cjs", "expected": "exit 0, pipeline unchanged", "actual": "exit 0 (tests 26, pass 26, fail 0)"},
+    {"command": "node --test plans/research/068/detector.test.cjs", "expected": "exit 0, detector unchanged", "actual": "exit 0 (tests 17, pass 17, fail 0)"},
+    {"command": "npm run smoke", "expected": "exit 0", "actual": "exit 0"},
+    {"command": "npm run lint", "expected": "exit 0", "actual": "exit 0"},
+    {"command": "npm run typecheck", "expected": "exit 0", "actual": "exit 0"},
+    {"command": "npm run test:unit", "expected": "exit 0", "actual": "exit 0 (tests 82, pass 82, fail 0)"},
+    {"command": "npm run test:extension", "expected": "exit 0", "actual": "exit 0 (smoke + interactions)"}
+  ],
+  "gateVisibility": "The plan-071 gate asserts no protocol prose, so this amendment is invisible to it by design. That is precisely why the change carries a written record and reversal conditions rather than a silent edit.",
+  "nextWork": "Owner-run: either capture manually per section 1, or run a bounded authorized collector per section 1a, then feed output through plans/research/079/sanitize.cjs (must report zero leaks) before any entry enters cases-real.json."
+}
