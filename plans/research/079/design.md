@@ -338,11 +338,24 @@ change every deploy. Two consequences:
 2. **This plan.** It is why label detection had to become class-independent
    (§8). Text is the only deploy-stable signal.
 
+Per-feature status on this shape, from a second `--diagnose` run that added
+`article` and `expandable-text-box`:
+
+| Feature | Status | Why |
+|---|---|---|
+| Manual Hide / Mute | **working** | 9 of 11 listitems carry an `expandable-text-box` descendant, which is what the `isModernFeedItem` gate requires (`content.js:844-849`) |
+| Author blocklist / Mute persistence | **broken** | `scanForBlockedAuthors` enumerates only via `AUTHOR_BLOCK_SELECTORS` (`content.js:761-779`); both are 0 |
+| Opt-in Promoted filter | **broken** | `scanForLabeledPosts` uses the same pair (`content.js:788-805`). Its *matcher* is already class-independent — only the enumerator is dead |
+| Selector-based container lookup | **broken** | all three `POST_SELECTORS` are 0, so `findByKnownSelectors` resolves nothing |
+| Text-based bait blocking | **unknown, not claimed broken** | it runs the selector-free sibling heuristic *first* (`shared/post-container.js:44-99`) |
+| 068 Suggested detector | **cannot target anything** | it shares the same two post selectors (`068/detector.cjs:37-40`) |
+
 Bounded honestly: LinkedIn A/B-tests layouts, so this is one account at one time
-and must not be generalised. `expandable-text-box` could not be measured on the
-synthetic fixture, so the manual-control gate's status is **UNKNOWN**, not
-"broken". It also directly vindicates `AGENTS.md:146` — the modern shape was
-previously known only from competitor source, and is now measured on a real feed.
+and must not be generalised. The counts prove the modern `listitem` shape matches
+*posts*; they do not prove it matches *only* posts — and that distinction is
+precisely the acceptance question a real capture answers. This also vindicates
+`AGENTS.md:146`: the modern shape was previously known only from competitor
+source, and is now measured on a real feed.
 
 Disposition: **reported, not fixed.** Production selector changes are out of
 scope here and must be gated on a real capture, which this pipeline now produces.

@@ -423,13 +423,20 @@
     },
     {
       "id": "F-05",
-      "claim": "On the reporting user's live LinkedIn feed, both legacy post selectors match ZERO posts: '[data-id*=\"urn:li:activity:\"]' = 0 and '.feed-shared-update-v2' = 0 out of 16 detected posts. The third POST_SELECTORS entry, 'article', also matched 0. Only the modern '[data-testid=\"mainFeed\"] [role=\"listitem\"]' shape matched (16).",
+      "claim": "On the reporting user's live LinkedIn feed (/feed/foryou/, es locale), the two legacy post selectors match ZERO posts: '[data-id*=\"urn:li:activity:\"]' = 0 and '.feed-shared-update-v2' = 0 out of 11 detected posts; the third POST_SELECTORS entry 'article' = 0. The modern shape matches: '[data-testid=\"mainFeed\"] [role=\"listitem\"]' = 11 and '[data-testid=\"expandable-text-box\"]' = 9, and the legacy header-meta classes match 0.",
       "classification": "OBSERVED (selector counts, via --diagnose against the user's own feed) + SOURCE-VERIFIED (the selector values at content.js:34-48)",
-      "evidence": "post candidates per selector family: 0 [data-id*=urn:li:activity:], 0 .feed-shared-update-v2, 16 [data-testid=mainFeed] [role=listitem], 0 article; header-meta elements matched by META_SELECTOR: 0",
-      "implication": "scanForBlockedAuthors and scanForLabeledPosts enumerate ONLY via AUTHOR_BLOCK_SELECTORS (content.js:45-48), so on this feed shape the author blocklist and the opt-in Promoted filter have nothing to enumerate. The 068 detector's POST_SELECTOR is the same pair, so it cannot target anything either.",
-      "uncertainty": "LinkedIn A/B-tests layouts, so this is a property of one account at one time and must not be generalised to all users. Text-based bait blocking uses a selector-free sibling heuristic FIRST (shared/post-container.js:44-99), which may still resolve containers, so bait blocking is not necessarily broken - only the selector-based passes are demonstrably empty. Whether the manual-control gate still passes depends on '[data-testid=\"expandable-text-box\"]', which could NOT be measured on the synthetic fixture because it does not model that element.",
+      "evidence": "Two --diagnose runs on the user's own feed. Run 1: 0 [data-id*=urn:li:activity:], 0 .feed-shared-update-v2, 16 [data-testid=mainFeed] [role=listitem], 0 article. Run 2: 0 / 0 / 11 / 11 / 0 article / 9 expandable-text-box. Header classes are hashed atomic names (gflljw, gflkzy, gflkxr, ...).",
+      "implication": {
+        "authorBlocklistPass": "BROKEN on this shape. scanForBlockedAuthors enumerates only via AUTHOR_BLOCK_SELECTORS (content.js:45-48, used at content.js:761-779), both 0 matches, so the persisted author blocklist and the Mute feature have nothing to enumerate.",
+        "promotedFilter": "BROKEN on this shape. scanForLabeledPosts uses the same pair (content.js:788-805), so the opt-in Promoted filter has nothing to enumerate. Note the label matcher it uses (SS_matchesLabel over el.textContent) is already class-independent - only the ENUMERATOR is dead.",
+        "selectorBasedContainerLookup": "BROKEN on this shape. All three POST_SELECTORS entries are 0, so findByKnownSelectors (shared/post-container.js:111-121) resolves nothing.",
+        "baitDetection": "UNKNOWN, and deliberately not claimed broken. Text-based blocking runs the selector-free sibling heuristic FIRST (shared/post-container.js:44-99) and only falls back to the selectors, so it may still resolve containers.",
+        "manualControls": "WORKING on this shape, now measured rather than assumed. 9 of 11 listitems carry an [data-testid=expandable-text-box] descendant, which is what the isModernFeedItem gate requires (content.js:844-849), so Hide/Mute attach.",
+        "suggestedDetector068": "Cannot target anything on this shape: it shares the same two POST_SELECTORS (068/detector.cjs:37-40)."
+      },
+      "uncertainty": "LinkedIn A/B-tests layouts, so this is one account at one time and must not be generalised to all users. Whether the modern listitem shape is a SAFE automatic container is still unproven: the counts show it matches posts, not that it only matches posts. That is exactly the acceptance question a real capture is needed for, and the repo already defers it (content.js:49-52, AGENTS.md:146).",
       "consistency": "This is consistent with AGENTS.md:146: the modern React shape was known only from competitor source because there were 'no first-hand authenticated LinkedIn samples'. It is now measured on a real feed.",
-      "disposition": "REPORTED, deliberately not fixed. Changing production selectors is out of scope for this research plan and must be gated on a real capture - which is exactly what this pipeline now produces. A production plan should follow."
+      "disposition": "REPORTED, deliberately not fixed. content.js:49-52 states that the modern selector is 'NOT used for automatic text, author, Suggested or sponsored filtering: real DOM acceptance is still required before broadening any automatic detection', and AGENTS.md:146 says 'do not enable new automatic filtering'. A production plan gated on a real capture should own the change."
     }
   ]
 }
