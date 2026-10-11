@@ -52,6 +52,40 @@ capped at the §3 minimum set.
 If it says no Suggested post is in view, scroll the feed and run it again. Add
 `--dry-run` to preview without staging.
 
+### Language — nothing assumes English
+
+The UI locale is read from the page, and the label that marks a Suggested post is
+taken from the page as well. It is **never guessed and never translated.** One of
+three things happens:
+
+1. **You pass it** — `--suggested-label "Sugerido para ti"`.
+2. **It is remembered** — the first time you confirm a label for a locale it is
+   saved to `~/.cache/ss-capture-labels.json`, so later runs in that locale need
+   nothing. `--forget-labels` clears it.
+3. **It asks** — if neither is available, it prints the label strings it found in
+   post headers (excluding connection degrees like `• 2º` / `• 2nd` / `3ᵉʳ`) and
+   you pick one. One keystroke, once per locale.
+
+`metadataLocale` on each entry is set from **your** UI locale, not from a
+hardcoded `"en"`.
+
+**Your Spanish feed works out of the box.** There is one important consequence
+worth knowing: the candidate detector is deliberately **English-only**
+(`068/detector.cjs:29-31`), so a Spanish label must *fail open* — it should match
+nothing. The script therefore records a Spanish capture as a **negative control**
+asserting fail-open, and the gate passes. That is not a workaround; the non-English
+label is an explicitly required part of the §3 set, and it is the evidence needed
+before Spanish labels could ever be added deliberately.
+
+Progress is reported accordingly:
+
+```
+protocol §3 progress:
+  positives          : 0/3  (need 3)
+  negatives          : 2/2  (met)
+  non-English locale : es  (satisfied)
+```
+
 ### Alternative — file-based route
 
 If you would rather not have a second browser profile, capture the markup

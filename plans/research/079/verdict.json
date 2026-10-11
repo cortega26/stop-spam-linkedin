@@ -82,7 +82,7 @@
     },
     "capture-live.cjs": {
       "role": "PRIMARY capture path. Connects over loopback CDP to a browser it launches (dedicated profile; the user's normal Chrome is never touched or closed), reads the posts already rendered, classifies them by Suggested label, extracts and sanitises in memory, and stages ten-key entries.",
-      "sha256": "6e5f08189062bc9be457a43b7f4f6109f342a2e4e21478b89d9e0b42f6510b65",
+      "sha256": "17793482dcd8087a8bc4c65bc93c988a6a385f13eda4a9f208a8b47ecf7a3cd0",
       "rawMarkupTouchesDisk": false,
       "doesNot": [
         "click",
@@ -94,7 +94,19 @@
       "protocolPosition": "Single-shot, human-invoked, own-session, bounded to the section 3 minimum set - the form permitted by 071/protocol.md section 1a.",
       "autoDerivedLabel": "The label phrase to preserve is derived from the captured header metadata (text up to a ' - ' separator), so the exact string the detector keys on survives without the user guessing it.",
       "verified": "Exercised end to end against a synthetic fixture served on loopback with a throwaway Chrome on a debug port (never against LinkedIn): CDP connect, 7 candidates classified, the Suggested post correctly flagged, label auto-derived as 'Suggested for you', entries built, sanitised to 0 leaks, staged. Raw markup never written to disk. Not covered by the automated test suite because it requires a CDP browser; verified by that run.",
-      "testHook": "--url-match exists so the script can be pointed at a local fixture; it is the only reason that flag is a flag."
+      "testHook": "--url-match exists so the script can be pointed at a local fixture; it is the only reason that flag is a flag.",
+      "languageHandling": {
+        "noHardcodedEnglish": true,
+        "uiLocaleFromPage": "document.documentElement.lang, normalised to a base subtag; becomes each entry's metadataLocale",
+        "labelSource": "never guessed and never translated - either --suggested-label, or a value remembered per locale in ~/.cache/ss-capture-labels.json, or an interactive pick from the label strings actually found in post headers",
+        "degreeFilter": "Connection degrees (bullet+ordinal) are excluded from the candidate list so the pick is short. Anchored on purpose: a trailing \\b silently fails on Unicode ordinals such as 'º' because that character is not a word character to JavaScript's \\b - a real bug found and fixed during testing.",
+        "expectationLogic": "Whether an entry is a positive or a documented fail-open negative is derived from the project's DOCUMENTED intent (English-only labels; legacy-only enumeration), not from the detector's live behaviour - deriving it from live behaviour would make the gate a tautology and unable to catch a regression.",
+        "consequenceForNonEnglishUsers": "A Spanish capture is recorded as a negative control asserting fail-open, and the gate passes. The non-English label is an explicitly required part of the 071 section 3 set, so the contribution is legitimate and necessary - it is the evidence needed before non-English labels could be added deliberately."
+      }
+    },
+    "capture-live.test.cjs": {
+      "role": "Offline tests for the language handling (no browser needed): degree detection across locales, label clustering, and the positive/fail-open-negative decision.",
+      "count": 9
     }
   },
   "leakVerifierRules": [
@@ -263,6 +275,16 @@
       "command": "plans/research/079/one-shot-capture.sh --admit (with a 'Suggested for you' positive)",
       "expected": "gate fails and the failure is legible",
       "actual": "exit 1; failing assertion named, counts shown, failure interpreted as finding F-01 (the label grammar); corpus reverted to [] afterwards"
+    },
+    {
+      "command": "node --test plans/research/079/capture-live.test.cjs",
+      "expected": "exit 0",
+      "actual": "exit 0 (tests 9, pass 9, fail 0)"
+    },
+    {
+      "command": "capture-live.cjs --attach against a Spanish (lang=\"es\") loopback fixture",
+      "expected": "detect es, offer the real label strings, record fail-open negatives, pass the gate",
+      "actual": "exit 0; clusters were ['Sugerido para ti','Promocionado'] (degree '• 2º' correctly excluded); metadataLocale 'es'; 2 negatives recorded with the fail-open reason; one-shot-capture.sh --admit then ran the unmodified 071 gate and it passed 7/7. Interactive pick verified on a pty and remembered to ~/.cache/ss-capture-labels.json; a later run used the remembered label with no prompt. Corpus reverted to [] and the label map removed afterwards."
     }
   ],
   "productionFiles": [],

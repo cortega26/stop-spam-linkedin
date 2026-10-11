@@ -46,6 +46,8 @@ the finding that justifies the plan; it is pinned as a regression guard in
 |---|---|
 | `sanitize.cjs` | **Producer.** Turns a pasted capture into protocol-§2-clean markup. Zero dependencies, fail-closed. |
 | `sanitize.test.cjs` | 34 tests: the Step-0 gap, §2.1–§2.4 behaviour, §2.2 structural preservation, phrase-level labels, and an end-to-end run against the unmodified 071 gate. |
+| `capture-live.cjs` | **Primary capture path.** Connects over loopback CDP to a browser it launches (dedicated profile; the user's normal Chrome is never touched), reads the rendered feed, and stages sanitised entries. Language-agnostic: the UI locale comes from the page and the label comes from the page or a remembered per-locale choice — never guessed. Raw markup never touches disk. |
+| `capture-live.test.cjs` | Offline tests for the language handling: degree detection, label clustering, and the positive/fail-open-negative decision. |
 | `capture-helper.js` | **Optional** DevTools Console snippet: lists recognised post containers, flags which carry a `Suggested` label, and saves one to `~/Downloads`. Not required — §1 manual copy-paste remains sufficient. |
 | `one-shot-capture.sh` | **One command** for the terminal half: discover capture → sanitise → verify 0 leaks → build the ten-key entry → stage → report §3 progress. `--admit` merges and runs the unmodified 071 gate. Safe by default (staging only; `cases-real.json` untouched until `--admit`). |
 | `step0-gap-demo.cjs` | The reproducible demonstration above. |
@@ -194,13 +196,36 @@ bash -n plans/research/079/one-shot-capture.sh              # shell syntax
 plans/research/079/one-shot-capture.sh                      # corpus status
 ```
 
-## 8. Findings from exercising the pipeline
+## 8. Language handling
+
+Nothing in the capture path assumes English. `capture-live.cjs` reads the UI
+locale from the page (`document.documentElement.lang`) and sets each entry's
+`metadataLocale` from it. The label marking a Suggested post is taken from the
+page: passed with `--suggested-label`, remembered per locale in
+`~/.cache/ss-capture-labels.json`, or picked interactively from the label strings
+actually present in the header metadata. It is **never guessed and never
+translated** — the same principle `068/detector.cjs:29-31` and `071/protocol.md`
+§4 apply to the detector.
+
+A consequence worth stating plainly: the candidate detector is deliberately
+English-only, so a non-English label must **fail open**. The capture path
+therefore records a Spanish capture as a *negative control asserting fail-open*,
+and the gate passes. That is not a workaround — the non-English label is an
+explicitly required part of the §3 set, and it is the evidence needed before any
+non-English label could be added on purpose.
+
+Whether an entry is a positive or a negative is derived from the project's
+**documented intent** (English-only labels; legacy-only enumeration), not from
+the detector's live behaviour. Deriving it from live behaviour would make the
+gate a tautology and unable to catch a regression.
+
+## 9. Findings from exercising the pipeline
 
 Running a realistic shape through the pipeline (rather than only the synthetic
 `dirty-sample.html`) surfaced three things. The first is a product-relevant
 finding; the other two were defects in this plan's own tooling, now fixed.
 
-### 8.1 The detector's label grammar is narrow, and a fuller label fails silently
+### 9.1 The detector's label grammar is narrow, and a fuller label fails silently
 
 Verified in this repo by direct execution:
 
@@ -227,7 +252,7 @@ gate's `expectedTarget` fails on a genuine entry, that failure *is* the finding
 `SOURCE-VERIFIED`; the claim that LinkedIn renders a fuller label is
 `UNKNOWN` until a capture exists.
 
-### 8.2 `--label` matched token-wise, destroying combined metadata (fixed)
+### 9.2 `--label` matched token-wise, destroying combined metadata (fixed)
 
 `sanitizeText` originally compared each whitespace-separated token against the
 declared labels. A realistic header such as
@@ -237,7 +262,7 @@ keys on. Label matching is now **phrase-level**: declared phrases are preserved
 verbatim wherever they appear, and only the remainder is placeholdered. Verified:
 `Suggested for you · Acme` → `Suggested for you · Placeholder`.
 
-### 8.3 Two smaller robustness defects (fixed)
+### 9.3 Two smaller robustness defects (fixed)
 
 * A JSON-quoted capture file (which some capture routes produce) previously failed
   with a bare `unparsable tag` message. The CLI now unwraps it automatically, and
@@ -245,7 +270,7 @@ verbatim wherever they appear, and only the remainder is placeholdered. Verified
 * `sanitizeText` reported `changed: true` when the replacement was byte-identical,
   which would have made the idempotence property report phantom changes.
 
-### 8.4 A documented footgun, pinned by a test
+### 9.4 A documented footgun, pinned by a test
 
 `--label` is a **declaration of trust**: a declared phrase is preserved verbatim
 *and* accepted by the verifier, because the verifier checks against the declared
@@ -255,7 +280,7 @@ pinned by a test, and the contributor guide states the rule. There is no
 heuristic name-detector by design: a guess there would false-positive on ordinary
 metadata and block legitimate donations.
 
-## 9. What this plan does NOT do
+## 10. What this plan does NOT do
 
 * It does not obtain a capture. Only someone with a logged-in LinkedIn feed can
   do that: either a contributor capturing manually per `071/protocol.md` §1, or
@@ -270,7 +295,7 @@ metadata and block legitimate donations.
 * It does not claim any precision, recall or false-positive rate. No real sample
   exists to compute one from.
 
-## 10. Handoff
+## 11. Handoff
 
 The next actor is **a contributor**, not a coding agent. Give them
 `contributor-guide.md`. When a donation satisfies §3, the proceeds are:
