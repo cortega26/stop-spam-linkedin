@@ -1,5 +1,18 @@
 # Implementation Plans
 
+## Research evaluation — 078 (REA pilot) at `2fb25e3`, 2026-10-11
+
+Read-only tool evaluation, not an implementation plan. No production file
+changed; docs only under `plans/research/078/`. Verdict:
+**`INCONCLUSIVE — LIVE EVIDENCE UNAVAILABLE`**.
+
+| Item | Deliverable | Priority | Effort | Status |
+|---|---|---|---|---|
+| 078 | [REA pilot evaluation](research/078/REA_PILOT_REPORT.md) | P3 | S | DONE (2026-10-11, branch `research/078-rea-pilot-evaluation`, local only — not pushed; **verdict: `inconclusive-live-evidence-unavailable`** — `rea-agents` 6.4.0 ran via CLI only (no MCP registration; `doctor` healthy:false, host reported `unsupported_host` yet all four operations returned Evidence); live LinkedIn unreachable (no loopback CDP target, MCP browser uses `--remote-debugging-pipe`, user Chrome has no port) and repo governance forbids automated collection (`071/protocol.md` §1.3); on the same page/same case REA's passive capture recovered **strictly less** than the existing Playwright probe (attribute values and DOM text omitted by design, no opt-in) → 0 novel findings; static analysis of the shipped extension is redundant with CodeGraph and Electron-shaped. Recommendation: **do not integrate**; the real blocker is a donated capture (071 gate), not the tool. Artifacts: `design.md`, `REA_PILOT_REPORT.md`, `REA_EVIDENCE_LEDGER.md`, `REA_NEXT_ACTIONS.md`, `verdict.json`) |
+
+Baseline at evaluation time: `npm ci`, `smoke`, `lint`, `typecheck`,
+`test:unit` (82/82) and `test:extension` all exit 0.
+
 ## Current direction queue — 2026-09-14 at `3aef7b9`
 
 Third `next`/direction-only survey (no other category audited). All prior
