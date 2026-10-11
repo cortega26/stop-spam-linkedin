@@ -2,65 +2,86 @@
 
 > **Publication status:** Draft copy and source visual only. The published Chrome/Firefox listings retain the existing product until a new package passes CI, visual QA and store review. Update actual store screenshots from the tested build, never from synthetic mocked UI.
 
-## Proposed store name
-**LinkedIn Feed Control — Spam & Noise Blocker** (check platform name limits before publishing)
+## Store name
+**LinkedIn Feed Control** — the shipped name in `manifest.json`. (The AMO listing
+still shows the retired name *LinkedIn Spam Blocker*; that is a listing field, not
+the package.)
 
-## English — Short description
-Take control of LinkedIn. Hide unwanted posts, mute authors, filter promotions and keep your feed private.
+## English — Short description (Chrome limit: 132 chars)
+
+Take back your LinkedIn feed. Hide any post, mute authors, filter promotions — all local, zero network requests.
 
 ## English — Full description
 
-### Your feed, your rules.
+### Stop scrolling past noise you never asked for
 
-LinkedIn decides what to recommend. You decide what deserves your attention.
+LinkedIn's feed decides what you see. Feed Control hands those decisions back to you — quietly, locally, and always reversible.
 
-Feed Control helps you take back the small decisions that add up: a post you don't want to read, a repetitive author, yet another promotion, or a "comment X and I'll send Y" engagement trap.
+One click hides the post you're done with. One click mutes the author who keeps repeating. A local rule catches "comment CLAUDE and I'll send you the framework" before you ever read it.
 
-**No account. No tracking. No AI-generated guesses about what you should want.**
+**No account. No sign-up. No tracking. And no AI guessing at what you should want.**
 
-### Make your feed feel yours
+### What you get
 
-- **Hide any post.** Choose **Feed options → Hide this post** on a recognized post, even when it isn't technically spam.
-- **Mute authors directly.** Choose **Feed options → Mute this author** when an author is recognized, without hunting through settings.
-- **Filter promoted content.** Turn promoted-post hiding on or off instantly, without a reload.
-- **Block obvious engagement bait automatically.** Proven, editable local rules support English, Spanish, French, Portuguese and German.
-- **Keep what matters.** Protect trusted authors and meaningful phrases. Every hidden item has a reversible Show action.
-- **Make precise personal rules.** Add words/phrases, inspect rule matches, and manage advanced controls when you need them.
-- **Trust the design.** No runtime network requests, telemetry, AI API, remote blocklist or broad web permissions.
+- **Hide any feed post, instantly.** *Feed options → Hide this post.* Every hide keeps a one-click **Show** to bring it back.
+- **Mute an author on the spot.** *Feed options → Mute this author*, on posts where the author is recognised — no settings safari.
+- **Kill engagement bait automatically.** Editable local rules catch "comment X for a template" posts in English, Spanish, French, Portuguese and German.
+- **Filter promoted posts, if you want.** Off by default. One toggle, no reload.
+- **Keep what matters.** Trusted authors and protected phrases are never hidden.
+- **Write your own rules.** Add phrases, see which rule matched, exclude false positives, review per-rule counts.
+- **Take your settings with you.** Export and import. No cloud involved.
 
-### A calm utility, not another algorithm
+### Why it's different: nothing leaves your browser
 
-This extension doesn't alter LinkedIn's servers, follow/unfollow anyone, or claim to rank the feed. It hides recognized items locally in your browser, with your decisions always reversible.
+This extension makes **zero network requests.** No analytics, no telemetry, no remote rule list, no AI service, no CDN assets. It asks for two permissions: storage and a context menu.
 
-### Install it. Use LinkedIn normally. Make the feed yours.
+Your feed, your reading habits and the authors you mute stay on your machine. We could not see them if we wanted to.
+
+It's honest about its limits too: it changes what *your browser* shows, not LinkedIn's servers or its ranking. It never follows, unfollows, posts, messages or automates anything on your behalf.
+
+### Free, quiet, and easy to undo
+
+Nothing is permanent, nothing is silent, and there's no trap waiting for you later. Don't like a rule? Turn it off. Changed your mind? Press **Show**.
+
+**Install it. Use LinkedIn normally. Take your feed back.**
 
 ## Español — Descripción breve
-Controla tu LinkedIn. Oculta publicaciones, silencia autores, filtra promociones y protege tu privacidad.
+
+Recupera tu feed de LinkedIn. Oculta publicaciones, silencia autores y filtra promociones, todo local.
 
 ## Español — Descripción completa
 
-### Tu feed, tus reglas.
+### Deja de cruzarte con ruido que nunca pediste
 
-LinkedIn decide qué recomendarte. Tú decides a qué prestarle atención.
+El feed de LinkedIn decide qué ves. Feed Control te devuelve esas decisiones: en silencio, en local y siempre reversible.
 
-Feed Control te permite ocultar una publicación que no te interesa, silenciar a un autor repetitivo, filtrar promociones y bloquear los clásicos mensajes que te piden comentar algo para recibir un archivo.
+Un clic oculta la publicación que ya no te interesa. Un clic silencia al autor que se repite. Una regla local frena los "comenta CLAUDE y te envío la plantilla" antes de que llegues a leerlos.
 
-**Sin cuentas adicionales. Sin seguimiento. Sin pedirle a una IA que adivine qué quieres ver.**
+**Sin cuenta. Sin registro. Sin seguimiento. Y sin que una IA adivine qué deberías querer ver.**
 
-### Más control, menos distracciones
+### Lo que consigues
 
-- **Oculta cualquier publicación desde «Opciones del feed»**, aunque no sea técnicamente spam.
-- **Silencia autores desde su publicación**, sin buscar opciones escondidas.
-- **Activa o desactiva el filtro de promociones** y ve el cambio de inmediato.
-- **Filtra automáticamente las publicaciones de interacción forzada** mediante reglas locales en cinco idiomas.
-- **Conserva lo útil** con autores permitidos y frases protegidas.
-- **Recupera fácilmente lo ocultado** y corrige las coincidencias equivocadas.
-- **Configura solo lo que necesitas**, con herramientas avanzadas disponibles cuando las quieras.
-- **Privacidad por diseño:** sin telemetría, servidores de análisis, IA remota ni permisos amplios de navegación.
+- **Oculta cualquier publicación del feed al instante.** *Opciones del feed → Ocultar esta publicación.* Todo lo oculto conserva un **Mostrar** a un clic.
+- **Silencia a un autor en el momento.** *Opciones del feed → Silenciar a este autor*, en publicaciones donde el autor se reconoce.
+- **Bloquea el bait de interacción automáticamente.** Reglas locales editables en inglés, español, francés, portugués y alemán.
+- **Filtra publicaciones promocionadas, si quieres.** Desactivado por defecto. Un interruptor, sin recargar.
+- **Conserva lo importante.** Autores de confianza y frases protegidas nunca se ocultan.
+- **Crea tus propias reglas.** Añade frases, mira qué regla coincidió, descarta falsos positivos y revisa contadores por regla.
+- **Llévate tu configuración.** Exporta e importa. Sin nube de por medio.
 
-La extensión no modifica los servidores ni el algoritmo de LinkedIn. Solo controla lo que aparece en tu navegador.
+### La diferencia: nada sale de tu navegador
 
-### Instálala y vuelve a decidir qué merece tu tiempo.
+Esta extensión hace **cero peticiones de red.** Sin analíticas, sin telemetría, sin listas remotas, sin IA externa, sin recursos desde CDN. Solo pide dos permisos: almacenamiento y menú contextual.
+
+Tu feed, tus lecturas y los autores que silencias se quedan en tu equipo. No podríamos verlos ni queriendo.
+
+Y es honesta con sus límites: cambia lo que muestra *tu navegador*, no los servidores ni el ranking de LinkedIn. No sigue, deja de seguir, publica, envía mensajes ni automatiza nada por ti.
+
+### Gratis, discreta y fácil de deshacer
+
+Nada es permanente, nada es silencioso y no hay trampa esperándote después. ¿No te convence una regla? Desactívala. ¿Cambiaste de opinión? Pulsa **Mostrar**.
+
+**Instálala. Usa LinkedIn con normalidad. Recupera tu feed.**
 
 ---
 
