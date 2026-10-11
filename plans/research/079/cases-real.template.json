@@ -1,0 +1,13 @@
+{
+  "_comment": "Plan 079 template for ONE donated Suggested-post capture. Copy this object into plans/research/071/cases-real.json (do not commit this template file's _comment key). All ten keys are required by plans/research/071/probe-extensions.test.cjs. Replace every value below; values shown are illustrative placeholders, not a real capture.",
+  "id": "suggested-01",
+  "purpose": "Positive control: real Suggested label in recognized post-header metadata must target the post.",
+  "markup": "<PASTE THE SANITISED OUTER HTML HERE — output of: node plans/research/079/sanitize.cjs --sanitize capture.html --id suggested-01 --label Suggested>",
+  "scanRoot": "parent",
+  "expectedTarget": "[data-id=\"urn:li:activity:71XX\"]",
+  "metadataLocale": "en",
+  "provenance": "user-contributed",
+  "validationStatus": "real-donated",
+  "sourceRef": "contributor capture, 2026-10, en UI locale; sanitized per protocol.md §2",
+  "sanitization": "All human text replaced with placeholders via plans/research/079/sanitize.cjs; element names, class attributes and nesting kept exactly; id/tracking/data-urn/srcset/script/style/comments dropped; URLs stripped of query and fragment; profile slugs and urn payloads sentinelised."
+}

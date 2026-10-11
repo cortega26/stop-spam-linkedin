@@ -1,0 +1,232 @@
+{
+  "plan": "079",
+  "verdict": "proceed",
+  "decidedAt": "2026-10-11",
+  "branch": "research/079-suggested-capture-sanitiser",
+  "baseSha": "2fb25e3e9f893d34a4b2a3df85b415cd8b80a669",
+  "baseBranch": "main",
+  "scope": "Research prototype only. Adds a sanitiser (protocol §2 producer) and a leak verifier (§2.4) for plan-071 Suggested-post captures. Modifies no production file and no file under plans/research/068/ or /071/.",
+  "summary": "Plan 071 asks a contributor to hand-sanitise real markup and to state the exact grep proving no real name, sentence or URN remains. Plan 071's own gate does not verify that sanitisation happened. This plan mechanises both halves and proves end to end that sanitised output is admissible to the unmodified 071 gate without destroying the detector signal.",
+  "stepZeroFinding": {
+    "claim": "The plan-071 'sanitization:' gate accepts an entry that still contains a person's name, a full post body, a global id attribute, a profile slug with a tracking parameter, a srcset, and identifying alt text.",
+    "classification": "OBSERVED",
+    "method": "Ran the exact content assertions from plans/research/071/probe-extensions.test.cjs against a crafted PII-shaped entry; the gate's only content check is a urn sentinel prefix.",
+    "reproduce": "node plans/research/079/step0-gap-demo.cjs",
+    "result": "gate passed: true; 7 of 7 PII-shaped classes survived",
+    "piiClassesUsed": [
+      "person name in text",
+      "post body sentence",
+      "global id attribute",
+      "profile slug with tracking parameter",
+      "srcset descriptors",
+      "identifying alt text",
+      "non-sentinel urn:li payload"
+    ],
+    "note": "All values in the demonstration are invented. This is a gap in gate coverage, not a claim that any real capture was ever leaked."
+  },
+  "deliverables": {
+    "sanitize.cjs": {
+      "role": "producer",
+      "sha256": "639ed7a50fcbe41a918a61eeecf700f629b6f80b0f11e36f96f3fe19484f8f90",
+      "dependencies": 0,
+      "failClosed": true,
+      "failClosedTrigger": "unterminated quoted attribute, unterminated comment or tag, unparsable tag syntax, or any structural fingerprint mismatch — all return an error and NO markup; there is no override flag",
+      "protocolRules": {
+        "§2.1 text": "every alphanumeric run becomes 'Placeholder'; the declared --label, punctuation-only tokens such as '·', and surrounding whitespace survive; consecutive placeholders collapse to one",
+        "§2.2 structure": "element names, class values and nesting are enforced identical by comparing a structural fingerprint of input vs output before emitting",
+        "§2.3 identity": "drops id/nonce/integrity/crossorigin/referrerpolicy/srcset/imagesrcset/data-urn/ping/on*/data-tracking*/data-trk*/data-impression*/data-*-ref/data-*-id/style; strips URL query and fragment; rewrites in|company|school|showcase|groups slugs; sentinelises urn:li payloads in ANY attribute incl. data-id; DEFAULT-DENY: only names on the STRUCTURAL_ATTRS allowlist keep values verbatim, every other valued attribute is placeholdered as untrusted text",
+        "§2.4 verification": "findLeaks() returns per-violation findings; empty is the pass condition"
+      }
+    },
+    "sanitize.test.cjs": {
+      "role": "tests",
+      "count": 26
+    },
+    "step0-gap-demo.cjs": {
+      "role": "gap demonstration",
+      "sha256": "dbd85e8c1a010333bb2ec97d509904c635ac338cd8577136b1624db54a73cdcb"
+    },
+    "dirty-sample.html": {
+      "role": "unsanitised fixture (invented values)",
+      "sha256": "766b89f9200195694f26c86e64eb4505646698edc21f13a65e2639291f09eb1c"
+    },
+    "cases-real.template.json": {
+      "role": "ten-key entry skeleton for a contributor"
+    },
+    "contributor-guide.md": {
+      "role": "operational capture→sanitise→verify→send path"
+    },
+    "design.md": {
+      "role": "design record"
+    }
+  },
+  "leakVerifierRules": [
+    "surviving-text",
+    "surviving-attr-text",
+    "dropped-attr-survives",
+    "script-or-style",
+    "html-comment",
+    "non-sentinel-urn",
+    "url-query-or-fragment",
+    "real-profile-slug",
+    "email",
+    "long-digit-run",
+    "unparsable"
+  ],
+  "coreInvariant": "Vocabulary check, not a name denylist: every alphanumeric run in every text node and every text-bearing attribute must be either the placeholder token or a declared label.",
+  "protocolDeviation": {
+    "clause": "071/protocol.md §2.3 words the urn sentinel as shape urn:li:activity:71XX",
+    "deviation": "This implementation preserves the urn entity kind (urn:li:company:71XX stays a company urn) instead of collapsing every kind to 'activity'.",
+    "reason": "POST_SELECTORS matches the literal substring 'urn:li:activity:'. Collapsing a company payload to an activity payload would make a capture match a selector it never matched, i.e. fabricate a positive — the exact failure 071/protocol.md forbids ('fabricated provenance poisons the very gate this plan serves'). Sentinel shape is preserved; only the kind is retained.",
+    "requiresSignoff": true,
+    "enforcement": "findLeaks enforces the 71 sentinel prefix on any urn:li value regardless of kind."
+  },
+  "endToEndProof": {
+    "what": "A two-entry cases-real.json built entirely from sanitize.cjs output (one label positive, one body-mention negative) was written into a temp mirror of the repo and the UNMODIFIED plans/research/071/probe-extensions.test.cjs was run against it.",
+    "result": "071 gate exit 0, 5/5 tests pass: ten-key schema, scanRoot enum, provenance user-contributed, validationStatus real-donated, id dedupe against 068's ten, sanitization check, and per-entry detector outcomes (positive targeted, negative fails open).",
+    "also": "068's unmodified detector still returns exactly the post for the sanitised positive and zero targets for the sanitised body-mention negative.",
+    "reproduce": "node --test plans/research/079/sanitize.test.cjs (test 'end-to-end: a sanitised capture satisfies the existing plan-071 gate')"
+  },
+  "propertiesAssertedDirectly": [
+    "round trip: sanitizeMarkup output always yields findLeaks === []",
+    "idempotence: re-sanitising emits no further changes",
+    "structural fingerprint equals an independent jsdom walk",
+    "class attributes and nesting survive verbatim",
+    "fail-closed: no partial output on unparsable input",
+    "default-deny: an unknown attribute carrying text is placeholdered and is flagged by findLeaks",
+    "modern-React shape: data-testid/role/class survive while person and sponsor text do not"
+  ],
+  "checks": [
+    {
+      "command": "node --test plans/research/079/sanitize.test.cjs",
+      "expected": "exit 0",
+      "actual": "exit 0 (tests 26, pass 26, fail 0)"
+    },
+    {
+      "command": "node plans/research/079/step0-gap-demo.cjs",
+      "expected": "exit 0 and demonstrate the gap",
+      "actual": "exit 0 (gate passed: true; 7/7 PII classes survived)"
+    },
+    {
+      "command": "node plans/research/079/sanitize.cjs --self-test --id case-01 --label Suggested",
+      "expected": "exit 0, leak findings: 0",
+      "actual": "exit 0, 15 changes, leak findings: 0"
+    },
+    {
+      "command": "node plans/research/079/sanitize.cjs --leaks plans/research/071/cases-real.json",
+      "expected": "exit 0",
+      "actual": "exit 0 (0 entries checked, 0 with leaks)"
+    },
+    {
+      "command": "node plans/research/079/sanitize.cjs --leaks <polluted corpus>",
+      "expected": "exit 1",
+      "actual": "exit 1 (surviving-text findings; fail-closed as intended)"
+    },
+    {
+      "command": "node --test plans/research/071/probe-extensions.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (tests 5, pass 5, fail 0)"
+    },
+    {
+      "command": "node --test plans/research/068/detector.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (tests 17, pass 17, fail 0)"
+    },
+    {
+      "command": "node --test plans/research/070/curate.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (tests 18, pass 18, fail 0)"
+    },
+    {
+      "command": "node --test plans/research/067/evaluate.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (tests 14, pass 14, fail 0)"
+    },
+    {
+      "command": "node --test plans/research/075/health-probe.test.cjs plans/research/075/drift-fixtures.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (tests 11, pass 11, fail 0)"
+    },
+    {
+      "command": "node --test plans/research/064/*.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (15/15)"
+    },
+    {
+      "command": "node --test plans/research/065/*.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (14/14)"
+    },
+    {
+      "command": "node --test plans/research/066/*.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (9/9)"
+    },
+    {
+      "command": "node --test plans/research/069/*.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (14/14)"
+    },
+    {
+      "command": "node --test plans/research/073/receipts.test.cjs",
+      "expected": "exit 0, unchanged",
+      "actual": "exit 0 (16/16)"
+    },
+    {
+      "command": "npm run smoke",
+      "expected": "exit 0",
+      "actual": "exit 0"
+    },
+    {
+      "command": "npm run lint",
+      "expected": "exit 0",
+      "actual": "exit 0"
+    },
+    {
+      "command": "npm run typecheck",
+      "expected": "exit 0",
+      "actual": "exit 0"
+    },
+    {
+      "command": "npm run test:unit",
+      "expected": "exit 0",
+      "actual": "exit 0 (tests 82, pass 82, fail 0)"
+    },
+    {
+      "command": "npm run test:extension",
+      "expected": "exit 0",
+      "actual": "exit 0 (smoke + interactions)"
+    }
+  ],
+  "productionFiles": [],
+  "permissionsChanged": false,
+  "dependenciesAdded": 0,
+  "casesRealJsonUnchanged": {
+    "path": "plans/research/071/cases-real.json",
+    "sha256": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "content": "[] — unchanged; no synthetic entry was admitted, so 068 stays insufficient-data"
+  },
+  "notDone": [
+    "Obtaining a real capture. Only a human with a logged-in feed can do that, and 071/protocol.md §1.3 forbids automating it. This plan removes every obstacle after the human step; it does not move that step.",
+    "Lowering plan 071 §3 minimums (>=3 positives, >=2 negatives, >=1 layout variant). Untouched.",
+    "Any precision, recall or false-positive claim. No real sample exists to compute one from."
+  ],
+  "missingEvidence": [
+    "One or more real, sanction-provided Suggested-post captures (blocked on a human contributor; see contributor-guide.md).",
+    "A non-English label capture obtained by a contributor switching their UI locale.",
+    "A layout variant differing from the 068 synthetic shapes.",
+    "Firefox equivalents for the en-end probe; the verifier and sanitiser are runtime-agnostic Node, so this is only about the browser probe."
+  ],
+  "nextWork": "Hand plans/research/079/contributor-guide.md to a contributor. On a §3-satisfying donation: (1) sanitize.cjs --leaks must report 0 leaks; (2) the 071 gate must stay green; (3) 068 may leave insufficient-data and the opt-in 'Reduce suggested posts' filter becomes plannable.",
+  "selfExposedGap": {
+    "what": "The first test pass exposed a hole in this module's own design: attributes outside a known-text list kept their values verbatim, so PII could hide in an unrecognised attribute and pass both sanitise AND verify — the same class of gap as Step 0.",
+    "fix": "Default-deny STRUCTURAL_ATTRS allowlist; every non-allowlisted valued attribute is placeholdered as untrusted text, and findLeaks checks it.",
+    "classification": "OBSERVED",
+    "rationale": "Recorded rather than hidden because it is the same failure mode this plan criticises in the 071 gate, and the fix is the reason the verifier can be trusted."
+  },
+  "documentedLimitations": [
+    "URL paths are preserved: query and fragment are stripped and known identity slugs are rewritten, but the rest of a path survives. Host and route are structural evidence and LinkedIn media paths are opaque CDN hashes. A URL whose path spelled out a human name would not be caught. No heuristic was added because a name-shaped-slug guess would false-positive on ordinary paths and block legitimate donations.",
+    "The STRUCTURAL_ATTRS allowlist is not exhaustive; an attribute whose value must survive but is not listed will be placeholdered. This fails visibly in the detector outcome, never silently.",
+    "Sanitisation is a text-and-identity transformation, not a proof of non-identification. A capture still reveals that some post existed with some structure at some time; contributors are told to capture only the post container, never anything above it."
+  ]
+}
