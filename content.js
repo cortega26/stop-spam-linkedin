@@ -42,18 +42,21 @@
      broad enough to match non-post elements (job cards, search results,
      article reader views). An over-broad match would hide unrelated
      content with no text signal to cross-check against. */
+  /* LinkedIn's current feed renders posts as role=listitem inside
+     data-testid=mainFeed, with hashed atomic class names that change on every
+     deploy. Observed on a real es-locale feed via the plan-079 census: the two
+     legacy selectors above matched 0 of 11 posts while this one matched 11, so
+     every enumerating pass was silently doing nothing there. */
+  const MODERN_FEED_ITEM_SELECTOR = '[data-testid="mainFeed"] [role="listitem"]';
+
   const AUTHOR_BLOCK_SELECTORS = Object.freeze([
     '[data-id*="urn:li:activity:"]',
     ".feed-shared-update-v2",
+    MODERN_FEED_ITEM_SELECTOR,
   ]);
-  /* A narrowly scoped best-effort compatibility fallback for manual
-     controls on LinkedIn's newer React feed. This is NOT used for automatic
-     text, author, Suggested or sponsored filtering: real DOM acceptance is
-     still required before broadening any automatic detection. */
-  const MANUAL_CONTROL_SELECTORS = Object.freeze([
-    ...AUTHOR_BLOCK_SELECTORS,
-    '[data-testid="mainFeed"] [role="listitem"]',
-  ]);
+  /* Manual controls enumerate the same set; kept as its own name because the
+     call site reads better for it. */
+  const MANUAL_CONTROL_SELECTORS = Object.freeze([...AUTHOR_BLOCK_SELECTORS]);
 
   const AUTHOR_LINK_SELECTORS = Object.freeze([
     ".update-components-actor a[href]",
@@ -764,12 +767,7 @@
     root = root || document.body;
 
     for (const selector of AUTHOR_BLOCK_SELECTORS) {
-      /* A mutation-observer root can itself be the post element, and
-         querySelectorAll only matches descendants — include the root in
-         the candidates. */
-      let posts = root.querySelectorAll(selector);
-      if (root.matches?.(selector)) posts = [root, ...posts];
-      for (const post of posts) {
+      for (const post of outermostPostMatches(root, selector)) {
         const authorId = getAuthorId(post);
         if (authorId && blockedAuthors.has(authorId)) {
           blockPost(post, null, { reason: "author-blocklist", authorId });
@@ -791,9 +789,7 @@
     root = root || document.body;
 
     for (const selector of AUTHOR_BLOCK_SELECTORS) {
-      let posts = root.querySelectorAll(selector);
-      if (root.matches?.(selector)) posts = [root, ...posts];
-      for (const post of posts) {
+      for (const post of outermostPostMatches(root, selector)) {
         for (const el of post.querySelectorAll("*")) {
           if (SS_matchesLabel(el.textContent, SS_PROMOTED_LABELS)) {
             blockPost(post, null, { reason: "promoted" });
@@ -948,6 +944,19 @@
      { reason: "author-blocklist", authorId } for the author-blocklist
      pass (plan 008 Decision 2). A null textNode means the block was
      author-driven, not text-driven. */
+  /* Outermost matches only. LinkedIn nests listitems (a comment is a listitem
+     inside a post listitem), so an unfiltered list would treat comments as posts
+     and let one wrapper match hide several posts at once. A no-op for the legacy
+     selectors, which do not nest. */
+  function outermostPostMatches(root, selector) {
+    const nodes = Array.from(root.querySelectorAll(selector));
+    if (root.matches?.(selector)) nodes.unshift(root);
+    return nodes.filter((node) => {
+      const parent = node.parentElement;
+      return !(parent && parent.closest(selector));
+    });
+  }
+
   function getPostKey(el) {
     const own = el.getAttribute("data-id");
     if (own) return own;

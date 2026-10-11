@@ -197,7 +197,7 @@ test("DE-2 still rejects non-bait German sentences", () => {
 });
 
 test("matchesLabel matches each promoted label exactly, one per language", () => {
-  for (const label of ["Promoted", "Patrocinado", "Promu", "Promovido", "Beworben"]) {
+  for (const label of ["Promoted", "Patrocinado", "Promocionado", "Promu", "Promovido", "Beworben"]) {
     assert.equal(matchesLabel(label, PROMOTED_LABELS), true, `expected "${label}" to match`);
   }
 });
@@ -210,6 +210,8 @@ test("matchesLabel matches each featured label exactly, one per language", () =>
 
 test("matchesLabel matches a label followed by the · separator", () => {
   assert.equal(matchesLabel("Promoted · Acme Corp", PROMOTED_LABELS), true);
+  /* Observed on a real es-locale feed: LinkedIn renders "Promocionado". */
+  assert.equal(matchesLabel("Promocionado · Empresa", PROMOTED_LABELS), true);
   assert.equal(matchesLabel("Featured · Something", FEATURED_LABELS), true);
 });
 

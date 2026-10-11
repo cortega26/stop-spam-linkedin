@@ -260,7 +260,18 @@
      checking keeps false positives near zero (a post DISCUSSING promotion
      won't match). */
   /** @type {readonly string[]} */
-  const PROMOTED_LABELS = Object.freeze(["Promoted", "Patrocinado", "Promu", "Promovido", "Beworben"]);
+  /* "Promocionado" is the label LinkedIn actually renders on a Spanish UI. It was
+   OBSERVED on a real es-locale feed (16 posts) while running the plan-079
+   capture census; the previous list guessed "Patrocinado", which LinkedIn did
+   not use, so the opt-in Promoted filter could never match in Spanish. */
+  const PROMOTED_LABELS = Object.freeze([
+    "Promoted",
+    "Patrocinado",
+    "Promocionado",
+    "Promu",
+    "Promovido",
+    "Beworben",
+  ]);
   /** @type {readonly string[]} */
   const FEATURED_LABELS = Object.freeze(["Featured", "Destacados", "En vedette", "Em destaque", "Ausgewählt"]);
 
