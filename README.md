@@ -6,7 +6,7 @@ LinkedIn is useful for finding opportunities and maintaining professional relati
 
 **[Chrome Web Store](https://chromewebstore.google.com/detail/linkedin-spam-blocker/eolknfnafdodmaaajdiidaanpjbfolfc) · [Firefox Add-ons](https://addons.mozilla.org/addon/linkedin-spam-blocker/) · [Latest source](https://github.com/cortega26/stop-spam-linkedin)**
 
-> **Current availability:** the browser stores still publish **1.6.0**, focused on engagement-bait blocking. Feed Control 2.0 is available in source, and the new first-run experience/contextual controls are under review. These aren't claims about what the old store packages already ship. This notice must be updated alongside the store release.
+> **Current availability:** **Firefox Add-ons publishes 2.0.0** ([verified on the listing](https://addons.mozilla.org/addon/linkedin-spam-blocker/)) and the Chrome Web Store is still on **1.6.0** while 2.0.0 sits in review. Until Chrome accepts it, Chrome users keep getting the older engagement-bait-focused package. These aren't claims about what the 1.6.0 packages already ship. Update this notice as each store rolls over.
 
 ![Original Feed Control product illustration (not a browser screenshot)](assets/feed-control-promo.svg)
 
