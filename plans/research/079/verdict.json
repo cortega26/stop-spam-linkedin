@@ -82,7 +82,7 @@
     },
     "capture-live.cjs": {
       "role": "PRIMARY capture path. Connects over loopback CDP to a browser it launches (dedicated profile; the user's normal Chrome is never touched or closed), reads the posts already rendered, classifies them by Suggested label, extracts and sanitises in memory, and stages ten-key entries.",
-      "sha256": "bc6fa62a3c8458d0fd6d76b4c404220ef6093d0046277a7c7eb0f5e4e28ef79d",
+      "sha256": "cc2f9af51f394692bf598e99ded5b417f38335fd38197a04d81309863e0be8f8",
       "rawMarkupTouchesDisk": false,
       "doesNot": [
         "click",
@@ -108,11 +108,12 @@
       "extensionsDisabledByDefault": "Extensions are disabled during capture unless --with-extensions: a content script that rewrites the DOM (including this repo's own extension) makes the capture worse evidence about what LinkedIn rendered.",
       "scrollReporting": "Honest stop reporting: gather() returns stepsRun and stoppedReason ('target-reached', 'feed-stopped-growing', or 'budget'), and the failure message distinguishes 'the feed stopped yielding new posts, so raising --max-scrolls will not help' from 'budget exhausted, try a larger one'. An earlier version hardcoded the budget into the message and claimed 'scrolled 12 times' after only four iterations -- a user reported the output as suspiciously fast, and the message was simply false.",
       "scrollMechanism": "Growth is detected by the identity of the TAIL post changing, because LinkedIn unmounts posts as it mounts others so a raw count can stay flat while new content loads. Scrolling uses scrollIntoView on the last post rather than window.scrollBy, so it works whether LinkedIn scrolls the window or an inner container. An earlier version compared the deduped seen-count against the raw DOM count, which was incomparable and made the loop give up almost immediately.",
-      "selectorOverride": "--meta-selector SEL overrides the header-metadata selector. A selector validity pre-flight asks the browser's own parser, so an invalid selector names the CSS error; a valid-but-zero-match selector is reported explicitly rather than silently finding nothing."
+      "selectorOverride": "--meta-selector SEL overrides the header-metadata selector. A selector validity pre-flight asks the browser's own parser, so an invalid selector names the CSS error; a valid-but-zero-match selector is reported explicitly rather than silently finding nothing.",
+      "labelDetection": "CLASS-INDEPENDENT. --diagnose on the reporting user's live feed showed LinkedIn now serves hashed atomic class names (gflljw, gflkzy, gflkxr, ...) that change every deploy, and that its two legacy post selectors match ZERO posts. Any class-based selector for the header slot is therefore worthless. The reader instead collects SHORT TEXT strings from every element in each post and matches the declared label by EXACT equality, which is deploy-proof and language-proof. --meta-selector remains available as an additive source."
     },
     "capture-live.test.cjs": {
       "role": "Offline tests for the language handling (no browser needed): degree detection across locales, label clustering, and the positive/fail-open-negative decision.",
-      "count": 9
+      "count": 12
     }
   },
   "leakVerifierRules": [
@@ -419,6 +420,16 @@
       "claim": "sanitizeText reported changed:true when the replacement was byte-identical, which would have made the idempotence property report phantom changes.",
       "classification": "OBSERVED",
       "disposition": "FIXED."
+    },
+    {
+      "id": "F-05",
+      "claim": "On the reporting user's live LinkedIn feed, both legacy post selectors match ZERO posts: '[data-id*=\"urn:li:activity:\"]' = 0 and '.feed-shared-update-v2' = 0 out of 16 detected posts. The third POST_SELECTORS entry, 'article', also matched 0. Only the modern '[data-testid=\"mainFeed\"] [role=\"listitem\"]' shape matched (16).",
+      "classification": "OBSERVED (selector counts, via --diagnose against the user's own feed) + SOURCE-VERIFIED (the selector values at content.js:34-48)",
+      "evidence": "post candidates per selector family: 0 [data-id*=urn:li:activity:], 0 .feed-shared-update-v2, 16 [data-testid=mainFeed] [role=listitem], 0 article; header-meta elements matched by META_SELECTOR: 0",
+      "implication": "scanForBlockedAuthors and scanForLabeledPosts enumerate ONLY via AUTHOR_BLOCK_SELECTORS (content.js:45-48), so on this feed shape the author blocklist and the opt-in Promoted filter have nothing to enumerate. The 068 detector's POST_SELECTOR is the same pair, so it cannot target anything either.",
+      "uncertainty": "LinkedIn A/B-tests layouts, so this is a property of one account at one time and must not be generalised to all users. Text-based bait blocking uses a selector-free sibling heuristic FIRST (shared/post-container.js:44-99), which may still resolve containers, so bait blocking is not necessarily broken - only the selector-based passes are demonstrably empty. Whether the manual-control gate still passes depends on '[data-testid=\"expandable-text-box\"]', which could NOT be measured on the synthetic fixture because it does not model that element.",
+      "consistency": "This is consistent with AGENTS.md:146: the modern React shape was known only from competitor source because there were 'no first-hand authenticated LinkedIn samples'. It is now measured on a real feed.",
+      "disposition": "REPORTED, deliberately not fixed. Changing production selectors is out of scope for this research plan and must be gated on a real capture - which is exactly what this pipeline now produces. A production plan should follow."
     }
   ]
 }

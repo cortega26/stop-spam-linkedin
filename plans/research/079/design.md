@@ -313,6 +313,40 @@ pinned by a test, and the contributor guide states the rule. There is no
 heuristic name-detector by design: a guess there would false-positive on ordinary
 metadata and block legitimate donations.
 
+### 9.5 F-05 — measured on a real feed: the legacy post selectors are dead
+
+`--diagnose` against the reporting user's own authenticated feed returned:
+
+```
+     0  [data-id*="urn:li:activity:"]      <- AUTHOR_BLOCK_SELECTORS
+     0  .feed-shared-update-v2             <- AUTHOR_BLOCK_SELECTORS
+    16  [data-testid="mainFeed"] [role="listitem"]
+     0  article                            <- POST_SELECTORS fallback
+     0  header-meta elements matched by META_SELECTOR
+```
+
+Header classes are hashed atomic names (`gflljw`, `gflkzy`, `gflkxr`, …) that
+change every deploy. Two consequences:
+
+1. **Product.** `scanForBlockedAuthors` and `scanForLabeledPosts` enumerate only
+   via `AUTHOR_BLOCK_SELECTORS` (`content.js:45-48`), so on this shape the author
+   blocklist and the opt-in Promoted filter have nothing to enumerate. The 068
+   detector shares the same pair, so it cannot target anything either. Text-based
+   bait blocking uses the selector-free sibling heuristic *first*
+   (`shared/post-container.js:44-99`) and may still work — this finding does not
+   claim bait blocking is broken.
+2. **This plan.** It is why label detection had to become class-independent
+   (§8). Text is the only deploy-stable signal.
+
+Bounded honestly: LinkedIn A/B-tests layouts, so this is one account at one time
+and must not be generalised. `expandable-text-box` could not be measured on the
+synthetic fixture, so the manual-control gate's status is **UNKNOWN**, not
+"broken". It also directly vindicates `AGENTS.md:146` — the modern shape was
+previously known only from competitor source, and is now measured on a real feed.
+
+Disposition: **reported, not fixed.** Production selector changes are out of
+scope here and must be gated on a real capture, which this pipeline now produces.
+
 ## 10. What this plan does NOT do
 
 * It does not obtain a capture. Only someone with a logged-in LinkedIn feed can

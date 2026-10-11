@@ -87,6 +87,10 @@ const META_SELECTOR = [
    JavaScript's \b, so a trailing boundary silently fails to match it. */
 const DEGREE_RE = /^\s*[•·]?\s*\d+\s*(?:º|°|ᵒ|ᵉʳ|ʳᵉ|ᵈ|ⁿᵈ|ʳᵈ|ᵗʰ|ˢᵗ|st|nd|rd|th|er|ème|eme|e)\s*[•·]?\s*$/i;
 
+/* Short strings that are never a recommendation label: reaction/comment counts,
+   timestamps, and common UI verbs. Keeps the pick list readable. */
+const SHORT_NOISE_RE = /^[\d.,\s]+$|^\d+\s*\p{L}{1,4}$|\b(reacciones?|comentarios?|recompartir|compartir|comentar|me gusta|seguir|reactions?|comments?|reposts?|like|share|comment|follow|followers?|seguidores?)\b/iu;
+
 const RED = "\u001b[31m";
 const GRN = "\u001b[32m";
 const YEL = "\u001b[33m";
@@ -278,6 +282,8 @@ async function selectorCensus(page, metaSelector) {
         ".feed-shared-update-v2",
         '[data-testid="mainFeed"] [role="listitem"]',
         '[role="listitem"]',
+        "article",
+        '[data-testid="expandable-text-box"]',
       ],
       metaSelector: metaSelector || META_SELECTOR,
       skeletonLimit: 28,
@@ -339,17 +345,32 @@ async function checkSelectors(page, selectors) {
 
 async function readPage(page, metaSelector) {
   return page.evaluate(
-    ({ postSelector, metaSelector }) => {
+    ({ postSelector, extraSelector }) => {
       const uiLocale = (document.documentElement.getAttribute("lang") || "").trim();
       const all = Array.from(document.querySelectorAll(postSelector));
       const outermost = all.filter((el) => !(el.parentElement && el.parentElement.closest(postSelector)));
+
       const candidates = outermost.map((el) => {
-        const meta = Array.from(el.querySelectorAll(metaSelector))
-          .map((n) => (n.textContent || "").trim()).filter(Boolean);
-        const body = (el.querySelector('.feed-shared-text, .post-body, [data-testid="expandable-text-box"]') || {}).textContent || "";
+        /* Collect SHORT text strings from every element in the post. This is
+           deliberately class-independent: LinkedIn's current feed uses hashed
+           atomic class names (gflkzy, gflkxr, ...) that change every deploy, so
+           any class-based selector for the header slot is worthless. Text is the
+           only stable signal. Degrees like "• 2º" are filtered out later. */
+        const shortTexts = new Set();
+        for (const node of el.querySelectorAll("*")) {
+          const t = (node.textContent || "").trim();
+          if (t && t.length <= 60) shortTexts.add(t);
+        }
+        if (extraSelector) {
+          for (const node of el.querySelectorAll(extraSelector)) {
+            const t = (node.textContent || "").trim();
+            if (t) shortTexts.add(t);
+          }
+        }
+        const fullText = el.textContent || "";
         return {
-          meta,
-          bodyMentionsSuggest: /suggest|suger|vorgeschlagen|suggér|sugest/i.test(body),
+          shortTexts: [...shortTexts],
+          bodyMentionsSuggest: /suggest|suger|vorgeschlagen|suggér|sugest/i.test(fullText),
           shape: el.getAttribute("data-id") ? "legacy" : el.matches('[role="listitem"]') ? "modern" : "other",
           enumerable: !!el.getAttribute("data-id") || el.classList.contains("feed-shared-update-v2"),
           html: el.outerHTML,
@@ -357,7 +378,7 @@ async function readPage(page, metaSelector) {
       });
       return { uiLocale, candidates };
     },
-    { postSelector: POST_SELECTOR, metaSelector: metaSelector || META_SELECTOR }
+    { postSelector: POST_SELECTOR, extraSelector: metaSelector || null }
   );
 }
 
@@ -434,12 +455,24 @@ async function gather(page, opts, { target, accept, budget }) {
 function labelClusters(candidates) {
   const counts = new Map();
   for (const c of candidates) {
-    for (const text of c.meta) {
+    for (const text of c.shortTexts || []) {
       if (DEGREE_RE.test(text)) continue; /* organic: from your network */
+      if (SHORT_NOISE_RE.test(text)) continue; /* counts, timestamps, UI verbs */
       counts.set(text, (counts.get(text) || 0) + 1);
     }
   }
-  return [...counts.entries()].map(([text, count]) => ({ text, count })).sort((a, b) => b.count - a.count);
+  /* Label-like strings first: short, no terminal period, no digits. A post body
+     that happens to be short would otherwise sit above the real label. */
+  const labelLike = (t) => /^\S+(?:\s+\S+){0,3}$/.test(t) && !/[.。!?]$/.test(t) && !/\d/.test(t);
+  return [...counts.entries()]
+    .map(([text, count]) => ({ text, count, labelLike: labelLike(text) }))
+    .sort((a, b) => (a.labelLike === b.labelLike ? b.count - a.count : a.labelLike ? -1 : 1))
+    .slice(0, 15);
+}
+
+/** Post-has-this-label, by exact text equality. Class-independent on purpose. */
+function postHasLabel(candidate, label) {
+  return (candidate.shortTexts || []).includes(label);
 }
 
 async function resolveSuggestedLabel(opts, locale, clusters, map) {
@@ -449,7 +482,11 @@ async function resolveSuggestedLabel(opts, locale, clusters, map) {
   if (clusters.length === 0) return { label: null };
 
   console.error(`\n${DIM}Label strings found in post headers that are NOT a connection degree:${OFF}`);
-  clusters.forEach((c, i) => console.error(`  ${i + 1}. ${JSON.stringify(c.text)}  ${DIM}(${c.count} post${c.count > 1 ? "s" : ""})${OFF}`));
+  clusters.forEach((c, i) =>
+    console.error(
+      `  ${i + 1}. ${JSON.stringify(c.text)}  ${DIM}(${c.count} post${c.count > 1 ? "s" : ""})${c.labelLike ? " " + GRN + "<- label-like" + OFF + DIM : ""}${OFF}`
+    )
+  );
   console.error(`${DIM}Pick the one marking a "Suggested" post (not "Promoted"/"Sponsored").${OFF}`);
 
   if (!process.stdin.isTTY) {
@@ -595,7 +632,7 @@ async function main() {
     return 1;
   }
 
-  const metaElementsSeen = gathered.candidates.reduce((n, c) => n + c.meta.length, 0);
+  const metaElementsSeen = gathered.candidates.reduce((n, c) => n + (c.shortTexts || []).length, 0);
   if (metaElementsSeen === 0 && opts.metaSelector) {
     warn(`--meta-selector ${JSON.stringify(opts.metaSelector)} matched no header elements on this page.`);
     console.error("    Run --diagnose to see the real element skeleton and pick the right class.");
@@ -614,7 +651,7 @@ async function main() {
   }
   ok(`UI locale ${JSON.stringify(gathered.uiLocale || "?")} → metadataLocale "${locale}"; label ${JSON.stringify(label)} (${resolved.source})`);
 
-  const countWithLabel = (list) => list.filter((c) => c.meta.includes(label)).length;
+  const countWithLabel = (list) => list.filter((c) => postHasLabel(c, label)).length;
   if (countWithLabel(gathered.candidates) === 0) {
     console.error(`${DIM}    none yet — scrolling further for ${JSON.stringify(label)}...${OFF}`);
     gathered = await gather(page, opts, {
@@ -624,7 +661,7 @@ async function main() {
   }
 
   const { candidates } = gathered;
-  const matched = candidates.filter((c) => c.meta.includes(label));
+  const matched = candidates.filter((c) => postHasLabel(c, label));
   if (matched.length === 0) {
     if (gathered.stoppedReason === "feed-stopped-growing") {
       warn(`no post carries ${JSON.stringify(label)}, and the feed stopped yielding new posts after ${gathered.stepsRun} scroll(s).`);
@@ -648,7 +685,7 @@ async function main() {
      forceNegative is only for the non-matching control posts added below. */
   for (const c of (positives.length ? positives : matched).slice(0, opts.maxPositives)) chosen.push({ ...c, label });
 
-  const others = candidates.filter((c) => !c.meta.includes(label));
+  const others = candidates.filter((c) => !postHasLabel(c, label));
   const bodyMention = others.find((c) => c.bodyMentionsSuggest);
   if (bodyMention) chosen.push({ ...bodyMention, label, forceNegative: true });
   const posShape = chosen[0] ? chosen[0].shape : "legacy";
@@ -660,7 +697,7 @@ async function main() {
   if (opts.verbose) {
     console.table(candidates.slice(0, 25).map((c) => ({
       index: c.index,
-      hasLabel: c.meta.includes(label) ? "YES" : "",
+      hasLabel: postHasLabel(c, label) ? "YES" : "",
       shape: c.shape,
       body: c.bodyMentionsSuggest ? "mentions" : "",
       selected: chosen.some((x) => x.index === c.index) ? "yes" : "",
@@ -757,4 +794,4 @@ if (require.main === module) {
     });
 }
 
-module.exports = { DEGREE_RE, labelClusters, expectationFor, LABEL_MAP_PATH };
+module.exports = { DEGREE_RE, SHORT_NOISE_RE, labelClusters, postHasLabel, expectationFor, LABEL_MAP_PATH };
