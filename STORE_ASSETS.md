@@ -1,87 +1,55 @@
 # Feed Control — Store Copy and Visual Assets (proposed for next release)
 
-> **Publication status:** Draft copy and source visual only. The published Chrome/Firefox listings retain the existing product until a new package passes CI, visual QA and store review. Update actual store screenshots from the tested build, never from synthetic mocked UI.
+> **Publication status:** This file contains the corrected Chrome listing text after the 2026-10-11 Yellow Argon rejection; it has **not** yet been applied in the Chrome developer console. Firefox 2.0.0 is available and Chrome still serves 1.6.0 until the rejected 2.0.0 draft is edited and approved. Update actual store screenshots from the tested build, never from synthetic mocked UI.
 
 ## Store name
 **LinkedIn Feed Control** — the shipped name in `manifest.json`. (The AMO listing
 still shows the retired name *LinkedIn Spam Blocker*; that is a listing field, not
 the package.)
 
+## Chrome Web Store rejection remediation — 2026-10-15
+
+The 2026-10-11 Chrome Web Store submission of **LinkedIn Feed Control** (`eolknfnafdodmaaajdiidaanpjbfolfc`) was rejected for **Yellow Argon / keyword stuffing**. The reviewer explicitly flagged the old dashboard description that enumerated LinkedIn sections: "feed, profile, post, company, group, search, My Network, notification, jobs, newsletter, and article pages". This is **listing metadata**, not a manifest defect. Do not reintroduce that coverage list in short or long descriptions.
+
+**Ready for manual resubmission:** use the concise Store listing below, rather than the rejected dashboard copy. Make edits in **Chrome Web Store Developer Dashboard → Store listing**, review privacy/screenshots for 2.0.0, and resubmit the existing rejected draft. Do **not** create a new version, tag, package or trigger the release workflow solely for this metadata correction. A GitHub commit does **not** update the Chrome dashboard listing. The repository copy is the reviewed source text, **not proof that the dashboard has been updated or that Google has approved it**.
+
+Official policy: https://developer.chrome.com/docs/webstore/troubleshooting/#keyword-stuffing
+
 ## English — Short description (Chrome limit: 132 chars)
 
-Take back your LinkedIn feed. Hide any post, mute authors, filter promotions — all local, zero network requests.
+Hide unwanted LinkedIn posts, mute authors, and filter engagement bait privately, with reversible controls.
 
 ## English — Full description
 
-### Stop scrolling past noise you never asked for
+Take control of what you see in your LinkedIn feed. LinkedIn Feed Control helps you reduce distracting content while keeping the conversations you value.
 
-LinkedIn's feed decides what you see. Feed Control hands those decisions back to you — quietly, locally, and always reversible.
+- Hide an individual feed post and show it again when you change your mind.
+- Mute an author from a recognized post.
+- Filter common "comment for a template" engagement bait using editable phrase rules stored in your browser.
+- Choose whether to hide promoted posts. This setting is off by default.
+- Protect trusted authors or phrases, customize rules, and import or export your preferences.
 
-One click hides the post you're done with. One click mutes the author who keeps repeating. A local rule catches "comment CLAUDE and I'll send you the framework" before you ever read it.
+Filtering happens locally in your browser. No separate account, analytics, or feed-content uploads to developer servers. The extension does not follow people, publish posts, send messages, or change LinkedIn's recommendations on its servers.
 
-**No account. No sign-up. No tracking. And no AI guessing at what you should want.**
-
-### What you get
-
-- **Hide any feed post, instantly.** *Feed options → Hide this post.* Every hide keeps a one-click **Show** to bring it back.
-- **Mute an author on the spot.** *Feed options → Mute this author*, on posts where the author is recognised — no settings safari.
-- **Kill engagement bait automatically.** Editable local rules catch "comment X for a template" posts in English, Spanish, French, Portuguese and German.
-- **Filter promoted posts, if you want.** Off by default. One toggle, no reload.
-- **Keep what matters.** Trusted authors and protected phrases are never hidden.
-- **Write your own rules.** Add phrases, see which rule matched, exclude false positives, review per-rule counts.
-- **Take your settings with you.** Export and import. No cloud involved.
-
-### Why it's different: nothing leaves your browser
-
-This extension makes **zero network requests.** No analytics, no telemetry, no remote rule list, no AI service, no CDN assets. It asks for two permissions: storage and a context menu.
-
-Your feed, your reading habits and the authors you mute stay on your machine. We could not see them if we wanted to.
-
-It's honest about its limits too: it changes what *your browser* shows, not LinkedIn's servers or its ranking. It never follows, unfollows, posts, messages or automates anything on your behalf.
-
-### Free, quiet, and easy to undo
-
-Nothing is permanent, nothing is silent, and there's no trap waiting for you later. Don't like a rule? Turn it off. Changed your mind? Press **Show**.
-
-**Install it. Use LinkedIn normally. Take your feed back.**
+You can pause filtering, edit your rules, and restore hidden posts. Some LinkedIn layouts may not support every manual control. Automatic Suggested-post and connection-activity filtering are not included.
 
 ## Español — Descripción breve
 
-Recupera tu feed de LinkedIn. Oculta publicaciones, silencia autores y filtra promociones, todo local.
+Oculta publicaciones de LinkedIn, silencia autores y filtra contenido repetitivo desde tu navegador, con controles reversibles.
 
 ## Español — Descripción completa
 
-### Deja de cruzarte con ruido que nunca pediste
+Controla mejor lo que aparece en tu feed de LinkedIn. LinkedIn Feed Control reduce las distracciones sin ocultarte las conversaciones que te interesan.
 
-El feed de LinkedIn decide qué ves. Feed Control te devuelve esas decisiones: en silencio, en local y siempre reversible.
+- Oculta publicaciones individuales y vuelve a mostrarlas cuando quieras.
+- Silencia autores desde publicaciones reconocidas.
+- Filtra publicaciones que buscan comentarios a cambio de plantillas con reglas locales editables.
+- Activa el filtro de publicaciones promocionadas solo si lo deseas. Viene desactivado.
+- Protege autores o frases, personaliza tus reglas e importa o exporta tu configuración.
 
-Un clic oculta la publicación que ya no te interesa. Un clic silencia al autor que se repite. Una regla local frena los "comenta CLAUDE y te envío la plantilla" antes de que llegues a leerlos.
+El filtrado ocurre en tu navegador. No requiere crear una cuenta adicional, no incorpora analíticas y no envía el contenido del feed a servidores del desarrollador. No sigue personas, publica mensajes ni modifica las recomendaciones en los servidores de LinkedIn.
 
-**Sin cuenta. Sin registro. Sin seguimiento. Y sin que una IA adivine qué deberías querer ver.**
-
-### Lo que consigues
-
-- **Oculta cualquier publicación del feed al instante.** *Opciones del feed → Ocultar esta publicación.* Todo lo oculto conserva un **Mostrar** a un clic.
-- **Silencia a un autor en el momento.** *Opciones del feed → Silenciar a este autor*, en publicaciones donde el autor se reconoce.
-- **Bloquea el bait de interacción automáticamente.** Reglas locales editables en inglés, español, francés, portugués y alemán.
-- **Filtra publicaciones promocionadas, si quieres.** Desactivado por defecto. Un interruptor, sin recargar.
-- **Conserva lo importante.** Autores de confianza y frases protegidas nunca se ocultan.
-- **Crea tus propias reglas.** Añade frases, mira qué regla coincidió, descarta falsos positivos y revisa contadores por regla.
-- **Llévate tu configuración.** Exporta e importa. Sin nube de por medio.
-
-### La diferencia: nada sale de tu navegador
-
-Esta extensión hace **cero peticiones de red.** Sin analíticas, sin telemetría, sin listas remotas, sin IA externa, sin recursos desde CDN. Solo pide dos permisos: almacenamiento y menú contextual.
-
-Tu feed, tus lecturas y los autores que silencias se quedan en tu equipo. No podríamos verlos ni queriendo.
-
-Y es honesta con sus límites: cambia lo que muestra *tu navegador*, no los servidores ni el ranking de LinkedIn. No sigue, deja de seguir, publica, envía mensajes ni automatiza nada por ti.
-
-### Gratis, discreta y fácil de deshacer
-
-Nada es permanente, nada es silencioso y no hay trampa esperándote después. ¿No te convence una regla? Desactívala. ¿Cambiaste de opinión? Pulsa **Mostrar**.
-
-**Instálala. Usa LinkedIn con normalidad. Recupera tu feed.**
+Puedes pausar los filtros, editar tus reglas y recuperar publicaciones ocultas. Algunas interfaces de LinkedIn pueden no admitir todos los controles manuales. El filtrado automático de sugerencias y actividad de contactos no está incluido.
 
 ---
 
