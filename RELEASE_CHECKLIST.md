@@ -19,6 +19,17 @@
 - Confirm the zip includes extension runtime files, locales, icons, popup/options files, privacy policy, README, changelog, release notes, version file, and license.
 - Confirm the zip excludes `node_modules/`, `tests/`, `scripts/`, `.codacy/`, `.agents/`, `.claude/`, `.continue/`, `assets/`, `screenshots/`, and local/editor files.
 
+## Chrome Store listing-only rejection (2026-10-11)
+
+The 2.0.0 Chrome Web Store submission was **rejected for Yellow Argon keyword stuffing** in the long Store listing description; specifically Google identified the enumerated LinkedIn page/section coverage list. This is a store metadata rejection rather than evidence of a runtime defect.
+
+1. Open the existing rejected item `eolknfnafdodmaaajdiidaanpjbfolfc` in Chrome Web Store Developer Dashboard and select **Store listing**.
+2. Replace the current short and full description with the correct English (and Spanish, if configured) copy in [STORE_ASSETS.md](STORE_ASSETS.md). Remove the rejected section enumeration wherever it occurs in localized listing descriptions; don't replace it with another list of supported pages.
+3. Save the metadata; verify screenshots and privacy disclosures still reflect the intended 2.0.0 build. Resubmit the **existing rejected draft** for review. Do not create a new Git tag, package, or auto-submit both Chrome and Firefox for a copy-only fix. No new extension zip is needed unless package code/assets change.
+4. Capture actual dashboard submission confirmation. Until Google approves, keep Chrome **1.6.0** as the live version. If a further review rejects the copy, record the exact policy message before changing it again.
+
+**GitHub text updates cannot edit the developer dashboard.** Google's confirmed remediation is to remove offending terms from the listing, not to adjust extension runtime permissions or broaden the scope of the listing.
+
 ## Store Submission
 
 ### Automated (CI)
